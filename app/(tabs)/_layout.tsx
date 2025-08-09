@@ -1,23 +1,11 @@
-// app/(tabs)/_layout.tsx
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { PenLine, FileText, Sparkles, Settings, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: '#4f50e3',
-        tabBarStyle: {
-          borderTopWidth: 0,
-          elevation: 0,
-          backgroundColor: '#fff',
-          height: 70,
-        },
-      }}
-    >
+    <Tabs screenOptions={{ headerShown: false, tabBarShowLabel: false, tabBarActiveTintColor: '#4f50e3', tabBarStyle: { borderTopWidth: 0, elevation: 0, backgroundColor: 'white', height: 70 }}}>
+
       <Tabs.Screen
         name="journal"
         options={{
@@ -58,10 +46,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/*
-        If you want a “catch-all” (404) screen in this tab group, you can create
-        `app/(tabs)/[...404].tsx`. Expo Router will automatically pick it up.
-      */}
     </Tabs>
   );
 }

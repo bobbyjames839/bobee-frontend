@@ -1,21 +1,14 @@
 import React, { useState, useContext, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { getAuth } from 'firebase/auth';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
+import { Smile, Zap, Check } from 'lucide-react-native';
 
 type PlanKey = 'free' | 'pro';
+
 const plans: Record<PlanKey, { title: string; tagline: string; price: string; features: string[]; icon: string }> = {
   free: {
     title: 'Free Tier',
@@ -36,6 +29,8 @@ const plans: Record<PlanKey, { title: string; tagline: string; price: string; fe
 const TAB_MARGIN = 8;
 const tabWidth = (Dimensions.get('window').width - 32 - TAB_MARGIN) / 2;
 
+const iconForPlan = (key: PlanKey) => (key === 'pro' ? Zap : Smile);
+
 function SubscriptionInner() {
   const { isSubscribed } = useContext(SubscriptionContext);
   const [selectedTab, setSelectedTab] = useState<PlanKey>('free');
@@ -52,13 +47,11 @@ function SubscriptionInner() {
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      // 1) Grab Firebase ID token
       const auth = getAuth();
       const user = auth.currentUser;
       if (!user) throw new Error('Not logged in');
       const idToken = await user.getIdToken(false);
 
-      // 2) Call backend for SetupIntent
       const resp = await fetch(`${API_BASE}/api/subscribe`, {
         method: 'POST',
         headers: {
@@ -72,23 +65,20 @@ function SubscriptionInner() {
         throw new Error(json.error || `HTTP ${resp.status}`);
       }
 
-      // 3) Destructure the correct fields
       const { customer, ephemeralKey, setupIntent } = json;
       if (!customer || !ephemeralKey || !setupIntent) {
         console.error('[handleUpgrade] missing fields:', json);
         throw new Error('Invalid response from server');
       }
 
-      // 4) Initialize the sheet in setup mode
       const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'YourAppName',
+        merchantDisplayName: 'Bobee',
         customerId: customer,
         customerEphemeralKeySecret: ephemeralKey,
         setupIntentClientSecret: setupIntent,
       });
       if (initError) throw initError;
 
-      // 5) Present the sheet
       const { error: presentError } = await presentPaymentSheet();
       if (presentError) throw presentError;
 
@@ -115,6 +105,7 @@ function SubscriptionInner() {
   const userPlan: PlanKey = isSubscribed ? 'pro' : 'free';
   const planDetails = plans[selectedTab];
   const isCurrentPlan = selectedTab === userPlan;
+  const DetailIcon = iconForPlan(selectedTab);
 
   return (
     <View style={styles.container}>
@@ -127,7 +118,7 @@ function SubscriptionInner() {
       {/* Plan Detail */}
       <View style={styles.planDetailBox}>
         <View style={styles.decorCircle}>
-          <Ionicons name={planDetails.icon} size={50} color={colors.blue} />
+          <DetailIcon size={50} color={colors.blue} />
         </View>
         <Text style={styles.planTitle}>{planDetails.title}</Text>
         <Text style={styles.planTagline}>{planDetails.tagline}</Text>
@@ -138,7 +129,7 @@ function SubscriptionInner() {
         <View style={styles.featuresList}>
           {planDetails.features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
-              <Ionicons name="checkmark" size={20} color={colors.blue} />
+              <Check size={20} color={colors.blue} />
               <Text style={styles.featureText}>{f}</Text>
             </View>
           ))}
@@ -162,6 +153,7 @@ function SubscriptionInner() {
       <View style={styles.tabContainer}>
         {(['free','pro'] as PlanKey[]).map((key) => {
           const active = selectedTab === key;
+          const TabIcon = iconForPlan(key);
           return (
             <TouchableOpacity
               key={key}
@@ -171,7 +163,7 @@ function SubscriptionInner() {
                 setSelectedTab(key);
               }}
             >
-              <Ionicons name={plans[key].icon} size={28} color={active ? '#fff' : colors.darkest} style={{ marginBottom: 6 }} />
+              <TabIcon size={28} color={active ? '#fff' : colors.darkest} style={{ marginBottom: 6 }} />
               <Text style={[styles.tabText, active && styles.activeTabText]}>
                 {plans[key].title.split(' ')[0]}
               </Text>
@@ -196,6 +188,7 @@ export default function Subscription() {
     </StripeProvider>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

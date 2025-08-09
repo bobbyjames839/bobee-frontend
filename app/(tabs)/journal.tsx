@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import JournalMic from '~/components/journal/JournalMic';
 import JournalPrompt from '~/components/journal/JournalPrompt';

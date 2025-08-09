@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, use } from 'react'
 import { Animated, ScrollView } from 'react-native'
 import { getAuth } from 'firebase/auth'
 import Constants from 'expo-constants';
@@ -44,21 +44,17 @@ export default function useBobee() {
           .catch((err) => console.warn('Failed to save conversation:', err))
       }
 
-      // Reset state after save
       setHistory([])
       setExpanded(new Set())
       setConversationId(null)
     }
   }, [showChat])
 
-
-  // Persist entire history as flat fields: message1, message2, …
   const saveConversation = useCallback(async (): Promise<void> => {
     if (history.length === 0) return
     const uid = getAuth().currentUser?.uid
     if (!uid) return
 
-    // Build transcript client‑side if you like, or let the backend do it
     const transcript = history
       .map(
         (item, i) =>
@@ -66,10 +62,8 @@ export default function useBobee() {
       )
       .join('\n')
 
-    // Get fresh Firebase ID token
     const idToken = await getAuth().currentUser!.getIdToken(true)
 
-    // Single call: hand off everything to the backend
     const res = await fetch(`${API_BASE}/api/save-conversation`, {
       method: 'POST',
       headers: {
@@ -97,10 +91,8 @@ export default function useBobee() {
     const user = getAuth().currentUser
     if (!user) return
 
-    // get fresh Firebase ID token for auth
     const idToken = await user.getIdToken(true)
 
-    // call your backend instead of Firestore client
     const res = await fetch(`${API_BASE}/api/open-conversation/${id}`, {
       method: 'GET',
       headers: {
@@ -113,7 +105,6 @@ export default function useBobee() {
       return
     }
 
-    // backend returns history[]
     const { history } = (await res.json()) as { history: HistoryItem[] }
 
     setHistory(history)
@@ -122,7 +113,8 @@ export default function useBobee() {
     setConversationId(id)
   }, [setHistory, setExpanded, setShowChat, setConversationId])
 
-  // Pulsating “thinking” animation
+
+
   useEffect(() => {
     if (isLoading) {
       const loop = Animated.loop(
@@ -145,25 +137,25 @@ export default function useBobee() {
     pulseAnim.setValue(1)
   }, [isLoading, pulseAnim])
 
-  // Auto‐scroll when new messages arrive
+
+  
   useEffect(() => {
     if (showChat) {
       scrollRef.current?.scrollToEnd({ animated: true })
     }
   }, [history, showChat])
 
-  // Load user facts once
+
+  
   useEffect(() => {
     const user = getAuth().currentUser
     if (!user) return
 
-    ;(async () => {
+    (async () => {
       try {
-        // get fresh token for backend auth
         const idToken = await user.getIdToken(true)
 
-        // call your backend instead of Firestore client
-        const res = await fetch(`${API_BASE}/api/load-facts`, {
+        const res = await fetch(`${API_BASE}/api/load-user-facts`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${idToken}`,
@@ -193,22 +185,18 @@ export default function useBobee() {
     const question = input.trim()
     if (!question) return
 
-    // ——— Grab & assert auth user up front ———
     const user = getAuth().currentUser
     if (!user) return
     const uid = user.uid
 
-    // ——— Push blank question & start loading ———
     setHistory(h => [...h, { question, answer: '' }])
     setShowChat(true)
     setIsLoading(true)
     setInput('')
-
+    console.log(userFacts, conversationId, question, history)
     try {
-      // get fresh token for backend auth
       const idToken = await user.getIdToken(true)
 
-      // call backend to handle everything
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: {
@@ -223,7 +211,6 @@ export default function useBobee() {
         }),
       })
 
-      // make sure we got JSON back
       const contentType = res.headers.get('content-type') || ''
       if (!contentType.includes('application/json')) {
         const text = await res.text()
@@ -236,10 +223,8 @@ export default function useBobee() {
         throw new Error(payload.error || `Request failed with status ${res.status}`)
       }
 
-      // unpack response
       const { answer, reasoning, followup, conversationId: newId } = payload
 
-      // update the last (blank) entry with the real answer
       setHistory(h => {
         const copy = [...h]
         copy[copy.length - 1] = { question, answer, reasoning, followup }

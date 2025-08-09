@@ -1,4 +1,3 @@
-// constants/colors.ts
 export const colors = {
   dark: 'rgb(55, 55, 55)',
   darker: 'rgb(35, 35, 35)',

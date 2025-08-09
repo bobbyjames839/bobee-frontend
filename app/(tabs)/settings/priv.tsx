@@ -1,18 +1,9 @@
-// app/(tabs)/settings/privacy.tsx
 import React from 'react';
-import {
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-} from 'react-native';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { colors } from '~/constants/Colors';
 
 export default function Privacy() {
   const openPrivacy = () => {
-    // TODO: replace with your actual Privacy Statement URL
     Linking.openURL('https://example.com/privacy');
   };
 

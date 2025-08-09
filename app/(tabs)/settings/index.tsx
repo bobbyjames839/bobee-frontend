@@ -1,13 +1,5 @@
-// app/(tabs)/settings/index.tsx
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, signOut } from 'firebase/auth';
@@ -26,7 +18,6 @@ export default function SettingsIndex() {
   const router = useRouter();
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  // Reset confirmLogout whenever this screen comes back into focus
   useFocusEffect(
     useCallback(() => {
       setConfirmLogout(false);
@@ -78,7 +69,6 @@ export default function SettingsIndex() {
           </TouchableOpacity>
         ))}
 
-        {/* Two-step logout with auto-reset on unfocus */}
         <TouchableOpacity
           style={styles.logoutItem}
           onPress={onPressLogout}

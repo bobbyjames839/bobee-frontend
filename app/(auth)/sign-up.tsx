@@ -1,30 +1,14 @@
-// src/components/auth/SignUp.tsx
 import React, { useState } from 'react'
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-} from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native'
 import { BlurView } from 'expo-blur'
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from 'firebase/auth'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '~/utils/firebase'
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
 import { router } from 'expo-router'
 import { colors } from '~/constants/Colors'
 import ErrorBanner from '~/components/banners/ErrorBanner'
+import Constants from 'expo-constants'
 
-const db = getFirestore()
+const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 const MIN_PASSWORD_LENGTH = 8
 
 export default function SignUpScreen() {
@@ -36,87 +20,53 @@ export default function SignUpScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+
+  // 1. Frontend: User fills name, email, password in UI.
+  // 2. Frontend: Runs basic validation before sending to backend.
+  // 3. Backend: Validates data and creates user with Firebase Admin.
+  // 4. Backend: Sets displayName/photoURL and creates Firestore docs.
+  // 5. Backend: Sends success response to frontend.
+  // 6. Frontend: Logs user in locally and navigates to main screen.
   const handleSignUp = async () => {
     setError('')
 
-    if (!name.trim()) {
-      setError('Please enter your name.')
-      return
-    }
-    if (!email.trim()) {
-      setError('Please enter your email address.')
-      return
-    }
-    if (!password) {
-      setError('Please enter your password.')
-      return
-    }
+    if (!name.trim()) return setError('Please enter your name.')
+    if (!email.trim()) return setError('Please enter your email address.')
+    if (!password) return setError('Please enter your password.')
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`)
-      return
+      return setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`)
     }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
+    if (password !== confirmPassword) return setError('Passwords do not match.')
 
     setLoading(true)
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, password)
-
-      const photoURL = `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(name)}`
-      await updateProfile(user, { displayName: name, photoURL })
-
-      await setDoc(doc(db, 'users', user.uid, 'metrics', 'userInfo'), {
-        name,
-        email: user.email,
-        subscribed: false,
-        createdAt: serverTimestamp(),
-      })
-      const today = new Date().toISOString().split('T')[0]
-      await setDoc(doc(db, 'users', user.uid, 'metrics', 'stats'), {
-        voiceUsage: { date: today, totalSeconds: 0 },
-        totalWords: 0,
-        totalEntries: 0,
-        currentStreak: 0,
+      const res = await fetch(`${API_URL}/api/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
       })
 
+      if (!res.ok) {
+        const { error: msg } = await res.json().catch(() => ({ error: '' }))
+        throw new Error(msg || `Signup failed (${res.status})`)
+      }
+
+      await signInWithEmailAndPassword(auth, email.trim(), password)
       router.replace('/journal')
     } catch (err: any) {
       let message = 'An unexpected error occurred.'
-      switch (err.code) {
-        case 'auth/invalid-email':
-          message = 'Invalid email address.'
-          break
-        case 'auth/email-already-in-use':
-          message = 'That email is already in use.'
-          break
-        case 'auth/weak-password':
-          message = `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
-          break
-        case 'auth/too-many-requests':
-          message = 'Too many attempts. Try again later.'
-          break
-      }
+      const txt = String(err?.message || '')
+      if (txt.includes('email-already-in-use')) message = 'That email is already in use.'
+      else if (txt.includes('invalid-email')) message = 'Invalid email address.'
+      else if (txt.includes('weak-password')) message = `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
       setError(message)
     } finally {
       setLoading(false)
     }
   }
 
-  const renderBlurInput = (
-    key: string,
-    placeholder: string,
-    value: string,
-    onChange: (t: string) => void,
-    secure = false,
-    extraProps = {}
-  ) => (
-    <BlurView
-      key={key}
-      intensity={50}
-      style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}
-    >
+  const renderBlurInput = ( key: string, placeholder: string, value: string, onChange: (t: string) => void, secure = false, extraProps = {}) => (
+    <BlurView key={key} intensity={50} style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}>
       <TextInput
         placeholder={placeholder}
         placeholderTextColor={colors.light}
@@ -142,20 +92,15 @@ export default function SignUpScreen() {
       <Text style={styles.title}>Create Account</Text>
 
       {renderBlurInput('name', 'Name', name, setName)}
-      {renderBlurInput(
-        'email',
-        'Email',
-        email,
-        setEmail,
-        false,
-        { autoCapitalize: 'none', keyboardType: 'email-address' }
-      )}
+      {renderBlurInput( 'email', 'Email', email, setEmail, false, { autoCapitalize: 'none', keyboardType: 'email-address' })}
       {renderBlurInput('password', 'Password', password, setPassword, true)}
+
       {focusedField === 'password' && (
         <Text style={styles.passwordRequirement}>
           Minimum {MIN_PASSWORD_LENGTH} characters
         </Text>
       )}
+
       {renderBlurInput('confirmPassword', 'Confirm Password', confirmPassword, setConfirmPassword, true)}
 
       <TouchableOpacity

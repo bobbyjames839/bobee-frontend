@@ -1,25 +1,11 @@
-// app/(tabs)/settings/account/change-password.tsx
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '~/constants/Colors';
-import {
-  getAuth,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from 'firebase/auth';
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
-// Custom back‐button that sits closer to the screen edge
+
 function BackChevron() {
   const router = useRouter();
   return (

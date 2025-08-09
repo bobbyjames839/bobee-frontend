@@ -1,17 +1,5 @@
-// hooks/useJournals.ts
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  deleteDoc,
-  doc,
-  updateDoc,
-  increment,
-  getDoc,
-  Timestamp,
-} from 'firebase/firestore'
+import {Timestamp} from 'firebase/firestore'
 import { db, auth } from '~/utils/firebase'
 import { useJournalRefresh } from '~/context/JournalRefreshContext'
 import Constants from 'expo-constants'
@@ -41,7 +29,6 @@ export default function useJournals() {
 
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
 
-  // —— REWRITTEN fetchJournals — hits your backend, then converts ISO → Timestamp
   const fetchJournals = useCallback(async () => {
     const user = auth.currentUser
     if (!user) return

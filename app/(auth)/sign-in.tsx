@@ -1,14 +1,5 @@
-// src/components/auth/SignIn.tsx
 import React, { useState } from 'react'
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  ActivityIndicator,
-} from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '~/utils/firebase'
@@ -28,6 +19,7 @@ export default function SignIn() {
 
   const handleLogin = async () => {
     setError('')
+    setLoading(true)
 
     if (!email.trim()) {
       return setError('Please enter your email address.')
@@ -36,7 +28,6 @@ export default function SignIn() {
       return setError('Please enter your password.')
     }
 
-    setLoading(true)
     try {
       await signInWithEmailAndPassword(auth, email, password)
       router.replace('/journal')
@@ -60,18 +51,9 @@ export default function SignIn() {
     }
   }
 
-  const renderBlurInput = (
-    key: string,
-    placeholder: string,
-    value: string,
-    onChange: (t: string) => void,
-    secure = false
-  ) => (
-    <BlurView
-      key={key}
-      intensity={50}
-      style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}
-    >
+  // Helper function to render input fields with blur effect
+  const renderBlurInput = (key: string,placeholder: string,value: string,onChange: (t: string) => void,secure = false) => (
+    <BlurView key={key} intensity={50} style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}>
       <TextInput
         placeholder={placeholder}
         placeholderTextColor={colors.light}

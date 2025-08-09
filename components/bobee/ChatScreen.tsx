@@ -1,14 +1,5 @@
-// components/bobee/ChatScreen.tsx
-
-import React, { useEffect, useContext } from 'react'
-import {
-  View,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  Animated,
-  StyleSheet,
-} from 'react-native'
+import React, { useContext } from 'react'
+import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import AutoExpandingInput from './AutoExpandingInput'
@@ -22,18 +13,7 @@ type ChatHistoryItem = {
   followup?: string
 }
 
-export default function ChatScreen({
-  history,
-  expanded,
-  toggleReasoning,
-  scrollRef,
-  pulseAnim,
-  input,
-  setInput,
-  isLoading,
-  onSubmit,
-  saveConversation,
-}: {
+export default function ChatScreen({ history, expanded, toggleReasoning, scrollRef, pulseAnim, input, setInput, isLoading, onSubmit}: {
   history: ChatHistoryItem[]
   expanded: Set<number>
   toggleReasoning: (i: number) => void
@@ -43,13 +23,9 @@ export default function ChatScreen({
   setInput: (s: string) => void
   isLoading: boolean
   onSubmit: () => void
-  saveConversation: () => Promise<void>
 }) {
   const { isSubscribed } = useContext(SubscriptionContext)
   const router = useRouter()
-
-  const MIN_HEIGHT = 40
-  const MAX_HEIGHT = 120
 
   return (
     <View style={styles.flex}>
@@ -60,12 +36,10 @@ export default function ChatScreen({
       >
         {history.map((item, idx) => (
           <View key={idx} style={styles.bubbleWrapper}>
-            {/* User question */}
             <View style={[styles.bubble, styles.userBubble]}>
               <Text style={styles.userText}>{item.question}</Text>
             </View>
 
-            {/* Assistant answer or spinner */}
             {item.answer ? (
               <>
                 <View
@@ -84,7 +58,6 @@ export default function ChatScreen({
                   )}
                 </View>
 
-                {/* reasoning bubble */}
                 {expanded.has(idx) && item.reasoning && (
                   <TouchableOpacity
                     activeOpacity={isSubscribed ? 1 : 0.7}
@@ -103,7 +76,6 @@ export default function ChatScreen({
                   </TouchableOpacity>
                 )}
 
-                {/* toggle button */}
                 {item.reasoning && (
                   <TouchableOpacity
                     onPress={() => toggleReasoning(idx)}
@@ -137,8 +109,8 @@ export default function ChatScreen({
           value={input}
           onChangeText={setInput}
           placeholder="Ask a follow-up…"
-          minHeight={MIN_HEIGHT}
-          maxHeight={MAX_HEIGHT}
+          minHeight={40}
+          maxHeight={120}
           style={styles.input}
           editable={!isLoading}
           returnKeyType="send"
@@ -158,10 +130,23 @@ export default function ChatScreen({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.lightest },
-  container: { padding: 20, paddingBottom: 10 },
-  bubbleWrapper: { marginBottom: 20 },
-  bubble: { borderRadius: 16, padding: 14, maxWidth: '85%' },
+  flex: { 
+    flex: 1, 
+    backgroundColor: colors.lightest 
+  },
+  container: { 
+    padding: 20, 
+    paddingBottom: 10 
+  },
+  bubbleWrapper: { 
+    marginBottom: 20 
+  },
+  bubble: { 
+    borderRadius: 16, 
+    padding: 14, 
+
+    maxWidth: '85%' 
+  },
   userBubble: {
     backgroundColor: colors.lighter,
     alignSelf: 'flex-end',
@@ -191,8 +176,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
     padding: 10,
   },
-  userText: { color: '#333', fontFamily: 'SpaceMono', fontSize: 15 },
-  aiText: { color: '#fff', fontFamily: 'SpaceMono', fontSize: 15 },
+  userText: { 
+    color: '#333', 
+    fontFamily: 'SpaceMono', 
+    fontSize: 15 
+  },
+  aiText: { 
+    color: '#fff', 
+    fontFamily: 'SpaceMono', 
+    fontSize: 15 
+  },
   aiFollowupText: {
     fontFamily: 'SpaceMono',
     fontSize: 14,
@@ -205,14 +198,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'SpaceMono',
   },
-  divider: { height: 1, marginVertical: 8 },
-  reasoningButton: { alignSelf: 'flex-start', marginTop: 4 },
+  divider: { 
+    height: 1, 
+    marginVertical: 8 
+  },
+  reasoningButton: { 
+    alignSelf: 'flex-start', 
+    marginTop: 4 
+  },
   reasoningButtonText: {
     fontFamily: 'SpaceMono',
     fontSize: 13,
     color: colors.blue,
   },
-  pulseIcon: { alignSelf: 'flex-start', marginTop: 8 },
+  pulseIcon: { 
+    alignSelf: 'flex-start', 
+    marginTop: 8 
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -231,5 +233,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  sendButton: { marginLeft: 8, padding: 8 },
+  sendButton: { 
+    marginLeft: 8, 
+    padding: 8 
+  },
 })

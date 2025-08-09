@@ -1,17 +1,8 @@
-// src/screens/MainScreen.tsx
 import React, { useState, useEffect, useContext } from 'react'
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { BlurView } from 'expo-blur'
-
 import AutoExpandingInput from './AutoExpandingInput'
 import QuotaBar from './QuotaBar'
 import { SubscriptionContext } from '~/context/SubscriptionContext'
@@ -26,13 +17,7 @@ type ConversationSummary = {
 
 const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
 
-export default function MainScreen({
-  input,
-  setInput,
-  isLoading,
-  onSubmit,
-  onSelectConversation,
-}: {
+export default function MainScreen({ input, setInput, isLoading, onSubmit, onSelectConversation }: {
   input: string
   setInput: (s: string) => void
   isLoading: boolean
@@ -42,12 +27,10 @@ export default function MainScreen({
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [todayCount, setTodayCount] = useState<number>(0)
-
   const { isSubscribed } = useContext(SubscriptionContext)
   const limit = isSubscribed ? 50 : 5
   const reachedLimit = todayCount >= limit
 
-  // helper to get auth headers
   const getAuthHeaders = async () => {
     const user = getAuth().currentUser
     if (!user) throw new Error('Not signed in')
@@ -55,60 +38,53 @@ export default function MainScreen({
     return { Authorization: `Bearer ${token}` }
   }
 
-  // fetch todayCount
+  // Load conversations and today's count on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(getAuth(), user => {
-      if (!user) return
+    const auth = getAuth();
 
-      const tokenPromise = user.getIdToken()
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setConversations([]);
+        setTodayCount(0);
+        return;
+      }
 
-      // load conversations
-      tokenPromise.then(token =>
-        fetch(`${API_BASE}/api/conversations`, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        })
-      )
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then(json => setConversations(
-        (json.conversations || []).map((c: any) => ({
-          id: c.id,
-          title: c.title,
-          createdAt: new Date(c.createdAt),
-        }))
-      ))
-      .catch(e => {
-        console.warn('Error loading conversations', e)
-        Alert.alert('Could not load conversations', e.message)
-      })
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch(`${API_BASE}/api/conversations-and-daily-count`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      // load todayCount
-      tokenPromise.then(token =>
-        fetch(`${API_BASE}/api/metrics`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      )
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then(json => setTodayCount(json.todayCount ?? 0))
-      .catch(e => {
-        console.warn('Error loading todayCount', e)
-        setTodayCount(0)
-      })
-    })
+        const json = await res.json();
 
-    return () => unsubscribe()
-  }, [isSubscribed])
+        setConversations(
+          (json.conversations || []).map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            createdAt: new Date(c.createdAt),
+          }))
+        );
+        setTodayCount(json.todayCount ?? 0);
+      } catch (e: any) {
+        console.warn('Error loading conversations overview', e);
+        Alert.alert('Could not load conversations', e.message);
+        setTodayCount(0);
+      }
+    });
 
-  // delete a conversation
+    return () => unsubscribe();
+  }, [isSubscribed]);
+  
+
+  //delete a conversation
   const handleDelete = async (id: string) => {
     try {
       const headers = await getAuthHeaders()
-      const res = await fetch(`${API_BASE}/api/conversations/${id}`, {
+      const res = await fetch(`${API_BASE}/api/delete-conversation/${id}`, {
         method: 'DELETE',
         headers,
       })
@@ -124,7 +100,7 @@ export default function MainScreen({
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.container}>
-        <QuotaBar/>
+        <QuotaBar todayCount={todayCount} isSubscribed={!!isSubscribed} />
 
         <Text style={styles.pageTitle}>Ask Bobee Anything</Text>
         <View style={styles.inputWrapper}>

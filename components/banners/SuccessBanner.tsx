@@ -1,4 +1,3 @@
-// components/SuccessBanner.tsx
 import React, { useEffect, useRef } from 'react'
 import { Animated, Text, StyleSheet, Dimensions } from 'react-native'
 

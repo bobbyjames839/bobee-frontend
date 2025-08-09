@@ -1,13 +1,5 @@
-// app/(tabs)/Files.tsx
 import React, { useState } from 'react';
-import {
-  View,
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import { View, ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Header from '~/components/Header';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
@@ -16,20 +8,9 @@ import useJournals from '~/hooks/useFiles';
 import JournalModal from '~/components/files/JournalModal';
 
 export default function Files() {
-  const {
-    journals,
-    loading,
-    modalVisible,
-    selectedJournal,
-    openModal,
-    closeModal,
-    handleDelete,
-    recentThree,              
-  } = useJournals();
-
+  const { journals, loading, modalVisible, selectedJournal, openModal, closeModal, handleDelete, recentThree } = useJournals();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // filter entries to just that ISO date
   const entriesForDay = selectedDate
     ? journals.filter((e) => {
         const d = e.createdAt.toDate().toISOString().split('T')[0];
@@ -48,14 +29,12 @@ export default function Files() {
           style={styles.loadingIndicator}
         />
       ) : selectedDate === null ? (
-        // CALENDAR + RECENT JOURNALS VIEW
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <JournalCalendar
             journals={journals}
             onSelectDate={setSelectedDate}
           />
 
-          {/* --- RECENT JOURNALS --- */}
           <Text style={styles.sectionTitle}>Recent entries</Text>
           <JournalList
             journals={recentThree}
@@ -65,7 +44,6 @@ export default function Files() {
           <View style={{ height: 80 }} />
         </ScrollView>
       ) : (
-        // SELECTED-DATE JOURNAL LIST VIEW
         <View style={{ flex: 1 }}>
           <TouchableOpacity
             style={styles.backButton}
@@ -87,7 +65,6 @@ export default function Files() {
         </View>
       )}
 
-      {/* JOURNAL DETAIL MODAL */}
       {selectedJournal && (
         <JournalModal
           visible={modalVisible}
@@ -101,11 +78,24 @@ export default function Files() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.lightest },
-  loadingIndicator: { marginTop: '45%' },
-  scrollContent: { paddingTop: 16, paddingHorizontal: 20 },
-  backButton: { padding: 10 },
-  backText: { fontSize: 18, color: colors.blue },
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.lightest 
+  },
+  loadingIndicator: { 
+    marginTop: '45%' 
+  },
+  scrollContent: { 
+    paddingTop: 16, 
+    paddingHorizontal: 20 
+  },
+  backButton: { 
+    padding: 10 
+  },
+  backText: { 
+    fontSize: 18, color: 
+    colors.blue 
+  },
   noEntries: {
     flex: 1,
     justifyContent: 'center',

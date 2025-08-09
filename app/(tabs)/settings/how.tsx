@@ -1,18 +1,9 @@
-// app/(tabs)/settings/how.tsx
 import React from 'react';
-import {
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-} from 'react-native';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { colors } from '~/constants/Colors';
 
 export default function How() {
   const openLink = () => {
-    // TODO: replace with your actual URL
     Linking.openURL('https://example.com');
   };
 

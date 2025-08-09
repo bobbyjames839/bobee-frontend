@@ -1,18 +1,13 @@
-// components/ErrorBanner.tsx
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, Dimensions } from 'react-native';
 
 interface Props {
   message: string;
-  onHide:   () => void;
+  onHide: () => void;
 }
 
 export default function ErrorBanner({ message, onHide }: Props) {
-  const CONTAINER_PADDING_TOP = 20; 
-  const BANNER_HEIGHT         = 105;
-  const EXTRA_OFFSET          = 20;
-  const startY = -BANNER_HEIGHT - EXTRA_OFFSET - CONTAINER_PADDING_TOP;
-
+  const startY = -145;
   const slideTop = useRef(new Animated.Value(startY)).current;
   const { width } = Dimensions.get('window');
 
@@ -20,7 +15,7 @@ export default function ErrorBanner({ message, onHide }: Props) {
     if (!message) return;
     Animated.sequence([
       Animated.timing(slideTop, {
-        toValue: 0,            // banner “top” === container’s inner top
+        toValue: 0,            
         duration: 300,
         useNativeDriver: false,
       }),

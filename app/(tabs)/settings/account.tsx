@@ -1,26 +1,12 @@
-// app/(tabs)/settings/account.tsx
 import React, { useState, useCallback } from 'react';
-import {
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useFocusEffect, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '~/constants/Colors';
-import { getAuth, deleteUser } from 'firebase/auth';
-import {
-  getFirestore,
-  doc,
-  deleteDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore';
+import { getAuth, signOut } from 'firebase/auth';
+import Constants from 'expo-constants';
+const API_URL = Constants.expoConfig?.extra?.backendUrl as string
+
 
 export default function AccountSettings() {
   const router = useRouter();
@@ -32,33 +18,36 @@ export default function AccountSettings() {
     }, [])
   );
 
-  const handleDeleteAccount = async () => {
+ const handleDeleteAccount = async () => {
     const auth = getAuth();
     const user = auth.currentUser;
-    if (!user) {
-      return Alert.alert('Error', 'No user is currently signed in.');
-    }
-    const uid = user.uid;
-    const db = getFirestore();
+    if (!user) return Alert.alert('Error', 'No user is currently signed in.');
 
     try {
-      await deleteDoc(doc(db, 'users', uid));
+      const idToken = await user.getIdToken(true);
 
-      const journalsQ = query(
-        collection(db, 'journals'),
-        where('userId', '==', uid)
-      );
-      const snapshot = await getDocs(journalsQ);
-      await Promise.all(
-        snapshot.docs.map((d) => deleteDoc(doc(db, 'journals', d.id)))
-      );
+      const res = await fetch(`${API_URL}/api/delete-account`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-      await deleteUser(user);
+      if (res.status !== 204) {
+        let msg = 'Failed to delete account.';
+        try {
+          const body = await res.json();
+          if (body?.error) msg = body.error;
+        } catch {}
+        throw new Error(msg);
+      }
 
+      await signOut(auth).catch(() => {});
       router.replace('/(auth)/sign-in');
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Delete Failed', e.message);
+      Alert.alert('Delete Failed', e?.message ?? 'Unknown error');
     }
   };
 
@@ -90,7 +79,6 @@ export default function AccountSettings() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.card}>
-          {/* Account Information */}
           <TouchableOpacity
             style={styles.row}
             onPress={() => router.push('/settings/account/account-info')}
@@ -103,7 +91,6 @@ export default function AccountSettings() {
             />
           </TouchableOpacity>
 
-          {/* Change Password */}
           <TouchableOpacity
             style={styles.row}
             onPress={() => router.push('/settings/account/change-password')}
@@ -116,7 +103,6 @@ export default function AccountSettings() {
             />
           </TouchableOpacity>
 
-          {/* Delete Account */}
           <TouchableOpacity
             style={[styles.row]}
             onPress={onPressDelete}

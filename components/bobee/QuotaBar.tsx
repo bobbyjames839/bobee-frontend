@@ -1,64 +1,24 @@
-// src/components/QuotaBar.tsx
-import React, { useContext, useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
-import Constants from 'expo-constants'
+import React from 'react'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
-import { SubscriptionContext } from '~/context/SubscriptionContext'
-import { getAuth } from 'firebase/auth'
 import { colors } from '~/constants/Colors'
 
-const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
+type Props = {
+  todayCount: number
+  isSubscribed: boolean
+}
 
-export default function QuotaBar() {
-  const { isSubscribed } = useContext(SubscriptionContext)
-  const [count, setCount] = useState<number | null>(null)
+export default function QuotaBar({ todayCount, isSubscribed }: Props) {
   const router = useRouter()
-
-  useEffect(() => {
-    let mounted = true
-
-    const fetchTodayCount = async () => {
-      try {
-        const user = getAuth().currentUser
-        if (!user) return
-
-        const token = await user.getIdToken()
-        const res = await fetch(`${API_BASE}/api/metrics`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const { todayCount } = await res.json()
-        if (mounted) setCount(todayCount)
-      } catch (err) {
-        console.warn('QuotaBar fetch error:', err)
-        if (mounted) setCount(0)
-      }
-    }
-
-    fetchTodayCount()
-
-    // Optionally: refresh every minute
-    const interval = setInterval(fetchTodayCount, 60_000)
-    return () => {
-      mounted = false
-      clearInterval(interval)
-    }
-  }, [isSubscribed])
-
   const limit = isSubscribed ? 50 : 5
-  const displayCount = count ?? 0
-  const pct = Math.min((displayCount / limit) * 100, 100)
+  const pct = Math.min((todayCount / limit) * 100, 100)
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        {count === null ? (
-          <ActivityIndicator size="small" color={colors.dark} />
-        ) : (
-          <Text style={styles.text}>
-            Conversations today: {displayCount} / {limit}
-          </Text>
-        )}
+        <Text style={styles.text}>
+          Conversations today: {todayCount} / {limit}
+        </Text>
         {!isSubscribed && (
           <TouchableOpacity
             style={styles.upgradeButton}

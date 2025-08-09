@@ -1,15 +1,7 @@
 import React, { useState } from 'react'
-import { TextInput, StyleSheet } from 'react-native'
+import { TextInput } from 'react-native'
 
-export default function AutoExpandingInput({
-  value,
-  onChangeText,
-  placeholder,
-  minHeight = 40,
-  maxHeight = 120,
-  style,
-  ...props
-}: any) {
+export default function AutoExpandingInput({ value, onChangeText, placeholder, minHeight = 40, maxHeight = 120, style, ...props}: any) {
   const [height, setHeight] = useState(minHeight)
   return (
     <TextInput

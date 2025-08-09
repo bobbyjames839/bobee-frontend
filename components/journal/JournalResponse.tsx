@@ -27,6 +27,8 @@ interface JournalResponseProps {
   subscribeLoading: boolean;
   secondSubscribeLoading: boolean;
   onSubmit:         () => Promise<void>;
+  onUpgrade:         () => Promise<void>;
+  onUpgradeTwo:         () => Promise<void>;
   submitLoading:    boolean;
   wordCount:        number | null;
   currentStreak:    number | null;
@@ -48,6 +50,8 @@ export default function JournalResponse({
   subscribeLoading,
   secondSubscribeLoading,
   onSubmit,
+  onUpgrade,
+  onUpgradeTwo,
   submitLoading,
   wordCount,
   currentStreak,
@@ -88,7 +92,7 @@ export default function JournalResponse({
                 <BlurView intensity={12} tint="light" style={styles.blurOverlayInner}>
                   <TouchableOpacity
                     style={[subscribeLoading && { opacity: 0.6 }, styles.upgradeBlurButton]}
-                    onPress={() => router.push('/(tabs)/settings/sub')}
+                    onPress={onUpgrade}
                     disabled={subscribeLoading}
                   >
                     {subscribeLoading ? (
@@ -144,7 +148,7 @@ export default function JournalResponse({
                   <BlurView intensity={12} tint="light" style={styles.blurOverlayInner}>
                     <TouchableOpacity
                       style={[secondSubscribeLoading && { opacity: 0.6 }, styles.upgradeBlurButton]}
-                      onPress={() => router.push('/(tabs)/settings/sub')}
+                      onPress={onUpgradeTwo}
                       disabled={secondSubscribeLoading}
                       
                     >
