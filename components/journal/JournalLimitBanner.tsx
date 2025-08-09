@@ -18,7 +18,6 @@ export default function JournalLimitBanner({ visible }: Props) {
     ? "You've reached your daily journalling limit. Come back tomorrow!"
     : "You've reached your daily free journalling limit. Upgrade to Pro for more time.";
 
-  //this will run the animation of the banner
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;

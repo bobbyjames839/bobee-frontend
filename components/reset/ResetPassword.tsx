@@ -1,4 +1,3 @@
-// screens/ResetPassword.tsx
 import React, { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { BlurView } from 'expo-blur'
@@ -36,7 +35,6 @@ export default function ResetPassword({ onClose }: Props) {
 
     try {
       await sendPasswordResetEmail(auth, email, actionCodeSettings)
-      // show banner and clear the input
       setInfo('A password reset link has been sent to your email.')
       setEmail('')
     } catch (err: any) {

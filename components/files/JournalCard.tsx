@@ -1,4 +1,3 @@
-// components/files/JournalCard.tsx
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -54,9 +53,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  moodIcon: { position: 'absolute', top: 12, right: 16 },
-  date: { fontSize: 14, color: '#666', marginBottom: 8, fontFamily: 'SpaceMono' },
-  text: { fontSize: 16, color: '#222', lineHeight: 22, fontFamily: 'SpaceMono' },
+  moodIcon: { 
+    position: 'absolute', 
+    top: 12, 
+    right: 16 
+  },
+  date: { 
+    fontSize: 14, 
+    color: '#666', 
+    marginBottom: 8, 
+    fontFamily: 'SpaceMono' 
+  },
+  text: { 
+    fontSize: 16, 
+    color: '#222', 
+    lineHeight: 22, 
+    fontFamily: 'SpaceMono' 
+  },
 });
 
 export default JournalCard;

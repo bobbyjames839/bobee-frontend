@@ -1,16 +1,7 @@
 import React, { useEffect, useState, JSX, useContext } from 'react'
-import { View, Text, StyleSheet, Dimensions, Pressable, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import { colors } from '~/constants/Colors'
-import {
-  Brain,
-  CheckCircle,
-  Heart,
-  AlertCircle,
-  Lightbulb,
-  ShieldCheck,
-  ArrowUp,
-  ArrowDown,
-} from 'lucide-react-native'
+import { Brain, CheckCircle, Heart, AlertCircle, Lightbulb, ShieldCheck, ArrowUp, ArrowDown } from 'lucide-react-native'
 import Constants from 'expo-constants'
 import { getAuth } from 'firebase/auth'
 import { BlurView } from 'expo-blur'
@@ -19,32 +10,9 @@ import { SubscriptionContext } from '~/context/SubscriptionContext'
 
 const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
 
-const PERSONALITY_KEYS = [
-  'resilience',
-  'discipline',
-  'focus',
-  'selfWorth',
-  'confidence',
-  'clarity',
-] as const
-
-const ICONS = {
-  resilience: AlertCircle,
-  discipline: CheckCircle,
-  focus: Brain,
-  selfWorth: Heart,
-  confidence: ShieldCheck,
-  clarity: Lightbulb,
-}
-
-const LABELS: Record<string, string> = {
-  resilience: 'Resilience',
-  discipline: 'Discipline',
-  focus: 'Focus',
-  selfWorth: 'Self-Worth',
-  confidence: 'Confidence',
-  clarity: 'Purpose',
-}
+const PERSONALITY_KEYS = ['resilience','discipline','focus','selfWorth','confidence','clarity'] as const
+const ICONS = { resilience: AlertCircle, discipline: CheckCircle, focus: Brain, selfWorth: Heart, confidence: ShieldCheck, clarity: Lightbulb }
+const LABELS: Record<string, string> = { resilience: 'Resilience', discipline: 'Discipline', focus: 'Focus', selfWorth: 'Self-Worth', confidence: 'Confidence', clarity: 'Purpose' }
 
 export default function PersonalitySection() {
   const [metrics, setMetrics] = useState<{

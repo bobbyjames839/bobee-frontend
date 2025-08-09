@@ -1,5 +1,3 @@
-// Header.tsx
-
 import React from 'react'
 import {
   View,
@@ -17,9 +15,7 @@ type IoniconName = ComponentProps<typeof Ionicons>['name']
 
 interface HeaderProps {
   title?: string
-  /** the Ionicon name to render on the left (e.g. "chevron-back") */
   leftIcon?: IoniconName
-  /** callback when left icon is pressed */
   onLeftPress?: () => void
 }
 

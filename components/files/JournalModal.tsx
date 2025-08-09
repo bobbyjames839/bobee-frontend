@@ -1,15 +1,5 @@
-// components/files/JournalModal.tsx
 import React, { useState, useEffect, useContext } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
+import { Modal, View, Text, ScrollView, Pressable, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
@@ -48,7 +38,6 @@ const JournalModal: React.FC<Props> = ({ visible, journal, onClose, onDelete }) 
     else onDelete();
   };
 
-  // helper to navigate then close modal
   const navigateAndClose = () => {
     router.push("/(tabs)/settings/sub");
     onClose();
@@ -86,7 +75,6 @@ const JournalModal: React.FC<Props> = ({ visible, journal, onClose, onDelete }) 
             <Text style={styles.section}>Summary</Text>
             <Text style={styles.text}>{journal.aiResponse.summary}</Text>
 
-            {/* Insight (gated) */}
             {journal.aiResponse.selfInsight && (
               <View style={styles.blurSection}>
                 <Text style={styles.section}>Insight</Text>
@@ -106,7 +94,6 @@ const JournalModal: React.FC<Props> = ({ visible, journal, onClose, onDelete }) 
               </View>
             )}
 
-            {/* Mood & Word Count */}
             <View style={styles.statsRow}>
               <View style={styles.moodBox}>
                 <MaterialIcons name={mood.name as any} size={56} color={mood.color} />
@@ -117,7 +104,6 @@ const JournalModal: React.FC<Props> = ({ visible, journal, onClose, onDelete }) 
               </View>
             </View>
 
-            {/* Feelings */}
             <View style={styles.feelingsRow}>
               {journal.aiResponse.feelings.map((f, i) => (
                 <View
@@ -132,7 +118,6 @@ const JournalModal: React.FC<Props> = ({ visible, journal, onClose, onDelete }) 
               ))}
             </View>
 
-            {/* Thought Pattern (gated) */}
             {journal.aiResponse.thoughtPattern && (
               <View style={styles.blurSection}>
                 <Text style={styles.section}>Thought Pattern</Text>

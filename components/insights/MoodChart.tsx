@@ -19,20 +19,12 @@ export default function MoodChart() {
   })
   const [loading, setLoading] = useState(true)
 
-  const CARD_WIDTH = Dimensions.get('window').width - 60
-  const CHART_HEIGHT = 260
-  const PADDING = 12
-  const BLUE = 'rgba(172, 166, 255, 0.3)'
-  const DARKBLUE = 'rgba(172, 166, 255, 0.8)'
-  const DOT_RADIUS = 5
-
   useEffect(() => {
     let mounted = true
     const fetchSeries = async () => {
       try {
         const user = getAuth().currentUser
         if (!user) return
-
         const token = await user.getIdToken()
         const res = await fetch(
           `${Constants.expoConfig?.extra?.backendUrl}/api/mood-chart-stats`,
@@ -55,26 +47,28 @@ export default function MoodChart() {
   const hasAny = values.some(v => v != null)
   if (loading || !hasAny) return <Placeholder />
 
-  const pointCount = values.length
-  const innerWidth = CARD_WIDTH - 2 * PADDING
-  const drawableWidth = innerWidth - 2 * DOT_RADIUS
-  const totalWidth = drawableWidth + 2 * DOT_RADIUS
-  const xStep = drawableWidth / (pointCount - 1)
+  const cardWidth = Dimensions.get('window').width - 60
+  const padding = 12
+  const dotRadius = 5
+  const chartHeight = 260
+
+  const xStep = (cardWidth - 2 * padding - 2 * dotRadius) / (values.length - 1)
   const nums = values.filter((v): v is number => v != null)
-  const minY = Math.min(...nums), maxY = Math.max(...nums)
+  const minY = Math.min(...nums)
+  const maxY = Math.max(...nums)
   const yRange = maxY - minY || 1
 
   const points = values.map((v, i) => ({
-    x: DOT_RADIUS + i * xStep,
+    x: dotRadius + i * xStep,
     y: v != null
-      ? PADDING + (1 - (v - minY) / yRange) * (CHART_HEIGHT - 2 * PADDING)
+      ? padding + (1 - (v - minY) / yRange) * (chartHeight - 2 * padding)
       : 0,
     defined: v != null,
   }))
-  const definedPoints = points.filter(p => p.defined)
-  const linePath = d3.line<typeof definedPoints[0]>()
+
+  const linePath = d3.line<typeof points[0]>()
     .x(d => d.x).y(d => d.y)
-    .curve(d3.curveCatmullRom.alpha(0.1))(definedPoints) || ''
+    .curve(d3.curveCatmullRom.alpha(0.1))(points.filter(p => p.defined)) || ''
 
   return (
     <View style={styles.container}>
@@ -88,18 +82,18 @@ export default function MoodChart() {
 
       <View style={styles.card}>
         <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-          <Svg width={totalWidth} height={CHART_HEIGHT + 24}>
-            <Path d={linePath} stroke={BLUE} strokeWidth={4} fill="none" />
+          <Svg width={cardWidth - 2 * padding} height={chartHeight + 24}>
+            <Path d={linePath} stroke="rgba(172, 166, 255, 0.3)" strokeWidth={4} fill="none" />
             {points.map((p, i) =>
               p.defined ? (
-                <Circle key={i} cx={p.x} cy={p.y} r={DOT_RADIUS} fill={DARKBLUE} />
+                <Circle key={i} cx={p.x} cy={p.y} r={dotRadius} fill="rgba(172, 166, 255, 0.8)" />
               ) : null
             )}
             {labels.map((lab, i) => (
               <SvgText
                 key={i}
-                x={DOT_RADIUS + i * xStep}
-                y={CHART_HEIGHT + 14}
+                x={dotRadius + i * xStep}
+                y={chartHeight + 14}
                 fontSize="10"
                 fill="#666"
                 textAnchor="middle"
@@ -115,18 +109,20 @@ export default function MoodChart() {
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 16 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  container: { 
+    marginTop: 16 
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    fontFamily: 'SpaceMono',
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between' 
   },
-  toggleRow: {
-    flexDirection: 'row',
+  title: { 
+    fontSize: 22, 
+    fontWeight: '600', 
+    fontFamily: 'SpaceMono' 
+  },
+  toggleRow: { 
+    flexDirection: 'row' 
   },
   card: {
     backgroundColor: '#fff',

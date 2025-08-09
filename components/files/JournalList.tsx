@@ -1,4 +1,3 @@
-// components/files/JournalList.tsx
 import React from 'react';
 import { View } from 'react-native';
 import { JournalEntry } from '~/hooks/useFiles';

@@ -64,7 +64,7 @@ export function useJournalRecording() {
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  //this is to count how many words we have said in the journal and the current streak
+  
   const calculateWordCountAndStreak = async (transcriptText: string) => {
     const user = auth.currentUser;
     if (!user) return null;
@@ -299,7 +299,7 @@ export function useJournalRecording() {
 
       //Load personality scores or set defaults
       try {
-        const resp = await fetch(`${BACKEND_URL}/api/personality`, {
+        const resp = await fetch(`${BACKEND_URL}/api/get-personality-scores`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${idToken}` },
         });
@@ -308,7 +308,6 @@ export function useJournalRecording() {
         setPreviousPersonality(personality);
       } catch (err: any) {
         console.error('Error loading personality:', err);
-        // fallback defaults
       setPreviousPersonality(
         PERSONALITY_KEYS.reduce((acc, key) => {
           acc[key] = 50;
@@ -389,10 +388,10 @@ export function useJournalRecording() {
         transcript,
         prompt,
         aiResponse,
-        timerSeconds: timer,     // send your writing‐timer
+        timerSeconds: timer,     
       };
 
-      const res = await fetch(`${BACKEND_URL}/api/journal`, {
+      const res = await fetch(`${BACKEND_URL}/api/submit-journal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -403,14 +402,7 @@ export function useJournalRecording() {
         setError(err.error || 'Failed to submit journal.');
         return;
       }
-
-      const { entryId, wordCount, currentStreak } = await res.json();
-
-      // Optionally you can stash these stats in state if you need them:
-      // setWordCount(wordCount);
-      // setCurrentStreak(currentStreak);
-
-      // Reset UI on success
+      
       triggerRefresh();
       setAiResponse(null);
       setPrompt('');

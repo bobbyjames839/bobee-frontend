@@ -14,16 +14,7 @@ interface JournalMicProps {
   pulseAnim: Animated.Value;
 }
 
-export default function JournalMic({
-  isRecording,
-  loading,
-  timer,
-  prompt,
-  onToggle,
-  onGenerate,
-  onClearPrompt,
-  pulseAnim,
-}: JournalMicProps) {
+export default function JournalMic({ isRecording, loading, timer, prompt, onToggle, onGenerate, onClearPrompt, pulseAnim }: JournalMicProps) {
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 

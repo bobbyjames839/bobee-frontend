@@ -36,7 +36,7 @@ export default function useJournals() {
     setLoading(true)
     try {
       const idToken = await user.getIdToken(true)
-      const res = await fetch(`${API_BASE}/api/fetch-journals`, {
+      const res = await fetch(`${API_BASE}/api/get-journals`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -47,11 +47,9 @@ export default function useJournals() {
         throw new Error(`Server error: ${res.statusText}`)
       }
       
-      // backend returns createdAt as ISO string
       const raw: Array<Omit<JournalEntry, 'createdAt'> & { createdAt: string }> =
         await res.json()
 
-      // convert back to Timestamp so the rest of your code is unchanged
       const entries = raw.map((e) => ({
         ...e,
         createdAt: Timestamp.fromDate(new Date(e.createdAt)),
@@ -83,7 +81,7 @@ export default function useJournals() {
 
     setLoading(true);
     try {
-      const idToken = await user.getIdToken(/* forceRefresh */ true);
+      const idToken = await user.getIdToken(true);
       const res = await fetch(
         `${API_BASE}/api/delete-journal/${selectedJournal.id}`,
         {
@@ -108,8 +106,6 @@ export default function useJournals() {
     }
   };
 
-
-  // fetch on mount & on refreshKey
   useEffect(() => {
     fetchJournals()
   }, [fetchJournals, refreshKey])

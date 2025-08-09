@@ -1,4 +1,3 @@
-// app/(tabs)/insights/AnimatedToggle.tsx
 import React, { useEffect, useRef } from 'react'
 import { Animated, Text, TouchableWithoutFeedback, StyleSheet } from 'react-native'
 import { colors } from '~/constants/Colors'
@@ -16,7 +15,6 @@ export default function AnimatedToggle({
   active: boolean
   onPress: () => void
 }) {
-  // Animate the width based on whether it’s active or not
   const widthAnim = useRef(
     new Animated.Value(active ? ACTIVE_WIDTH : INACTIVE_WIDTH)
   ).current
@@ -25,7 +23,7 @@ export default function AnimatedToggle({
     Animated.timing(widthAnim, {
       toValue: active ? ACTIVE_WIDTH : INACTIVE_WIDTH,
       duration: 200,
-      useNativeDriver: false, // must be false because width is a layout property
+      useNativeDriver: false, 
     }).start()
   }, [active, widthAnim])
 

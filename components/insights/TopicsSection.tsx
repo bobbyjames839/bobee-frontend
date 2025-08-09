@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react'
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Pressable,
-} from 'react-native'
+import { View, Text, StyleSheet, Dimensions, Pressable } from 'react-native'
 import { BlurView } from 'expo-blur'
 import Placeholder from './Placeholder'
 import { useRouter } from 'expo-router'
@@ -27,8 +21,7 @@ export default function TopicsSection() {
   const PARENT_HORIZONTAL_PADDING = 40
   const CARD_HORIZONTAL_PADDING = 24
   const windowWidth = Dimensions.get('window').width
-  const cardInnerWidth =
-    windowWidth - PARENT_HORIZONTAL_PADDING - CARD_HORIZONTAL_PADDING
+  const cardInnerWidth = windowWidth - PARENT_HORIZONTAL_PADDING - CARD_HORIZONTAL_PADDING
 
   useEffect(() => {
     let mounted = true

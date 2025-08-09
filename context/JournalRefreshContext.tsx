@@ -1,4 +1,3 @@
-// context/JournalRefreshContext.tsx
 import React, { createContext, useContext, useState } from 'react';
 
 type JournalRefreshContextType = {
@@ -6,7 +5,6 @@ type JournalRefreshContextType = {
   triggerRefresh: () => void;
 };
 
-// Create a context with a default "shape."
 const JournalRefreshContext = createContext<JournalRefreshContextType>({
   refreshKey: 0,
   triggerRefresh: () => {},

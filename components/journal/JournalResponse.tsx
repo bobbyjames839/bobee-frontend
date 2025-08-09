@@ -1,61 +1,43 @@
 import React, { useContext } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import { colors } from '~/constants/Colors';
-import { router } from 'expo-router';
 
 type AIResponse = {
-  moodScore:      number;
-  summary:        string;
-  selfInsight:   string;
+  moodScore: number;
+  summary: string;
+  selfInsight: string;
   thoughtPattern:string;
-  nextStep:       string;
-  feelings:       string[];
+  nextStep: string;
+  feelings: string[];
 };
 
 interface JournalResponseProps {
-  aiResponse:       AIResponse;
+  aiResponse: AIResponse;
   subscribeLoading: boolean;
   secondSubscribeLoading: boolean;
-  onSubmit:         () => Promise<void>;
-  onUpgrade:         () => Promise<void>;
-  onUpgradeTwo:         () => Promise<void>;
-  submitLoading:    boolean;
-  wordCount:        number | null;
-  currentStreak:    number | null;
+  onSubmit: () => Promise<void>;
+  onUpgrade: () => Promise<void>;
+  onUpgradeTwo: () => Promise<void>;
+  submitLoading: boolean;
+  wordCount: number | null;
+  currentStreak: number | null;
 }
 
 const moodIcon = (
   score: number
 ): { name: keyof typeof MaterialIcons.glyphMap; color: string } => {
   if (score <= 3) return { name: 'sentiment-very-dissatisfied', color: '#E74C3C' };
-  if (score <= 6) return { name: 'sentiment-neutral',        color: '#F1C40F' };
-  return               { name: 'sentiment-very-satisfied', color: '#2ECC71' };
+  if (score <= 6) return { name: 'sentiment-neutral', color: '#F1C40F' };
+  return { name: 'sentiment-very-satisfied', color: '#2ECC71' };
 };
 
 const feelingColors = ['#B3DFFC', '#D1C4E9', '#B2DFDB'];
 const feelingColor = (i: number) => feelingColors[i % feelingColors.length];
 
-export default function JournalResponse({
-  aiResponse,
-  subscribeLoading,
-  secondSubscribeLoading,
-  onSubmit,
-  onUpgrade,
-  onUpgradeTwo,
-  submitLoading,
-  wordCount,
-  currentStreak,
-}: JournalResponseProps) {
+export default function JournalResponse({ aiResponse, subscribeLoading, secondSubscribeLoading, onSubmit, onUpgrade, onUpgradeTwo, submitLoading, wordCount, currentStreak }: JournalResponseProps) {
   const { isSubscribed } = useContext(SubscriptionContext);
   const mood = moodIcon(aiResponse.moodScore);
 
@@ -166,11 +148,9 @@ export default function JournalResponse({
             </View>
           )}
 
-        {/* Next step */}
         <Text style={styles.sectionTitle}>Next Step</Text>
         <Text style={styles.responseText}>{aiResponse.nextStep}</Text>
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={[
             styles.submitButton,

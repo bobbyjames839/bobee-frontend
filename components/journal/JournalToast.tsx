@@ -1,13 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function JournalToast({
-  visible,
-  text,
-}: {
-  visible: boolean;
-  text: string;
-}) {
+export default function JournalToast({ visible, text }: { visible: boolean; text: string }) {
+  
   if (!visible) return null;
   return (
     <View style={styles.toastWrapper}>
