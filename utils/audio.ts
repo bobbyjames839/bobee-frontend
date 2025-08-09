@@ -21,4 +21,4 @@ export const stopRecording = async (recording: Audio.Recording) => {
   return uri;
 };
 
-//hey there is a workgroup issue with expo-av
+
