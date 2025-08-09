@@ -8,6 +8,8 @@ import QuotaBar from './QuotaBar'
 import { SubscriptionContext } from '~/context/SubscriptionContext'
 import { colors } from '~/constants/Colors'
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+
 
 type ConversationSummary = {
   id: string
@@ -30,6 +32,7 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
   const { isSubscribed } = useContext(SubscriptionContext)
   const limit = isSubscribed ? 50 : 5
   const reachedLimit = todayCount >= limit
+  const router = useRouter();
 
   const getAuthHeaders = async () => {
     const user = getAuth().currentUser
@@ -38,7 +41,6 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
     return { Authorization: `Bearer ${token}` }
   }
 
-  // Load conversations and today's count on mount
   useEffect(() => {
     const auth = getAuth();
 
@@ -142,7 +144,7 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
               {!isSubscribed && (
                 <TouchableOpacity
                   style={styles.upgradeOverlayButton}
-                  onPress={onSubmit}
+                  onPress={() => (router.push('/(tabs)/settings/sub'))}
                 >
                   <Text style={styles.upgradeOverlayText}>Upgrade Plan</Text>
                 </TouchableOpacity>
@@ -224,7 +226,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     position: 'relative',
     marginBottom: 20,
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   bigInput: {

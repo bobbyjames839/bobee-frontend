@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native'
+import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import AutoExpandingInput from './AutoExpandingInput'
@@ -13,7 +13,18 @@ type ChatHistoryItem = {
   followup?: string
 }
 
-export default function ChatScreen({ history, expanded, toggleReasoning, scrollRef, pulseAnim, input, setInput, isLoading, onSubmit}: {
+export default function ChatScreen({
+  history,
+  expanded,
+  toggleReasoning,
+  scrollRef,
+  pulseAnim,
+  input,
+  setInput,
+  isLoading,
+  onSubmit,
+  isSaving = false, // NEW: show loading overlay while saving
+}: {
   history: ChatHistoryItem[]
   expanded: Set<number>
   toggleReasoning: (i: number) => void
@@ -23,9 +34,12 @@ export default function ChatScreen({ history, expanded, toggleReasoning, scrollR
   setInput: (s: string) => void
   isLoading: boolean
   onSubmit: () => void
+  isSaving?: boolean
 }) {
   const { isSubscribed } = useContext(SubscriptionContext)
   const router = useRouter()
+
+  const busy = isLoading || isSaving // NEW: disable input/send during save
 
   return (
     <View style={styles.flex}>
@@ -69,9 +83,7 @@ export default function ChatScreen({ history, expanded, toggleReasoning, scrollR
                     style={[styles.bubble, styles.aiReasoningBubble]}
                   >
                     <Text style={styles.reasoningText}>
-                      {isSubscribed
-                        ? item.reasoning
-                        : 'Upgrade to view reasoning'}
+                      {isSubscribed ? item.reasoning : 'Upgrade to view reasoning'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -91,10 +103,7 @@ export default function ChatScreen({ history, expanded, toggleReasoning, scrollR
               isLoading &&
               idx === history.length - 1 && (
                 <Animated.View
-                  style={[
-                    styles.pulseIcon,
-                    { transform: [{ scale: pulseAnim }] },
-                  ]}
+                  style={[styles.pulseIcon, { transform: [{ scale: pulseAnim }] }]}
                 >
                   <Ionicons name="sparkles" size={24} color={colors.blue} />
                 </Animated.View>
@@ -112,19 +121,28 @@ export default function ChatScreen({ history, expanded, toggleReasoning, scrollR
           minHeight={40}
           maxHeight={120}
           style={styles.input}
-          editable={!isLoading}
+          editable={!busy}              // NEW
           returnKeyType="send"
           onSubmitEditing={onSubmit}
           blurOnSubmit={false}
         />
         <TouchableOpacity
           onPress={onSubmit}
-          disabled={isLoading}
+          disabled={busy}               // NEW
           style={styles.sendButton}
         >
           <Ionicons name="send" size={24} color={colors.blue} />
         </TouchableOpacity>
       </View>
+
+      {isSaving && (                    // NEW overlay
+        <View style={styles.savingOverlay}>
+          <View style={styles.savingCard}>
+            <ActivityIndicator size="large" color={colors.blue} />
+            <Text style={styles.savingText}>Saving conversation…</Text>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
@@ -144,7 +162,6 @@ const styles = StyleSheet.create({
   bubble: { 
     borderRadius: 16, 
     padding: 14, 
-
     maxWidth: '85%' 
   },
   userBubble: {
@@ -236,5 +253,26 @@ const styles = StyleSheet.create({
   sendButton: { 
     marginLeft: 8, 
     padding: 8 
+  },
+
+  savingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  savingCard: {
+    backgroundColor: '#fff',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    minWidth: 200,
+  },
+  savingText: {
+    marginTop: 10,
+    fontFamily: 'SpaceMono',
+    fontSize: 14,
+    color: colors.darkest,
   },
 })

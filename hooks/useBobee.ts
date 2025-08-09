@@ -38,52 +38,51 @@ export default function useBobee() {
     const justClosed = prevShowChat && !showChat
 
     if (justClosed) {
-      if (history.length > 0 && !isLoading) {
+      // only auto-save if we didn’t explicitly trigger a save (e.g., user swiped back, app killed, etc.)
+      if (!didExplicitSaveRef.current && history.length > 0 && !isLoading) {
         saveConversation()
-          .then(() => console.log('Saved conversation on leaving chat'))
+          .then(() => console.log('Saved conversation on leaving chat (fallback)'))
           .catch((err) => console.warn('Failed to save conversation:', err))
       }
-
       setHistory([])
       setExpanded(new Set())
       setConversationId(null)
+
+      didExplicitSaveRef.current = false
     }
   }, [showChat])
+
+  const didExplicitSaveRef = useRef(false)
 
   const saveConversation = useCallback(async (): Promise<void> => {
     if (history.length === 0) return
     const uid = getAuth().currentUser?.uid
     if (!uid) return
 
+    didExplicitSaveRef.current = true 
+
     const transcript = history
-      .map(
-        (item, i) =>
-          `${i + 1}. Q: ${item.question}\n   A: ${item.answer ?? '[no answer]'}`
-      )
+      .map((item, i) => `${i + 1}. Q: ${item.question}\n   A: ${item.answer ?? '[no answer]'}`)
       .join('\n')
 
     const idToken = await getAuth().currentUser!.getIdToken(true)
 
     const res = await fetch(`${API_BASE}/api/save-conversation`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        conversationId,
-        transcript,
-        history,
-      }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ conversationId, transcript, history }),
     })
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
+      didExplicitSaveRef.current = false // reset on error
       throw new Error(err.message || 'Failed to save conversation')
     }
 
     const { conversationId: newId } = (await res.json()) as { conversationId: string }
     setConversationId(newId)
+
+    setShowChat(false)
   }, [history, conversationId])
 
 
@@ -187,15 +186,24 @@ export default function useBobee() {
 
     const user = getAuth().currentUser
     if (!user) return
-    const uid = user.uid
 
     setHistory(h => [...h, { question, answer: '' }])
     setShowChat(true)
     setIsLoading(true)
     setInput('')
-    console.log(userFacts, conversationId, question, history)
+
     try {
       const idToken = await user.getIdToken(true)
+
+      // Only send conversationId if it exists (prevents false "existing chat" on first message)
+      const requestBody: Record<string, any> = {
+        question,
+        history,
+        userFacts,
+      }
+      if (conversationId) {
+        requestBody.conversationId = conversationId
+      }
 
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
@@ -203,19 +211,14 @@ export default function useBobee() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({
-          conversationId,
-          question,
-          history,
-          userFacts,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const contentType = res.headers.get('content-type') || ''
       if (!contentType.includes('application/json')) {
         const text = await res.text()
         console.error('Expected JSON, got:', text)
-        throw new Error(`Server returned non‑JSON response (status ${res.status})`)
+        throw new Error(`Server returned non-JSON response (status ${res.status})`)
       }
 
       const payload = await res.json()
@@ -231,7 +234,10 @@ export default function useBobee() {
         return copy
       })
 
-      if (newId) setConversationId(newId)
+      // Set conversationId if it’s the first message
+      if (!conversationId && newId) {
+        setConversationId(newId)
+      }
     } catch (err) {
       console.error(err)
       setHistory(h => {
@@ -243,6 +249,7 @@ export default function useBobee() {
       setIsLoading(false)
     }
   }
+
 
   return {
     input,
