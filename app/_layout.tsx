@@ -11,7 +11,7 @@ import Constants from 'expo-constants'
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf') });
+  const [fontsLoaded] = useFonts({ SpaceMono: require('../assets/fonts/Lora-VariableFont_wght.ttf') });
   const [authReady, setAuthReady] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const segments = useSegments();

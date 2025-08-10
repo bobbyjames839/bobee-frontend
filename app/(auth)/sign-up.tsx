@@ -7,6 +7,7 @@ import { router } from 'expo-router'
 import { colors } from '~/constants/Colors'
 import ErrorBanner from '~/components/banners/ErrorBanner'
 import Constants from 'expo-constants'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 const MIN_PASSWORD_LENGTH = 8
@@ -52,6 +53,7 @@ export default function SignUpScreen() {
       }
 
       await signInWithEmailAndPassword(auth, email.trim(), password)
+      await AsyncStorage.setItem('showWelcomeOnce', '1');
       router.replace('/journal')
     } catch (err: any) {
       let message = 'An unexpected error occurred.'

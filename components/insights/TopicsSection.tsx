@@ -1,79 +1,80 @@
-import React, { useState, useEffect, useContext } from 'react'
-import { View, Text, StyleSheet, Dimensions, Pressable } from 'react-native'
-import { BlurView } from 'expo-blur'
-import Placeholder from './Placeholder'
-import { useRouter } from 'expo-router'
-import Constants from 'expo-constants'
-import { colors } from '~/constants/Colors'
-import { SubscriptionContext } from '~/context/SubscriptionContext'
-import { getAuth } from 'firebase/auth'
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
+import { colors } from '~/constants/Colors';
+import { SubscriptionContext } from '~/context/SubscriptionContext';
+import { getAuth } from 'firebase/auth';
 
-const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
+const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
 
 export default function TopicsSection() {
-  const [topicsList, setTopicsList] = useState<
-    Array<{ topic: string; count: number }>
-  >([])
+  const [topicsList, setTopicsList] = useState<Array<{ topic: string; count: number }>>([]);
+  const { isSubscribed } = useContext(SubscriptionContext);
+  const router = useRouter();
 
-  const { isSubscribed } = useContext(SubscriptionContext)
-  const router = useRouter()
+  const PARENT_HORIZONTAL_PADDING = 40;
+  const CARD_HORIZONTAL_PADDING = 24;
+  const windowWidth = Dimensions.get('window').width;
+  const cardInnerWidth = windowWidth - PARENT_HORIZONTAL_PADDING - CARD_HORIZONTAL_PADDING;
 
-  const PARENT_HORIZONTAL_PADDING = 40
-  const CARD_HORIZONTAL_PADDING = 24
-  const windowWidth = Dimensions.get('window').width
-  const cardInnerWidth = windowWidth - PARENT_HORIZONTAL_PADDING - CARD_HORIZONTAL_PADDING
+  // Dummy topics when there is no real data
+  const dummyTopics = [
+    { topic: 'Mindfulness', count: 10 },
+    { topic: 'Stress', count: 7 },
+    { topic: 'Goals', count: 5 },
+  ];
 
   useEffect(() => {
-    let mounted = true
+    let mounted = true;
 
     const fetchTopics = async () => {
       try {
-        const user = getAuth().currentUser
-        if (!user) return
+        const user = getAuth().currentUser;
+        if (!user) return;
 
-        const token = await user.getIdToken()
+        const token = await user.getIdToken();
         const res = await fetch(`${API_BASE}/api/topics`, {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        const { topics } = await res.json()
-        if (mounted) setTopicsList(topics)
+        const { topics } = await res.json();
+        if (mounted) setTopicsList(topics);
       } catch (err) {
-        console.error('Error fetching topics:', err)
+        console.error('Error fetching topics:', err);
       }
-    }
+    };
 
-    fetchTopics()
-    return () => { mounted = false }
-  }, [])
+    fetchTopics();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  if (topicsList.length === 0) {
-    return (
-      <>
-        <Text style={styles.sectionTitle}>Common topics</Text>
-        <Placeholder />
-      </>
-    )
-  }
+  const listToRender = topicsList.length > 0 ? topicsList : dummyTopics;
 
-  const maxCount = topicsList[0].count
-  const totalItems = topicsList.length
+  const maxCount = listToRender[0].count;
+  const totalItems = listToRender.length;
 
   return (
     <>
       <Text style={styles.sectionTitle}>Common topics</Text>
       <View style={styles.card}>
-        {topicsList.map((t, index) => {
-          const fraction = t.count / maxCount
-          let barWidth = fraction * cardInnerWidth
+        {listToRender.map((t, index) => {
+          const fraction = t.count / maxCount;
+          let barWidth = fraction * cardInnerWidth;
 
-          const MIN_WIDTH = 60
-          if (barWidth < MIN_WIDTH) barWidth = MIN_WIDTH
-          if (barWidth > cardInnerWidth) barWidth = cardInnerWidth
+          const MIN_WIDTH = 60;
+          if (barWidth < MIN_WIDTH) barWidth = MIN_WIDTH;
+          if (barWidth > cardInnerWidth) barWidth = cardInnerWidth;
 
-          const lightness = 40 + (index / totalItems) * 35
-          const barColor = `hsl(220, 90%, ${lightness}%)`
+          const isDummy = topicsList.length === 0;
+          const lightness = 40 + (index / totalItems) * 35;
+          const barColor = isDummy
+            ? colors.blue // brand blue for dummy state
+            : `hsl(220, 90%, ${lightness}%)`;
 
           return (
             <View key={t.topic} style={styles.barRow}>
@@ -84,7 +85,10 @@ export default function TopicsSection() {
                 ]}
               >
                 <Text
-                  style={styles.topicText}
+                  style={[
+                    styles.topicText,
+                    { color: '#fff' },
+                  ]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
@@ -92,22 +96,22 @@ export default function TopicsSection() {
                 </Text>
               </View>
             </View>
-          )
+          );
         })}
 
         {!isSubscribed && (
           <BlurView intensity={12} tint="light" style={styles.overlay}>
-            <Pressable
+            <View
               style={styles.subscribeButton}
-              onPress={() => router.push('/settings/sub')}
+              onTouchEnd={() => router.push('/settings/sub')}
             >
               <Text style={styles.subscribeText}>Subscribe</Text>
-            </Pressable>
+            </View>
           </BlurView>
         )}
       </View>
     </>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -116,8 +120,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'SpaceMono',
     color: '#222',
-    marginTop: 26,
-    marginBottom: 8,
+    marginBottom: 10,
+    marginTop: 34,
   },
   card: {
     backgroundColor: '#fff',
@@ -132,6 +136,10 @@ const styles = StyleSheet.create({
     elevation: 2,
     position: 'relative',
     overflow: 'hidden',
+    minHeight: 120,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.lighter,
   },
   barRow: {
     marginBottom: 8,
@@ -146,7 +154,6 @@ const styles = StyleSheet.create({
   topicText: {
     fontSize: 14,
     fontFamily: 'SpaceMono',
-    color: '#fff',
     flexShrink: 1,
   },
   overlay: {
@@ -170,4 +177,4 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     fontWeight: '600',
   },
-})
+});

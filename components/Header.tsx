@@ -48,20 +48,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
   },
   headerContainer: {
-    height: 56,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconButton: {
     position: 'absolute',
     left: 0,
-    top: '36%',
-    transform: [{ translateY: -12 }],
     padding: 8,
+    paddingBottom: 20
   },
   headerText: {
     color: '#fff',
     fontSize: 20,
+    paddingBottom: 20,
     fontWeight: '600',
     fontFamily: 'SpaceMono',
   },

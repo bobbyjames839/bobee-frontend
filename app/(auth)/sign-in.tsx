@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router'
 import { colors } from '~/constants/Colors'
 import ErrorBanner from '~/components/banners/ErrorBanner'
 import ResetPassword from '~/components/reset/ResetPassword'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function SignIn() {
   const router = useRouter()
@@ -30,6 +32,7 @@ export default function SignIn() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
+      await AsyncStorage.setItem('showWelcomeOnce', '1');
       router.replace('/journal')
     } catch (err: any) {
       let message = 'An unexpected error occurred.'

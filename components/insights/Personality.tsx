@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'SpaceMono',
     color: '#222',
-    marginTop: 6,
-    marginBottom: 6,
+    marginTop: 10,
+    marginBottom: 10,
   },
   container: {
     flex: 1,
@@ -132,9 +132,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingHorizontal: 2,
     paddingBottom: 10,
+    
   },
   gridStretchContainer: {
     width: '100%',
+    
   },
   row: {
     flexDirection: 'row',
@@ -211,9 +213,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 24,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'white',
     overflow: 'hidden',
+    borderColor: colors.lighter,
+    borderWidth: 1,
   },
   subscribeButton: {
     backgroundColor: colors.blue,

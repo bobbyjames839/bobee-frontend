@@ -38,19 +38,20 @@ export default function QuotaBar({ todayCount, isSubscribed }: Props) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingVertical: 18,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderColor: '#e0e0e0',
     marginBottom: 20,
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.lighter
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   text: {
     fontSize: 14,
@@ -70,8 +71,10 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     paddingHorizontal: 20,
-    paddingVertical: 4,
+    paddingVertical: 8,
     backgroundColor: colors.green,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 184, 30, 1)',
     borderRadius: 6,
   },
   upgradeText: {

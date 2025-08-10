@@ -1,4 +1,7 @@
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import JournalMic from '~/components/journal/JournalMic';
 import JournalPrompt from '~/components/journal/JournalPrompt';
 import JournalResponse from '~/components/journal/JournalResponse';
@@ -8,73 +11,100 @@ import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import { useJournalRecording } from '~/hooks/useJournals';
 import { colors } from '~/constants/Colors';
+import WelcomeBanner from '~/components/banners/Welcome';
 
 export default function Journal() {
   const journal = useJournalRecording();
+  const [welcomeVisible, setWelcomeVisible] = useState(false);
+
+  useEffect(() => {
+    const checkWelcome = async () => {
+      try {
+        const val = await AsyncStorage.getItem('showWelcomeOnce');
+        if (val === '1') {
+          setWelcomeVisible(true);
+          await AsyncStorage.removeItem('showWelcomeOnce'); 
+        }
+      } catch (_) {
+      }
+    };
+    checkWelcome();
+  }, []);
 
   return (
     <>
       {journal.error && (
-        <ErrorBanner
-          message={journal.error}
-          onHide={journal.clearError}
-        />
+        <ErrorBanner message={journal.error} onHide={journal.clearError} />
       )}
-
       {journal.successBannerVisible && (
-        <SuccessBanner
-          message="Journal submitted"
-          onHide={journal.clearSuccessBanner}
-        />
+        <SuccessBanner message="Journal submitted" onHide={journal.clearSuccessBanner} />
       )}
 
-      <View style={styles.container}>
-        <JournalLimitBanner visible={journal.limitBannerVisible} />
+      <WelcomeBanner
+        visible={welcomeVisible}
+        onClose={() => setWelcomeVisible(false)}
+      />
 
-        {journal.aiResponse ? (
-          <JournalResponse
-            aiResponse={journal.aiResponse}
-            onUpgrade={journal.handleUpgrade}
-            onUpgradeTwo={journal.handleUpgradeTwo}
-            subscribeLoading={journal.subscribeLoading}
-            secondSubscribeLoading={journal.secondSubscribeLoading}
-            onSubmit={journal.handleSubmitJournal}
-            submitLoading={journal.submitLoading}
-            wordCount={journal.wordCount}
-            currentStreak={journal.currentStreak}
+      <View style={styles.containerBase}>
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill]}
+        >
+          <LinearGradient
+            colors={['rgba(188, 198, 255, 1)', colors.lightest]}
+            locations={[0, .5]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFill}
           />
-        ) : (
-          <>
-            <JournalPrompt prompt={journal.prompt} loading={journal.loading} />
+        </Animated.View>
 
-            <View style={styles.centerContent}>
-              <JournalMic
-                onClearPrompt={journal.clearPrompt}
-                isRecording={journal.isRecording}
-                onGenerate={journal.generatePrompt}
-                prompt={journal.prompt}
-                loading={journal.loading}
-                timer={journal.timer}
-                onToggle={journal.toggleRecording}
-                pulseAnim={journal.pulseAnim}
-              />
+        <View style={styles.containerPadding}>
+          <JournalLimitBanner visible={journal.limitBannerVisible} />
 
-              <JournalLoading
-                loading={journal.loading}
-                loadingStage={journal.loadingStage}
-              />
-            </View>
-          </>
-        )}
+          {journal.aiResponse ? (
+            <JournalResponse
+              aiResponse={journal.aiResponse}
+              onUpgrade={journal.handleUpgrade}
+              onUpgradeTwo={journal.handleUpgradeTwo}
+              subscribeLoading={journal.subscribeLoading}
+              secondSubscribeLoading={journal.secondSubscribeLoading}
+              onSubmit={journal.handleSubmitJournal}
+              submitLoading={journal.submitLoading}
+              wordCount={journal.wordCount}
+              currentStreak={journal.currentStreak}
+            />
+          ) : (
+            <>
+              <JournalPrompt prompt={journal.prompt} loading={journal.loading} />
+              <View style={styles.centerContent}>
+                <JournalMic
+                  onClearPrompt={journal.clearPrompt}
+                  isRecording={journal.isRecording}
+                  onGenerate={journal.generatePrompt}
+                  prompt={journal.prompt}
+                  loading={journal.loading}
+                  timer={journal.timer}
+                  onToggle={journal.toggleRecording}
+                  pulseAnim={journal.pulseAnim}
+                />
+                <JournalLoading loading={journal.loading} loadingStage={journal.loadingStage} />
+              </View>
+            </>
+          )}
+        </View>
       </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
- container: {
+  containerBase: {
     flex: 1,
     backgroundColor: colors.lightest,
+  },
+  containerPadding: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
   },

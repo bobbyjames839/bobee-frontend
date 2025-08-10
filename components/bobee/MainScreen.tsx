@@ -7,9 +7,8 @@ import AutoExpandingInput from './AutoExpandingInput'
 import QuotaBar from './QuotaBar'
 import { SubscriptionContext } from '~/context/SubscriptionContext'
 import { colors } from '~/constants/Colors'
-import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
-
+import Constants from 'expo-constants'
+import { useRouter } from 'expo-router'
 
 type ConversationSummary = {
   id: string
@@ -17,9 +16,15 @@ type ConversationSummary = {
   createdAt: Date
 }
 
-const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
+const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
 
-export default function MainScreen({ input, setInput, isLoading, onSubmit, onSelectConversation }: {
+export default function MainScreen({
+  input,
+  setInput,
+  isLoading,
+  onSubmit,
+  onSelectConversation,
+}: {
   input: string
   setInput: (s: string) => void
   isLoading: boolean
@@ -32,7 +37,7 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
   const { isSubscribed } = useContext(SubscriptionContext)
   const limit = isSubscribed ? 50 : 5
   const reachedLimit = todayCount >= limit
-  const router = useRouter();
+  const router = useRouter()
 
   const getAuthHeaders = async () => {
     const user = getAuth().currentUser
@@ -42,26 +47,26 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
   }
 
   useEffect(() => {
-    const auth = getAuth();
+    const auth = getAuth()
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setConversations([]);
-        setTodayCount(0);
-        return;
+        setConversations([])
+        setTodayCount(0)
+        return
       }
 
       try {
-        const token = await user.getIdToken();
+        const token = await user.getIdToken()
         const res = await fetch(`${API_BASE}/api/conversations-and-daily-count`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-        const json = await res.json();
+        const json = await res.json()
 
         setConversations(
           (json.conversations || []).map((c: any) => ({
@@ -69,20 +74,18 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
             title: c.title,
             createdAt: new Date(c.createdAt),
           }))
-        );
-        setTodayCount(json.todayCount ?? 0);
+        )
+        setTodayCount(json.todayCount ?? 0)
       } catch (e: any) {
-        console.warn('Error loading conversations overview', e);
-        Alert.alert('Could not load conversations', e.message);
-        setTodayCount(0);
+        console.warn('Error loading conversations overview', e)
+        Alert.alert('Could not load conversations', e.message)
+        setTodayCount(0)
       }
-    });
+    })
 
-    return () => unsubscribe();
-  }, [isSubscribed]);
-  
+    return () => unsubscribe()
+  }, [isSubscribed])
 
-  //delete a conversation
   const handleDelete = async (id: string) => {
     try {
       const headers = await getAuthHeaders()
@@ -92,7 +95,7 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || 'Delete failed')
-      setConversations(cs => cs.filter(c => c.id !== id))
+      setConversations((cs) => cs.filter((c) => c.id !== id))
     } catch (e: any) {
       console.warn('Delete error', e)
       Alert.alert('Error', e.message)
@@ -106,9 +109,7 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
 
         <Text style={styles.pageTitle}>Ask Bobee Anything</Text>
         <View style={styles.inputWrapper}>
-          {reachedLimit && (
-            <BlurView intensity={12} tint="light" style={styles.overlay} />
-          )}
+          {reachedLimit && <BlurView intensity={12} tint="light" style={styles.overlay} />}
 
           <AutoExpandingInput
             value={input}
@@ -122,16 +123,11 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
           />
 
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              (isLoading || reachedLimit) && styles.disabledButton,
-            ]}
+            style={[styles.submitButton, (isLoading || reachedLimit) && styles.disabledButton]}
             onPress={onSubmit}
             disabled={isLoading || reachedLimit}
           >
-            <Text style={styles.submitText}>
-              {isLoading ? 'Thinking…' : 'Ask Bobee'}
-            </Text>
+            <Text style={styles.submitText}>{isLoading ? 'Thinking…' : 'Ask Bobee'}</Text>
           </TouchableOpacity>
 
           {reachedLimit && (
@@ -144,7 +140,7 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
               {!isSubscribed && (
                 <TouchableOpacity
                   style={styles.upgradeOverlayButton}
-                  onPress={() => (router.push('/(tabs)/settings/sub'))}
+                  onPress={() => router.push('/(tabs)/settings/sub')}
                 >
                   <Text style={styles.upgradeOverlayText}>Upgrade Plan</Text>
                 </TouchableOpacity>
@@ -153,55 +149,64 @@ export default function MainScreen({ input, setInput, isLoading, onSubmit, onSel
           )}
         </View>
 
-        {conversations.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Recent Conversations</Text>
-            {conversations.map(conv => (
-              <View key={conv.id} style={styles.conversationItem}>
-                {pendingDelete === conv.id ? (
-                  <View style={styles.confirmContainer}>
-                    <TouchableOpacity
-                      style={styles.confirmButton}
-                      onPress={() => {
-                        handleDelete(conv.id)
-                        setPendingDelete(null)
-                      }}
-                    >
-                      <Text style={styles.confirmText}>Confirm</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={() => setPendingDelete(null)}
-                    >
-                      <Text style={styles.cancelText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      style={styles.conversationContent}
-                      onPress={() => onSelectConversation(conv.id)}
-                    >
-                      <Text style={styles.conversationTitle}>{conv.title}</Text>
-                      <Text style={styles.conversationDate}>
-                        {conv.createdAt.toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => setPendingDelete(conv.id)}
-                    >
-                      <Ionicons name="trash" size={20} color="red" />
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            ))}
-          </>
+        {/* Recent Conversations section is always visible */}
+        <Text style={styles.sectionTitle}>Recent Conversations</Text>
+
+        {conversations.length > 0 ? (
+          conversations.map((conv) => (
+            <View key={conv.id} style={styles.conversationItem}>
+              {pendingDelete === conv.id ? (
+                <View style={styles.confirmContainer}>
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => {
+                      handleDelete(conv.id)
+                      setPendingDelete(null)
+                    }}
+                  >
+                    <Text style={styles.confirmText}>Confirm</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setPendingDelete(null)}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.conversationContent}
+                    onPress={() => onSelectConversation(conv.id)}
+                  >
+                    <Text style={styles.conversationTitle}>{conv.title}</Text>
+                    <Text style={styles.conversationDate}>
+                      {conv.createdAt.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => setPendingDelete(conv.id)}
+                  >
+                    <Ionicons name="trash" size={20} color="red" />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          ))
+        ) : (
+          <View style={styles.conversationItem}>
+            <View style={styles.conversationContent}>
+              <Text style={styles.conversationTitle}>You currently have no conversations</Text>
+              <Text style={styles.conversationDate}>
+                Start a new one above to see it here
+              </Text>
+            </View>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -221,7 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'SpaceMono',
     color: colors.darkest,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   inputWrapper: {
     position: 'relative',
@@ -237,6 +242,8 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     color: '#333',
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.lighter,
   },
   submitButton: {
     backgroundColor: colors.blue,
@@ -294,6 +301,8 @@ const styles = StyleSheet.create({
   },
   conversationItem: {
     backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.lighter,
     borderRadius: 8,
     height: 100,
     marginBottom: 8,

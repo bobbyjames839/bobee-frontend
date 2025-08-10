@@ -104,6 +104,8 @@ const styles = StyleSheet.create({
     borderRadius:    16,
     overflow:        'hidden',
     marginTop:       20,
+    borderColor: colors.lighter,
+    borderWidth:     1,
     backgroundColor: '#fff',
     elevation:       2,
   },
