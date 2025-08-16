@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { sendPasswordResetEmail, ActionCodeSettings } from 'firebase/auth'
@@ -24,24 +24,27 @@ export default function ResetPassword({ onClose }: Props) {
   const [info, setInfo] = useState('')
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
+  // Button is enabled only if email has non-whitespace characters
+  const isDisabled = useMemo(() => !email.trim(), [email])
+
   const handleReset = async () => {
     setError('')
     setInfo('')
 
-    if (!email.trim()) {
+    const trimmed = email.trim()
+    if (!trimmed) {
       setError('Please enter your email address.')
       return
     }
 
     try {
-      await sendPasswordResetEmail(auth, email, actionCodeSettings)
+      await sendPasswordResetEmail(auth, trimmed, actionCodeSettings)
       setInfo('A password reset link has been sent to your email.')
       setEmail('')
     } catch (err: any) {
       console.log('[Reset Error]', err)
       let message = 'An unexpected error occurred. Please try again.'
-
-      if (err.code) {
+      if (err?.code) {
         switch (err.code) {
           case 'auth/invalid-email':
             message = 'Invalid email address.'
@@ -53,7 +56,6 @@ export default function ResetPassword({ onClose }: Props) {
             message = `Error: ${err.message || err.code}`
         }
       }
-
       setError(message)
     }
   }
@@ -73,6 +75,7 @@ export default function ResetPassword({ onClose }: Props) {
     <BlurView
       key={key}
       intensity={50}
+      tint="light"
       style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}
     >
       <TextInput
@@ -86,6 +89,10 @@ export default function ResetPassword({ onClose }: Props) {
         onBlur={() => setFocusedField(null)}
         autoCapitalize="none"
         keyboardType={secure ? 'default' : 'email-address'}
+        returnKeyType="done"
+        onSubmitEditing={() => {
+          if (!isDisabled) handleReset()
+        }}
       />
     </BlurView>
   )
@@ -107,7 +114,13 @@ export default function ResetPassword({ onClose }: Props) {
         <Text style={styles.title}>Reset Password</Text>
         {renderBlurInput('email', 'Email', email, setEmail)}
 
-        <TouchableOpacity style={styles.button} onPress={handleReset}>
+        <TouchableOpacity
+          style={[styles.button, isDisabled && styles.buttonDisabled, styles.buttonEnabled]}
+          onPress={handleReset}
+          disabled={isDisabled}
+          activeOpacity={0.85}
+          accessibilityState={{ disabled: isDisabled }}
+        >
           <Text style={styles.buttonText}>Send Reset Link</Text>
         </TouchableOpacity>
       </View>
@@ -164,12 +177,17 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
   },
   button: {
-    backgroundColor: '#4f50e3',
     paddingVertical: 16,
     borderRadius: 16,
     width: '100%',
     marginTop: 8,
     marginBottom: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7
+  },
+  buttonEnabled: {
+    backgroundColor: colors.blue,
   },
   buttonText: {
     color: 'white',

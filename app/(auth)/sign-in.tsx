@@ -1,65 +1,85 @@
-import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native'
-import { BlurView } from 'expo-blur'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '~/utils/firebase'
-import { useRouter } from 'expo-router'
-import { colors } from '~/constants/Colors'
-import ErrorBanner from '~/components/banners/ErrorBanner'
-import ResetPassword from '~/components/reset/ResetPassword'
+import React, { useMemo, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Keyboard } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '~/utils/firebase';
+import { useRouter } from 'expo-router';
+import { colors } from '~/constants/Colors';
+import ErrorBanner from '~/components/banners/ErrorBanner';
+import ResetPassword from '~/components/reset/ResetPassword';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
 export default function SignIn() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [focusedField, setFocusedField] = useState<string | null>(null)
-  const [showReset, setShowReset] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showReset, setShowReset] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const isDisabled = useMemo(() => {
+    return loading || !email.trim() || !password;
+  }, [loading, email, password]);
 
   const handleLogin = async () => {
-    setError('')
-    setLoading(true)
+    // clear any old errors
+    setError('');
 
-    if (!email.trim()) {
-      return setError('Please enter your email address.')
+    // validate BEFORE loading
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Please enter your email address.');
+      return;
     }
     if (!password) {
-      return setError('Please enter your password.')
+      setError('Please enter your password.');
+      return;
     }
+
+    setLoading(true);
+    Keyboard.dismiss();
 
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      await signInWithEmailAndPassword(auth, trimmedEmail, password);
       await AsyncStorage.setItem('showWelcomeOnce', '1');
-      router.replace('/journal')
+      router.replace('/journal');
     } catch (err: any) {
-      let message = 'An unexpected error occurred.'
-      switch (err.code) {
+      let message = 'An unexpected error occurred.';
+      switch (err?.code) {
         case 'auth/invalid-email':
-          message = 'Invalid email address.'
-          break
+          message = 'Invalid email address.';
+          break;
         case 'auth/user-not-found':
         case 'auth/wrong-password':
-          message = 'Email and password do not match our records.'
-          break
+          message = 'Email and password do not match our records.';
+          break;
         case 'auth/too-many-requests':
-          message = 'Too many attempts. Try again later.'
-          break
+          message = 'Too many attempts. Try again later.';
+          break;
       }
-      setError(message)
+      setError(message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // Helper function to render input fields with blur effect
-  const renderBlurInput = (key: string,placeholder: string,value: string,onChange: (t: string) => void,secure = false) => (
-    <BlurView key={key} intensity={50} style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}>
+  const renderBlurInput = (
+    key: string,
+    placeholder: string,
+    value: string,
+    onChange: (t: string) => void,
+    secure = false
+  ) => (
+    <BlurView
+      key={key}
+      tint='light'
+      intensity={50}
+      style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}
+    >
       <TextInput
         placeholder={placeholder}
-        placeholderTextColor={colors.light}
+        placeholderTextColor="rgb(100, 100, 100)"
         secureTextEntry={secure}
         style={styles.input}
         value={value}
@@ -68,9 +88,18 @@ export default function SignIn() {
         onBlur={() => setFocusedField(null)}
         autoCapitalize="none"
         keyboardType={secure ? 'default' : 'email-address'}
+        autoCorrect={false}
+        textContentType={secure ? 'password' : 'emailAddress'}
+        returnKeyType={secure ? 'done' : 'next'}
+        onSubmitEditing={() => {
+          if (!secure) {
+          } else {
+            if (!isDisabled) handleLogin();
+          }
+        }}
       />
     </BlurView>
-  )
+  );
 
   return (
     <View style={styles.container}>
@@ -82,13 +111,15 @@ export default function SignIn() {
 
       <View style={styles.content}>
         <Text style={styles.title}>Sign in</Text>
+
         {renderBlurInput('email', 'Email', email, setEmail)}
         {renderBlurInput('password', 'Password', password, setPassword, true)}
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, isDisabled && styles.buttonDisabled]}
           onPress={handleLogin}
-          disabled={loading}
+          disabled={isDisabled}
+          activeOpacity={0.85}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -97,12 +128,12 @@ export default function SignIn() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/sign-up')}>
+        <TouchableOpacity onPress={() => router.replace('/sign-up')} activeOpacity={0.8}>
           <Text style={styles.footerText}>Don't have an account?</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity onPress={() => setShowReset(true)}>
+      <TouchableOpacity onPress={() => setShowReset(true)} activeOpacity={0.8}>
         <Text style={styles.bottomText}>Forgot your password?</Text>
       </TouchableOpacity>
 
@@ -110,7 +141,7 @@ export default function SignIn() {
         <ResetPassword onClose={() => setShowReset(false)} />
       </Modal>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -150,7 +181,7 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
   },
   button: {
-    backgroundColor: '#4f50e3',
+    backgroundColor: colors.blue,
     height: 60,
     borderRadius: 16,
     marginTop: 8,
@@ -208,4 +239,4 @@ const styles = StyleSheet.create({
     bottom: -100,
     left: -100,
   },
-})
+});

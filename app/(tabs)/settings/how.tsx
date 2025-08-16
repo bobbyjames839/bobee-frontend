@@ -1,29 +1,44 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { colors } from '~/constants/Colors';
 
 export default function How() {
-  const openLink = () => {
-    Linking.openURL('https://example.com');
-  };
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
+        <Text style={styles.boxTitle}>How Bobee Works</Text>
         <Text style={styles.boxText}>
-          Welcome to Bobee, your AI-powered journaling companion. To get started,
-          simply tap the microphone icon and speak your thoughts aloud—Bobee will
-          capture and transcribe your entries in real time. Once you’ve recorded,
-          feel free to ask Bobee any follow-up questions for deeper insights into
-          your mood and patterns. When you’re ready, visit the Insights tab to
-          explore visual metrics—including emotion trends, word clouds, and
-          daily streaks—that help you understand your personal growth journey.
+          <Text style={styles.sectionTitle}>Overview</Text>{"\n"}
+          Bobee is your AI-powered journaling companion. Simply speak your thoughts and Bobee will
+          transcribe them instantly, generating mood analysis, personality insights, topic
+          breakdowns, daily tips, and tailored chatbot responses. The more you use Bobee, the better
+          it understands your style and needs.
+          {"\n\n"}
+
+          <Text style={styles.sectionTitle}>Quick Start</Text>{"\n"}
+          • Tap the microphone icon and start talking — no typing required.{"\n"}
+          • Watch Bobee transcribe your words in real time.{"\n"}
+          • Instantly receive insights: mood, personality, topics, and tips.{"\n"}
+          • Chat with your personal AI assistant for deeper reflections.{"\n"}
+          • Visit Insights to track trends and progress over time.
+          {"\n\n"}
+
+          <Text style={styles.sectionTitle}>What You Get</Text>{"\n"}
+          • Mood analysis{"\n"}
+          • Personality metrics{"\n"}
+          • Topic breakdowns{"\n"}
+          • Daily tips{"\n"}
+          • Tailored AI chatbot{"\n"}
+          • Trends & streaks
+          {"\n\n"}
+
+          <Text style={styles.sectionTitle}>Tips for Best Results</Text>{"\n"}
+          • Journal daily — even 60 seconds can make a difference.{"\n"}
+          • Be detailed about events, thoughts, and feelings.{"\n"}
+          • Ask your AI assistant follow-up questions to dig deeper.{"\n"}
+          • Review Insights weekly to spot patterns in your growth.
         </Text>
       </View>
-
-      <TouchableOpacity style={styles.button} onPress={openLink}>
-        <Text style={styles.buttonText}>Learn More</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -40,29 +55,31 @@ const styles = StyleSheet.create({
   box: {
     backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: colors.light,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 15,
+    borderColor: colors.lighter,
+    borderRadius: 10,
+    padding: 20,
     width: '100%',
+  },
+  boxTitle: {
+    fontFamily: 'SpaceMono',
+    fontSize: 22,
+    paddingBottom: 6,
+    borderBottomColor: colors.lighter,
+    borderBottomWidth: 1,
+    color: colors.darkest,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontFamily: 'SpaceMono',
+    fontSize: 16,
+    color: colors.blue,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   boxText: {
     fontFamily: 'SpaceMono',
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 24,
     color: colors.darkest,
-  },
-  button: {
-    backgroundColor: colors.blue,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 16,
-    color: 'white',
   },
 });

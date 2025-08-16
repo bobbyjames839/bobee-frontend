@@ -104,7 +104,7 @@ export default function AccountSettings() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.row]}
+            style={styles.rowBottom}
             onPress={onPressDelete}
           >
             <Text style={[styles.text, styles.destructive]}>
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: colors.light,
+    borderColor: colors.lighter,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -144,7 +144,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light,
+    borderBottomColor: colors.lighter,
+  },
+  rowBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   text: {
     fontFamily: 'SpaceMono',

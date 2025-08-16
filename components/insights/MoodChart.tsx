@@ -167,8 +167,8 @@ export default function MoodChart() {
 
 const styles = StyleSheet.create({
   container: { marginTop: 12 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', marginBottom: 10 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  title: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono' },
   toggleRow: { flexDirection: 'row' },
 
   card: {

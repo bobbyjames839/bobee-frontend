@@ -36,6 +36,8 @@ const moodIcon = (
 
 const feelingColors = ['#B3DFFC', '#D1C4E9', '#B2DFDB'];
 const feelingColor = (i: number) => feelingColors[i % feelingColors.length];
+const feelingBorders = ['#89c5eeff', '#b89ee8ff', '#8de2dbff'];
+const feelingBorder = (i: number) => feelingBorders[i % feelingBorders.length];
 
 export default function JournalResponse({ aiResponse, subscribeLoading, secondSubscribeLoading, onSubmit, onUpgrade, onUpgradeTwo, submitLoading, wordCount, currentStreak }: JournalResponseProps) {
   const { isSubscribed } = useContext(SubscriptionContext);
@@ -68,22 +70,23 @@ export default function JournalResponse({ aiResponse, subscribeLoading, secondSu
         {aiResponse.selfInsight && (
           <View style={styles.blurSection}>
             <Text style={styles.sectionTitle}>Insight</Text>
-            <View style={styles.insightContent}>
+            <View style={isSubscribed ? styles.insightContent : styles.insightContentPadded}>
               <Text style={styles.responseText}>{aiResponse.selfInsight}</Text>
               {!isSubscribed && (
                 <BlurView intensity={12} tint="light" style={styles.blurOverlayInner}>
                   <TouchableOpacity
-                    style={[subscribeLoading && { opacity: 0.6 }, styles.upgradeBlurButton]}
                     onPress={onUpgrade}
                     disabled={subscribeLoading}
                   >
-                    {subscribeLoading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.upgradeBlurButtonText}>
-                        Upgrade
-                      </Text>
-                    )}
+                    <View style={styles.upgradeBlurButtonContent}>
+                      {subscribeLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.upgradeBlurButtonText}>
+                          Upgrade
+                        </Text>
+                      )}
+                    </View>
                   </TouchableOpacity>
                 </BlurView>
               )}
@@ -114,7 +117,7 @@ export default function JournalResponse({ aiResponse, subscribeLoading, secondSu
           {aiResponse.feelings.map((word, i) => (
             <View
             key={`${word}-${i}`}
-            style={[styles.feelingBox, { backgroundColor: feelingColor(i) }]}
+            style={[styles.feelingBox, { backgroundColor: feelingColor(i) }, {borderColor: feelingBorder(i)}]}
             >
               <Text style={styles.feelingText}>{word}</Text>
             </View>
@@ -124,23 +127,23 @@ export default function JournalResponse({ aiResponse, subscribeLoading, secondSu
           {aiResponse.thoughtPattern && (
             <View style={styles.blurSection}>
               <Text style={styles.sectionTitle}>Thought Pattern</Text>
-              <View style={styles.insightContent}>
+              <View style={isSubscribed ? styles.insightContent : styles.insightContentPadded}>
                 <Text style={styles.responseText}>{aiResponse.thoughtPattern}</Text>
                 {!isSubscribed && (
                   <BlurView intensity={12} tint="light" style={styles.blurOverlayInner}>
                     <TouchableOpacity
-                      style={[secondSubscribeLoading && { opacity: 0.6 }, styles.upgradeBlurButton]}
                       onPress={onUpgradeTwo}
                       disabled={secondSubscribeLoading}
-                      
                     >
-                      {secondSubscribeLoading ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={styles.upgradeBlurButtonText}>
-                          Upgrade
-                        </Text>
-                      )}
+                      <View style={styles.upgradeBlurButtonContent}>
+                        {secondSubscribeLoading ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.upgradeBlurButtonText}>
+                            Upgrade
+                          </Text>
+                        )}
+                      </View>
                     </TouchableOpacity>
                   </BlurView>
                 )}
@@ -178,13 +181,10 @@ const styles = StyleSheet.create({
   responseBox: {
     backgroundColor: '#FAFAFA',
     padding: 14,
+    paddingTop: 24,
     borderRadius: 16,
-    marginHorizontal: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 10,
-    elevation: 2,
+    borderWidth: 1, 
+    borderColor: colors.lighter
   },
   sectionTitle: {
     marginTop: 20,
@@ -217,33 +217,40 @@ const styles = StyleSheet.create({
   blurSection: {
     position: 'relative',
   },
-  insightContent: {
+  insightContentPadded: {
     position: 'relative',
-    marginBottom: 16,
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(155, 203, 255, 0.6)',
+    borderColor: 'rgba(173, 209, 246, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  insightContent: {
+    position: 'relative',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   blurOverlayInner: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(155, 203, 255, 0.1)',
-  },
-  upgradeBlurButton: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  upgradeBlurButtonText: {
+  upgradeBlurButtonContent: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.blue,
+    width: 160,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  upgradeBlurButtonText: {
     color: '#fff',
     fontSize: 16,
     fontFamily: 'SpaceMono',
     fontWeight: '600',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 6,
   },
   moodRowContainer: {
     flexDirection: 'row',
@@ -257,12 +264,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 20,
-    marginRight: 8,
+    marginRight: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    shadowOffset: {height: 0, width: 0},
+    elevation: 0
   },
   rightBoxesContainer: {
     flex: 1,
@@ -272,46 +281,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     alignItems: 'center',
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.2,
     shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: {height: 0, width: 0},
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: colors.lighter,
   },
   statBoxTop: {
-    marginBottom: 4,
+    marginBottom: 5,
   },
   statBoxBottom: {
-    marginTop: 4,
+    marginTop: 5,
   },
   statLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'SpaceMono',
     color: '#333333',
   },
   statValue: {
     fontSize: 20,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 2,
+    fontFamily: 'SpaceMono',
   },
   feelingsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginVertical: 10,
+    gap: 10
   },
   feelingBox: {
     flex: 1,
-    marginHorizontal: 4,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1
   },
   feelingText: {
     color: 'black',
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'SpaceMono',
   },
   submitButton: {
     marginTop: 32,
@@ -354,7 +367,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'SpaceMono',
     transform: [{ rotate: '45deg' }],
-    fontWeight: '700',
   },
 });
-

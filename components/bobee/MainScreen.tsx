@@ -78,7 +78,6 @@ export default function MainScreen({
         setTodayCount(json.todayCount ?? 0)
       } catch (e: any) {
         console.warn('Error loading conversations overview', e)
-        Alert.alert('Could not load conversations', e.message)
         setTodayCount(0)
       }
     })

@@ -1,5 +1,15 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native'
+import React, { useMemo, useState } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Keyboard,
+  Modal,
+  ScrollView,
+} from 'react-native'
 import { BlurView } from 'expo-blur'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '~/utils/firebase'
@@ -17,34 +27,48 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [accepted, setAccepted] = useState(false)
   const [error, setError] = useState('')
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // inline docs
+  const [showTerms, setShowTerms] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
-  // 1. Frontend: User fills name, email, password in UI.
-  // 2. Frontend: Runs basic validation before sending to backend.
-  // 3. Backend: Validates data and creates user with Firebase Admin.
-  // 4. Backend: Sets displayName/photoURL and creates Firestore docs.
-  // 5. Backend: Sends success response to frontend.
-  // 6. Frontend: Logs user in locally and navigates to main screen.
+  // Disable button until fields are valid, terms accepted, and not loading
+  const isDisabled = useMemo(() => {
+    const trimmedEmail = email.trim()
+    const hasBasics = !!name.trim() && !!trimmedEmail && !!password && !!confirmPassword
+    const strongEnough = password.length >= MIN_PASSWORD_LENGTH
+    const matches = password === confirmPassword
+    return loading || !hasBasics || !strongEnough || !matches || !accepted
+  }, [name, email, password, confirmPassword, loading, accepted])
+
   const handleSignUp = async () => {
     setError('')
 
-    if (!name.trim()) return setError('Please enter your name.')
-    if (!email.trim()) return setError('Please enter your email address.')
+    // validate BEFORE loading
+    const trimmedName = name.trim()
+    const trimmedEmail = email.trim()
+
+    if (!trimmedName) return setError('Please enter your name.')
+    if (!trimmedEmail) return setError('Please enter your email address.')
     if (!password) return setError('Please enter your password.')
     if (password.length < MIN_PASSWORD_LENGTH) {
       return setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`)
     }
     if (password !== confirmPassword) return setError('Passwords do not match.')
+    if (!accepted) return setError('Please agree to the Terms & Conditions and Privacy Statement.')
 
     setLoading(true)
+    Keyboard.dismiss()
+
     try {
       const res = await fetch(`${API_URL}/api/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
+        body: JSON.stringify({ name: trimmedName, email: trimmedEmail, password }),
       })
 
       if (!res.ok) {
@@ -52,8 +76,8 @@ export default function SignUpScreen() {
         throw new Error(msg || `Signup failed (${res.status})`)
       }
 
-      await signInWithEmailAndPassword(auth, email.trim(), password)
-      await AsyncStorage.setItem('showWelcomeOnce', '1');
+      await signInWithEmailAndPassword(auth, trimmedEmail, password)
+      await AsyncStorage.setItem('showWelcomeOnce', '1')
       router.replace('/journal')
     } catch (err: any) {
       let message = 'An unexpected error occurred.'
@@ -67,18 +91,29 @@ export default function SignUpScreen() {
     }
   }
 
-  const renderBlurInput = ( key: string, placeholder: string, value: string, onChange: (t: string) => void, secure = false, extraProps = {}) => (
-    <BlurView key={key} intensity={50} style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}>
+  const renderBlurInput = (
+    key: string,
+    placeholder: string,
+    value: string,
+    onChange: (t: string) => void,
+    secure = false,
+  ) => (
+    <BlurView key={key} tint='light' intensity={50} style={[styles.blurInput, focusedField === key && styles.blurInputFocused]}>
       <TextInput
         placeholder={placeholder}
-        placeholderTextColor={colors.light}
+        placeholderTextColor='rgb(100, 100, 100)'
         secureTextEntry={secure}
         style={styles.input}
         value={value}
         onChangeText={onChange}
         onFocus={() => setFocusedField(key)}
         onBlur={() => setFocusedField(null)}
-        {...extraProps}
+        autoCapitalize={key === 'email' ? 'none' : 'words'}
+        keyboardType={key === 'email' ? 'email-address' : 'default'}
+        textContentType={
+          key === 'email' ? 'emailAddress' : key === 'password' || key === 'confirmPassword' ? 'newPassword' : 'name'
+        }
+        autoCorrect={false}
       />
     </BlurView>
   )
@@ -94,32 +129,158 @@ export default function SignUpScreen() {
       <Text style={styles.title}>Create Account</Text>
 
       {renderBlurInput('name', 'Name', name, setName)}
-      {renderBlurInput( 'email', 'Email', email, setEmail, false, { autoCapitalize: 'none', keyboardType: 'email-address' })}
+      {renderBlurInput('email', 'Email', email, setEmail)}
       {renderBlurInput('password', 'Password', password, setPassword, true)}
 
       {focusedField === 'password' && (
-        <Text style={styles.passwordRequirement}>
-          Minimum {MIN_PASSWORD_LENGTH} characters
-        </Text>
+        <Text style={styles.passwordRequirement}>Minimum {MIN_PASSWORD_LENGTH} characters</Text>
       )}
 
       {renderBlurInput('confirmPassword', 'Confirm Password', confirmPassword, setConfirmPassword, true)}
 
+      {/* Terms acceptance row with inline links that open in-page docs */}
+      <View style={styles.termsRow}>
+        <TouchableOpacity
+          onPress={() => setAccepted(a => !a)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: accepted }}
+          activeOpacity={0.8}
+          style={[styles.checkbox, accepted && styles.checkboxChecked]}
+        >
+          {accepted ? <Text style={styles.checkboxTick}>✓</Text> : null}
+        </TouchableOpacity>
+
+        <Text style={styles.termsText}>
+          I agree to the{' '}
+          <Text style={styles.link} onPress={() => setShowTerms(true)}>
+            Terms & Conditions
+          </Text>{' '}
+          and{' '}
+          <Text style={styles.link} onPress={() => setShowPrivacy(true)}>
+            Privacy Statement
+          </Text>
+          .
+        </Text>
+      </View>
+
       <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
+        style={[styles.button, isDisabled && styles.buttonDisabled]}
         onPress={handleSignUp}
-        disabled={loading}
+        disabled={isDisabled}
+        activeOpacity={0.85}
       >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
-        )}
+        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.replace('/sign-in')}>
+      <TouchableOpacity onPress={() => router.replace('/sign-in')} activeOpacity={0.8}>
         <Text style={styles.footerText}>Already have an account? Sign in</Text>
       </TouchableOpacity>
+
+      {/* TERMS MODAL */}
+      <Modal visible={showTerms} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Bobee Terms & Conditions</Text>
+              <TouchableOpacity onPress={() => setShowTerms(false)} activeOpacity={0.8}>
+                <Text style={styles.closeText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <Text style={styles.sectionTitle}>Last Updated:</Text>
+              <Text style={styles.dateText}>10 August 2025</Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.sectionTitle}>Overview</Text>{'\n'}
+                These Terms & Conditions govern your access to and use of Bobee. By using the app, you agree to these terms. If you do not agree, do not use Bobee.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Who We Are</Text>{'\n'}
+                Bobee is provided on an as-is, as-available basis by “Bobee” (unregistered). You can contact us at privacy@bobee.app for any questions about these terms.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Eligibility & Accounts</Text>{'\n'}
+                You must be at least 13 years old to use Bobee. You are responsible for the security of your device and any credentials used to access the app, and for all activity that occurs under your account.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Acceptable Use</Text>{'\n'}
+                You agree to use Bobee lawfully and responsibly. You will not misuse the service, attempt to reverse-engineer or interfere with the app, probe or breach security, or use Bobee to generate or share content that is unlawful, harmful, or infringing.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>AI Outputs & No Medical Advice</Text>{'\n'}
+                Bobee provides AI-generated insights intended for reflection and general informational purposes only. Bobee does not provide medical, psychological, or legal advice and is not a substitute for professional care. Do not use the app for emergencies; call local emergency services if you need urgent help.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Content & Intellectual Property</Text>{'\n'}
+                You retain all rights to your journal transcriptions and content. By using Bobee, you grant us a limited, revocable license to process your content solely to operate, maintain, and improve the service, including generating insights and improving model prompts. The app, branding, and underlying software are owned by us or our licensors and are protected by applicable laws.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Privacy</Text>{'\n'}
+                Your use of Bobee is governed by our Privacy Statement. In short, we store transcriptions (not audio) and generate insights in real time and from stored data. Data is stored in Firebase with default encryption. We use OpenAI for AI processing and, to the best of our knowledge, OpenAI does not retain the content of our API calls. We do not sell your personal information. Please review the Privacy Statement for full details.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Fees & Changes to the Service</Text>{'\n'}
+                Bobee may evolve over time. We may introduce new features, modify existing features, or offer optional paid functionality in the future. If pricing applies, we will present the details before you opt in.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Termination</Text>{'\n'}
+                You may stop using Bobee at any time. We may suspend or terminate access if you breach these terms or use the service in a way that could harm us, other users, or third parties.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Disclaimers & Limitation of Liability</Text>{'\n'}
+                Bobee is provided without warranties of any kind to the extent permitted by law. We do not warrant that the app will be uninterrupted or error-free, or that AI outputs will be accurate or suitable for your purposes. To the maximum extent permitted by law, we and our providers will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for lost profits or data, arising from your use of Bobee.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Governing Law</Text>{'\n'}
+                These terms are governed by the laws of England and Wales, and the courts of England and Wales shall have exclusive jurisdiction, except where consumer protection laws in your country provide otherwise.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Changes to These Terms</Text>{'\n'}
+                We may update these terms periodically to reflect changes in our service or legal requirements. We will post updates with the date of the latest revision. Your continued use of Bobee after changes take effect constitutes acceptance of the updated terms.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Contact</Text>{'\n'}
+                For questions about these Terms & Conditions, please email privacy@bobee.app.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* PRIVACY MODAL */}
+      <Modal visible={showPrivacy} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Privacy Statement</Text>
+              <TouchableOpacity onPress={() => setShowPrivacy(false)} activeOpacity={0.8}>
+                <Text style={styles.closeText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <Text style={styles.sectionTitle}>Last Updated:</Text>
+              <Text style={styles.dateText}>10 August 2025</Text>
+
+              <Text style={styles.modalText}>
+                <Text style={styles.sectionTitle}>Overview</Text>{'\n'}
+                At Bobee, your privacy is a priority. This statement explains the information we collect, how we use it, and the steps we take to protect it.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Information We Collect</Text>{'\n'}
+                We store transcriptions of your spoken journal entries — audio recordings are not saved — along with AI-generated insights such as mood analysis, personality metrics, topic breakdowns, daily tips, and progress data like trends and streaks. We do not collect unrelated usage or background activity data.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>How We Use Your Information</Text>{'\n'}
+                Your information is used to provide accurate and meaningful insights from your journals, help you track progress over time, and enhance the model prompts that power your personal AI chatbot. Aggregated and anonymized data may also be used to improve our AI systems.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Data Storage & Security</Text>{'\n'}
+                All data is stored securely in Firebase and protected with its default encryption both in transit and at rest. Insights are generated in real time during journaling sessions and may also be drawn from your stored entries. API calls to OpenAI are used to process your transcriptions; to the best of our knowledge, OpenAI does not retain the content of these calls.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Third-Party Services</Text>{'\n'}
+                We use Firebase for authentication and data storage, and OpenAI for AI processing. We do not sell your personal information, and any sharing is limited to anonymized data for the sole purpose of improving AI functionality.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Your Rights</Text>{'\n'}
+                You can request a copy of your stored data at any time by contacting us at privacy@bobee.app. You may also delete your account and associated data. Data is retained until such a request or action is made.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Cookies & Tracking</Text>{'\n'}
+                The Bobee mobile app does not use cookies or tracking technologies. Our website may use basic analytics tools for performance and security monitoring.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Policy Updates</Text>{'\n'}
+                We may update this statement periodically to reflect changes in our practices. Any updates will be posted with the date of the latest revision.
+                {'\n\n'}
+                <Text style={styles.sectionTitle}>Contact Us</Text>{'\n'}
+                For privacy-related questions or requests, please email us at privacy@bobee.app.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -160,6 +321,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontFamily: 'SpaceMono',
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.blue,
+  },
+  checkboxTick: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: -1,
+  },
+  termsText: {
+    flexShrink: 1,
+    fontSize: 13,
+    color: colors.darkest,
+    fontFamily: 'SpaceMono',
+  },
+  link: {
+    color: colors.blue,
+    textDecorationLine: 'underline',
   },
   button: {
     backgroundColor: '#4f50e3',
@@ -212,5 +409,65 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightestblue,
     bottom: -100,
     left: -100,
+  },
+
+  // Modal styles (matches your settings screen card aesthetic)
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    maxHeight: '85%',
+    backgroundColor: 'white',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+  },
+  modalHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lighter,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontFamily: 'SpaceMono',
+    fontSize: 18,
+    color: colors.darkest,
+    marginRight: 'auto',
+  },
+  closeText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 14,
+    color: colors.blue,
+    textDecorationLine: 'underline',
+  },
+  modalContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 35
+  },
+  sectionTitle: {
+    fontFamily: 'SpaceMono',
+    fontSize: 16,
+    color: colors.blue,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  dateText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 14,
+    color: colors.dark,
+    marginBottom: 12,
+  },
+  modalText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 15,
+    lineHeight: 24,
+    color: colors.darkest,
   },
 })

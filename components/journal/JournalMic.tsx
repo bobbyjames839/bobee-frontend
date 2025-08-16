@@ -40,19 +40,33 @@ export default function JournalMic({
             !isRecording && loading && { opacity: 0.4 },
           ]}
         >
-          <LinearGradient
-            // Multi-stop gradient to mimic a radial look
-            colors={['#ded0ffff', '#f1f1f1ff']}
-            locations={[0, .6]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={[
-              styles.gradientCircle,
-              isRecording && { backgroundColor: colors.blue },
-            ]}
-          >
-            <Mic size={72} color={isRecording ? 'white' : colors.blue} />
-          </LinearGradient>
+          {isRecording ?
+            <LinearGradient
+              colors={[colors.darkblue, colors.blue]}
+              locations={[0, .6]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[
+                styles.gradientCircle,
+              ]}
+            >
+              <Mic size={72} color='white' />
+            </LinearGradient>
+            :
+            <LinearGradient
+              // Multi-stop gradient to mimic a radial look
+              colors={['#ded0ffff', '#f1f1f1ff']}
+              locations={[0, .6]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[
+                styles.gradientCircle,
+              ]}
+            >
+              <Mic size={72} color={colors.blue} />
+            </LinearGradient>   
+          }
+
         </Animated.View>
       </TouchableOpacity>
 
@@ -102,12 +116,14 @@ const styles = StyleSheet.create({
   },
   timer: {
     marginTop: 32,
+    letterSpacing: 3.5,
     fontSize: 20,
     fontFamily: 'SpaceMono',
     borderWidth: 1,
     borderColor: colors.lighter,
     borderRadius: 12,
-    paddingHorizontal: 36,
+    textAlign: 'center',
+    width: 100,
     paddingVertical: 8,
     backgroundColor: '#fff',
   },
@@ -126,7 +142,9 @@ const styles = StyleSheet.create({
   promptButton: {
     backgroundColor: colors.blue,
     paddingHorizontal: 80,
-    paddingVertical: 14,
+    height: 50,
+    display: 'flex',
+    justifyContent: 'center',
     borderRadius: 18,
     marginTop: 26,
   },
@@ -138,7 +156,9 @@ const styles = StyleSheet.create({
   clearPromptButton: {
     backgroundColor: colors.blue,
     paddingHorizontal: 14,
-    paddingVertical: 16,
+    height: 50,
+    display: 'flex',
+    justifyContent: 'center',
     borderRadius: 18,
     marginTop: 26,
   },

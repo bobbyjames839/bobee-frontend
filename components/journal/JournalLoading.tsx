@@ -1,12 +1,117 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Check } from 'lucide-react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { Check, Sparkles } from 'lucide-react-native';
+import { colors } from '~/constants/Colors';
 
 const loadingMessages = [
-  'Transcribing your journal.',
-  'Understanding your emotions.',
+  'Checking voice usage.',
+  'Transcribing journal.',
+  'Calculating word and streak count.',
+  'Getting personality metrics.',
   'Getting AI response.',
+  'Finalising...',
 ];
+
+const AnimatedLoadingRow = ({ msg, isCompleted, isActive }: { msg: string; isCompleted: boolean; isActive: boolean }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
+  const borderAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  useEffect(() => {
+    if (isActive) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(sparkleAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim, {
+            toValue: 0,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (isCompleted) {
+      Animated.timing(borderAnim, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [isCompleted]);
+
+  const sparkleOpacity = sparkleAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.5, 1, 0.5],
+  });
+
+  const sparkleScale = sparkleAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.2, 1],
+  });
+
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(66, 135, 245, 0)', colors.blue],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.loadingRow,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.loadingTextWrapper,
+          isCompleted && { ...styles.completedLoadingText, borderColor },
+        ]}
+      >
+        {isCompleted ? (
+          <Check size={18} color={colors.blue} style={styles.icon} />
+        ) : isActive ? (
+          <Animated.View style={{ opacity: sparkleOpacity, transform: [{ scale: sparkleScale }] }}>
+            <Sparkles size={18} color={colors.blue} style={styles.icon} />
+          </Animated.View>
+        ) : (
+          <View style={styles.iconPlaceholder} />
+        )}
+        <Text style={styles.loadingText}>{msg}</Text>
+      </Animated.View>
+    </Animated.View>
+  );
+};
 
 export default function JournalLoading({
   loading,
@@ -20,19 +125,12 @@ export default function JournalLoading({
     <View style={styles.loadingMessageContainer}>
       {loadingMessages.map((msg, index) =>
         loadingStage > index ? (
-          <View key={index} style={styles.loadingRow}>
-            <View
-              style={[
-                styles.loadingTextWrapper,
-                index < loadingStage - 1 && styles.completedLoadingText,
-              ]}
-            >
-              {index < loadingStage - 1 && (
-                <Check size={18} color="black" style={styles.tickIcon} />
-              )}
-              <Text style={styles.loadingText}>{msg}</Text>
-            </View>
-          </View>
+          <AnimatedLoadingRow
+            key={index}
+            msg={msg}
+            isCompleted={index < loadingStage - 1}
+            isActive={index === loadingStage - 1}
+          />
         ) : null
       )}
     </View>
@@ -53,23 +151,26 @@ const styles = StyleSheet.create({
   loadingTextWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     height: 40,
     borderRadius: 12,
     paddingHorizontal: 12,
-    width: '100%',
-    maxWidth: 320,
+    width: 320,
     backgroundColor: '#F0F0F0',
   },
   completedLoadingText: {
-    backgroundColor: '#C7F6C7',
+    borderWidth: 1,
   },
   loadingText: {
     fontSize: 16,
     fontFamily: 'SpaceMono',
     color: '#222',
+    textAlign: 'left',
   },
-  tickIcon: {
+  icon: {
+    marginRight: 8,
+  },
+  iconPlaceholder: {
+    width: 18,
     marginRight: 8,
   },
 });

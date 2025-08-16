@@ -177,7 +177,7 @@ export default function ChatScreen({
               style={styles.paywallButton}
               onPress={() => {
                 setShowPaywall(false)
-                router.push('/settings/sub')
+                router.push('/(tabs)/settings/sub')
               }}
             >
               <Text style={styles.paywallButtonText}>Upgrade Now</Text>

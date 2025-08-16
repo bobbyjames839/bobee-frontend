@@ -6,7 +6,6 @@ import JournalMic from '~/components/journal/JournalMic';
 import JournalPrompt from '~/components/journal/JournalPrompt';
 import JournalResponse from '~/components/journal/JournalResponse';
 import JournalLoading from '~/components/journal/JournalLoading';
-import JournalLimitBanner from '~/components/journal/JournalLimitBanner';
 import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import { useJournalRecording } from '~/hooks/useJournals';
@@ -60,7 +59,6 @@ export default function Journal() {
         </Animated.View>
 
         <View style={styles.containerPadding}>
-          <JournalLimitBanner visible={journal.limitBannerVisible} />
 
           {journal.aiResponse ? (
             <JournalResponse

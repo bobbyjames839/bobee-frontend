@@ -36,13 +36,9 @@ export function useJournalRecording() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runIdRef = useRef<number>(0);
-  const timeout1Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const timeout2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const timeout3Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [wordCount, setWordCount] = useState<number | null>(null);
   const [currentStreak, setCurrentStreak] = useState<number | null>(null);
   const [previousPersonality, setPreviousPersonality] = useState<PersonalityScores | null>(null);
-  const [limitBannerVisible, setLimitBannerVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
@@ -64,7 +60,8 @@ export function useJournalRecording() {
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const calculateWordCountAndStreak = async (transcriptText: string) => {
     const user = auth.currentUser;
     if (!user) return null;
@@ -149,10 +146,6 @@ export function useJournalRecording() {
     setLoadingStage(0);
     setError(null);
     setSubmissionConfirmed(false);
-
-    if (timeout1Ref.current) { clearTimeout(timeout1Ref.current); timeout1Ref.current = null; }
-    if (timeout2Ref.current) { clearTimeout(timeout2Ref.current); timeout2Ref.current = null; }
-    if (timeout3Ref.current) { clearTimeout(timeout3Ref.current); timeout3Ref.current = null; }
   };
 
   //reset everything when we go off and then back on the page
@@ -203,6 +196,14 @@ export function useJournalRecording() {
     }
   };
 
+  //helper to stop the recording
+  const safeStopAndClearRecording = async () => {
+    const rec = recordingRef.current;
+    if (!rec) return;
+    try { await rec.stopAndUnloadAsync(); } catch {}
+    recordingRef.current = null;
+  };
+
   //stops the recording and gets AI response
   const stopRecording = async () => {
     stopTimer();
@@ -211,13 +212,22 @@ export function useJournalRecording() {
     setLoading(true);
     setLoadingStage(1);
 
+    if (timer < 2) {
+      await safeStopAndClearRecording();
+      setLoading(false);
+      setError('Journal length not valid');
+      setTimer(0);
+      return;
+    }
+
     const user = auth.currentUser;
     if (!user) throw new Error('Not authenticated');
     const idToken = await user.getIdToken();
 
     //check if the user has not gone over their daily limit
     try {
-      const resp = await fetch(`${BACKEND_URL}/api/check-voice-usage`, {
+      setLoadingStage(1); // Checking voice usage
+      const voiceUsagePromise = fetch(`${BACKEND_URL}/api/check-voice-usage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,19 +235,23 @@ export function useJournalRecording() {
         },
         body: JSON.stringify({ secondsUsed: timer }),
       });
+
+      const [voiceUsageResponse] = await Promise.all([voiceUsagePromise, delay(1000)]);
       
-      if (!resp.ok) {
-        // Over the daily limit
+      if (!voiceUsageResponse.ok) {
+        await safeStopAndClearRecording();
         setLoading(false);
-        setLimitBannerVisible(true);
-        setTimeout(() => setLimitBannerVisible(false), 3000);
+        setError('You have hit your daily limit, please come back tomorrow');
+        setTimer(0);
         return;
       }
 
     } catch (e) {
+      await safeStopAndClearRecording();
       console.error('Voice-usage check failed', e);
       setError('Network error. Please try again.');
       setLoading(false);
+      setTimer(0);
       return;
     }
 
@@ -248,6 +262,7 @@ export function useJournalRecording() {
         if (thisRunId === runIdRef.current) {
           setLoading(false);
           setLoadingStage(0);
+          setTimer(0);
         }
         return;
       }
@@ -259,6 +274,7 @@ export function useJournalRecording() {
       if (!localUri) throw new Error('No recording URI found.');
 
       //transcribing the audio
+      setLoadingStage(2); // Transcribing journal
       const form = new FormData();
       const uriField =
         Platform.OS === 'ios' && !localUri.startsWith('file://')
@@ -289,33 +305,40 @@ export function useJournalRecording() {
       setTranscript(text);
 
       //update the word count and the streak for the response page
-      const stats = await calculateWordCountAndStreak(text);
+      setLoadingStage(3); // Calculating word and streak count
+      const statsPromise = calculateWordCountAndStreak(text);
+      const [stats] = await Promise.all([statsPromise, delay(1000)]);
       if (stats) {
         setWordCount(stats.wordCount);
         setCurrentStreak(stats.currentStreak);
       }
 
-      setLoadingStage(2);
-
       //Load personality scores or set defaults
       try {
-        const resp = await fetch(`${BACKEND_URL}/api/get-personality-scores`, {
+        setLoadingStage(4); // Getting personality metrics
+        const personalityPromise = fetch(`${BACKEND_URL}/api/get-personality-scores`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${idToken}` },
         });
-        if (!resp.ok) throw new Error('Failed to load personality');
-        const { personality } = (await resp.json()) as { personality: PersonalityScores };
+        const [personalityResponse] = await Promise.all([personalityPromise, delay(1000)]);
+        if (!personalityResponse.ok) throw new Error('Failed to load personality');
+        const { personality } = (await personalityResponse.json()) as { personality: PersonalityScores };
         setPreviousPersonality(personality);
       } catch (err: any) {
         console.error('Error loading personality:', err);
-      setPreviousPersonality(
-        PERSONALITY_KEYS.reduce((acc, key) => {
-          acc[key] = 50;
-          return acc;
-        }, {} as PersonalityScores)
-      )}
+        if (thisRunId === runIdRef.current) {
+          setError('Failed to load personality scores. Please try again.');
+          setLoading(false);
+          setLoadingStage(0);
+          setTimer(0);
+        }
+        return;
+      }
+
 
       // 2. Call AI with transcript, prompt, and personality
+      console.log('getting response')
+      setLoadingStage(5); // Getting AI response
       const aiPromise = fetch(`${BACKEND_URL}/api/journal-response`, {
         method: 'POST',
         headers: {
@@ -327,49 +350,65 @@ export function useJournalRecording() {
           prompt: prompt || '',
           personality: previousPersonality,
         }),
-      })
-        .then(res => res.json())
-        .then(data => data.aiResponse);
+      }).then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          if (err.error === 'Invalid journal entry') {
+            throw new Error('InvalidJournal');
+          }
+          throw new Error(err.error || `AI response failed (${res.status})`);
+        }
+        return res.json();
+      }).then(data => {
+        if (data.error) {
+          if (data.error === 'Invalid journal entry') {
+            throw new Error('InvalidJournal');
+          }
+          throw new Error(data.error);
+        }
+        return data.aiResponse;
+      });
 
-
-      //delaying the loading text change
-      timeout1Ref.current = setTimeout(() => {
-        if (thisRunId !== runIdRef.current) return;
-        setLoadingStage(3);
+      // Add a delay for the final loading stage
+      setTimeout(() => {
+        if (thisRunId === runIdRef.current) {
+          setLoadingStage(6); // Final loading stage
+        }
       }, 2000);
 
       try {
         const aiRes = await aiPromise;
         if (thisRunId !== runIdRef.current) return;
-        if (timeout1Ref.current) {
-          clearTimeout(timeout1Ref.current);
-          timeout1Ref.current = null;
-        }
         setAiResponse(aiRes);
         setLoading(false);
         setLoadingStage(0);
       } catch (aiErr: any) {
         if (aiErr.message === 'InvalidJournal') {
+          await safeStopAndClearRecording();
           resetState();
-          router.replace('/journal');
           setPrompt('');
           setError('Journal entry not detailed enough.');
+          setTimer(0);
           return;
         }
         console.error('getAIResponse error:', aiErr);
         if (thisRunId === runIdRef.current) {
+          await safeStopAndClearRecording();
           setLoading(false);
           setLoadingStage(0);
           setPrompt('');
           setError('Failed to get AI response.');
+          setTimer(0);
         }
       }
     } catch (err: any) {
+      await safeStopAndClearRecording(); 
       console.error(err);
       if (thisRunId === runIdRef.current) {
         setError(err.message || 'Recording/transcription failed.');
         setLoading(false);
         setLoadingStage(0);
+        setTimer(0);
       }
     }
   };
@@ -482,7 +521,6 @@ export function useJournalRecording() {
     handleSubmitJournal,
     wordCount, 
     currentStreak,
-    limitBannerVisible,
     handleUpgrade,
     handleUpgradeTwo,
     subscribeLoading, 

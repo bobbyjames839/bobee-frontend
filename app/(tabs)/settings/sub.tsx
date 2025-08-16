@@ -1,35 +1,46 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { getAuth } from 'firebase/auth';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
-import { Smile, Zap, Check } from 'lucide-react-native';
+import { Smiley, Crown, CheckCircle } from 'phosphor-react-native';
+
 
 type PlanKey = 'free' | 'pro';
 
-const plans: Record<PlanKey, { title: string; tagline: string; price: string; features: string[]; icon: string }> = {
+const plans: Record<PlanKey, { title: string; tagline: string; price: string; features: string[] }> = {
   free: {
     title: 'Free Tier',
     tagline: 'Get started with the basics',
     price: '$0',
-    features: ['2 minutes of journalling / day', '5 conversations / day', 'Basic journal insights', 'Habit and mood tracking'],
-    icon: 'happy-outline',
+    features: [
+      '2 minutes of journalling / day',
+      '5 conversations / day',
+      'Basic journal insights',
+      'Habit and mood tracking'
+    ],
   },
   pro: {
     title: 'Pro Tier',
     tagline: 'Deep AI insights for regular journalers',
     price: '$9.99',
-    features: ['Everything in free', '10 minutes of journalling / day', '50 conversations / day', 'Advanced journal insights', 'Topic and personality insights', 'Personalised Bobee responses in conversations'],
-    icon: 'flash-outline',
+    features: [
+      'Everything in free',
+      '10 minutes of journalling / day',
+      '50 conversations / day',
+      'Advanced journal insights',
+      'Topic and personality insights',
+      'Personalised Bobee responses in conversations'
+    ],
   },
 };
 
 const TAB_MARGIN = 8;
 const tabWidth = (Dimensions.get('window').width - 32 - TAB_MARGIN) / 2;
 
-const iconForPlan = (key: PlanKey) => (key === 'pro' ? Zap : Smile);
+const iconForPlan = (key: PlanKey) => (key === 'pro' ? Crown : Smiley);
 
 function SubscriptionInner() {
   const { isSubscribed } = useContext(SubscriptionContext);
@@ -37,6 +48,8 @@ function SubscriptionInner() {
   const [loading, setLoading] = useState(false);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
+  const { height } = useWindowDimensions()
+
 
   useEffect(() => {
     if (isSubscribed !== null) {
@@ -60,6 +73,7 @@ function SubscriptionInner() {
         },
         body: JSON.stringify({ plan: 'pro' }),
       });
+
       const json = await resp.json();
       if (!resp.ok) {
         throw new Error(json.error || `HTTP ${resp.status}`);
@@ -67,7 +81,6 @@ function SubscriptionInner() {
 
       const { customer, ephemeralKey, setupIntent } = json;
       if (!customer || !ephemeralKey || !setupIntent) {
-        console.error('[handleUpgrade] missing fields:', json);
         throw new Error('Invalid response from server');
       }
 
@@ -85,14 +98,11 @@ function SubscriptionInner() {
       Alert.alert('Success', 'Card saved! You can now access Pro features.');
 
     } catch (e: any) {
-      console.error('[handleUpgrade] caught error=', e);
       Alert.alert('Error', e.message || 'Something went wrong');
     } finally {
       setLoading(false);
-      console.log('[handleUpgrade] done');
     }
   };
-
 
   if (isSubscribed === null) {
     return (
@@ -118,7 +128,7 @@ function SubscriptionInner() {
       {/* Plan Detail */}
       <View style={styles.planDetailBox}>
         <View style={styles.decorCircle}>
-          <DetailIcon size={50} color={colors.blue} />
+          <DetailIcon size={50} color={colors.blue} weight="fill" />
         </View>
         <Text style={styles.planTitle}>{planDetails.title}</Text>
         <Text style={styles.planTagline}>{planDetails.tagline}</Text>
@@ -129,7 +139,7 @@ function SubscriptionInner() {
         <View style={styles.featuresList}>
           {planDetails.features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
-              <Check size={20} color={colors.blue} />
+              <CheckCircle size={20} color={colors.blue} weight="fill" />
               <Text style={styles.featureText}>{f}</Text>
             </View>
           ))}
@@ -158,12 +168,9 @@ function SubscriptionInner() {
             <TouchableOpacity
               key={key}
               style={[styles.tabBox, { width: tabWidth }, active && styles.activeTabBox]}
-              onPress={() => {
-                console.log('[Tab] pressed →', key);
-                setSelectedTab(key);
-              }}
+              onPress={() => setSelectedTab(key)}
             >
-              <TabIcon size={28} color={active ? '#fff' : colors.darkest} style={{ marginBottom: 6 }} />
+              <TabIcon size={28} color={active ? '#fff' : colors.darkest} weight={active ? 'fill' : 'regular'} style={{ marginBottom: 6 }} />
               <Text style={[styles.tabText, active && styles.activeTabText]}>
                 {plans[key].title.split(' ')[0]}
               </Text>
@@ -181,14 +188,12 @@ function SubscriptionInner() {
 }
 
 export default function Subscription() {
-  console.log('[Subscription] publishableKey=', process.env.EXPO_PUBLIC_STRIPE_KEY);
   return (
     <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_KEY!}>
       <SubscriptionInner />
     </StripeProvider>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -206,13 +211,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.lighter,
     marginBottom: 12,
     elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
   },
   labelText: {
     fontFamily: 'SpaceMono',
@@ -229,14 +232,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 24,
-    borderRadius: 18,
-    marginBottom: 16,
-    justifyContent: 'space-between',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.lighter,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -252,6 +251,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planTitle: {
+    marginTop: 10,
     fontFamily: 'SpaceMono',
     fontSize: 22,
     fontWeight: '600',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     fontSize: 40,
     fontWeight: '600',
-    color: colors.darkest,
+    color: colors.blue,
   },
   planUnit: {
     fontFamily: 'SpaceMono',
@@ -302,13 +302,15 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   upgradeButton: {
+    position: 'absolute',
     width: '100%',
+    bottom: 25,
+    alignSelf: 'center',   
     height: 50,
-    display: 'flex',
-    alignContent: 'center',
-    justifyContent: 'center',
     borderRadius: 15,
-    backgroundColor: colors.blue || '#4F46E5',
+    backgroundColor: colors.blue,
+    paddingHorizontal: 20, 
+    justifyContent: 'center',
     alignItems: 'center',
   },
   upgradeButtonText: {
@@ -326,22 +328,17 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   tabBox: {
     alignItems: 'center',
     backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.lighter,
     borderRadius: 14,
     paddingVertical: 30,
-    marginHorizontal: TAB_MARGIN / 2,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
   activeTabBox: {
-    backgroundColor: colors.blue || '#4F46E5',
+    backgroundColor: colors.blue,
   },
   tabText: {
     fontFamily: 'SpaceMono',
@@ -355,7 +352,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: colors.green || '#10B981',
+    backgroundColor: colors.green,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 9,
