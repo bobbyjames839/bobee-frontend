@@ -16,6 +16,7 @@ import { auth } from '~/utils/firebase'
 import { router } from 'expo-router'
 import { colors } from '~/constants/Colors'
 import ErrorBanner from '~/components/banners/ErrorBanner'
+import SpinningLoader from '~/components/other/SpinningLoader';
 import Constants from 'expo-constants'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -169,7 +170,7 @@ export default function SignUpScreen() {
         disabled={isDisabled}
         activeOpacity={0.85}
       >
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+  {loading ? <SpinningLoader size={20} /> : <Text style={styles.buttonText}>Sign Up</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.replace('/sign-in')} activeOpacity={0.8}>

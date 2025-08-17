@@ -1,66 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import * as d3 from 'd3-shape';
-import Constants from 'expo-constants';
-import { getAuth } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import AnimatedToggle from './AnimatedToggle';
-import Placeholder from './Placeholder';
 import { colors } from '~/constants/Colors';
 
 type RangeKey = '7d' | '28d';
 interface MoodSeries { labels: string[]; values: Array<number | null> }
-type SeriesResponse = Record<RangeKey, MoodSeries>;
+export type SeriesResponse = Record<RangeKey, MoodSeries>;
 
-export default function MoodChart() {
+type Props = {
+  series: SeriesResponse;
+};
+
+export default function MoodChart({ series }: Props) {
   const router = useRouter();
 
   const [range, setRange] = useState<RangeKey>('7d');
-  const [series, setSeries] = useState<SeriesResponse>({
-    '7d': { labels: [], values: [] },
-    '28d': { labels: [], values: [] },
-  });
-  const [loading, setLoading] = useState(true);
 
   const cardWidth = Dimensions.get('window').width - 60;
 
-  // chart paddings – give a bit more space on the right so the last label isn't clipped
+  // chart paddings
   const padTop = 12;
-  const padBottom = 28; // room for x-axis labels
+  const padBottom = 28;
   const padLeft = 12;
-  const padRight = 22;  // extra space to prevent the rightmost label from being cut off
+  const padRight = 22;
 
   const dotRadius = 5;
   const chartHeight = 260;
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchSeries = async () => {
-      try {
-        const user = getAuth().currentUser;
-        if (!user) return;
-        const token = await user.getIdToken();
-        const res = await fetch(
-          `${Constants.expoConfig?.extra?.backendUrl}/api/mood-chart-stats`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: SeriesResponse = await res.json();
-        if (mounted) setSeries(data);
-      } catch (err) {
-        console.error('Failed to fetch mood series:', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchSeries();
-    return () => { mounted = false; };
-  }, []);
-
   // Enforce exact window size on the client
-  const full = series[range];
+  const full = series?.[range] || { labels: [], values: [] };
   const windowSize = range === '7d' ? 7 : 28;
   const labels = full.labels.slice(-windowSize);
   const values = full.values.slice(-windowSize);
@@ -71,7 +43,6 @@ export default function MoodChart() {
   const buildLine = (vals: Array<number | null>) => {
     const n = vals.length;
 
-    // Inner plotting width/height
     const innerW = Math.max(0, (cardWidth - padLeft - padRight));
     const innerH = Math.max(0, (chartHeight - padTop - padBottom));
 
@@ -82,7 +53,6 @@ export default function MoodChart() {
     const maxY = nums.length ? Math.max(...nums) : 1;
     const yRange = maxY - minY || 1;
 
-    // all points (for circles + labels)
     const points = vals.map((v, i) => {
       const x = padLeft + i * xStep;
       const y = v == null
@@ -91,7 +61,6 @@ export default function MoodChart() {
       return { i, v, x, y };
     });
 
-    // only defined points (for the joined line)
     const definedPoints = points.filter(p => p.v != null) as Array<typeof points[number] & { v: number }>;
 
     const line = d3
@@ -100,21 +69,15 @@ export default function MoodChart() {
       .y(d => d.y)
       .curve(d3.curveCatmullRom.alpha(0.1));
 
-    return { points, definedPoints, path: line(definedPoints) || '', xStep, innerW, innerH };
+    return { definedPoints, path: line(definedPoints) || '', xStep };
   };
 
   let content: React.ReactNode;
 
-  if (loading) {
-    content = (
-      <View style={styles.card}>
-        <Placeholder />
-      </View>
-    );
-  } else if (!hasAny) {
-    // Soft placeholder chart encouraging first journal
+  if (!hasAny) {
+    // Dummy soft chart encouraging first journal
     const dummyValues = [3, 5, 4, 6, 5, 7, 6];
-    const { points: dummyPts, path: dummyPath } = buildLine(dummyValues);
+    const { definedPoints: dummyPts, path: dummyPath } = buildLine(dummyValues);
 
     content = (
       <View style={[styles.card, styles.fixedChartHeight]}>
@@ -138,7 +101,7 @@ export default function MoodChart() {
       </View>
     );
   } else {
-    const { points, definedPoints, path, xStep } = buildLine(values);
+    const { definedPoints, path, xStep } = buildLine(values);
 
     content = (
       <View style={styles.card}>
@@ -152,8 +115,7 @@ export default function MoodChart() {
               <Circle key={j} cx={p.x} cy={p.y} r={dotRadius} fill="rgba(172, 166, 255, 0.8)" />
             ))}
 
-            {/* X-axis labels, spaced by original index.
-               Using padRight ensures the rightmost label isn't clipped. */}
+            {/* X-axis labels */}
             {labels.map((lab, i) => (
               <SvgText
                 key={i}
@@ -176,7 +138,7 @@ export default function MoodChart() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Mood over time</Text>
-        {hasAny && !loading && (
+        {hasAny && (
           <View style={styles.toggleRow}>
             <AnimatedToggle label="1W" active={range === '7d'} onPress={() => setRange('7d')} />
             <AnimatedToggle label="4W" active={range === '28d'} onPress={() => setRange('28d')} />
@@ -189,6 +151,7 @@ export default function MoodChart() {
   );
 }
 
+/* styles unchanged */
 const styles = StyleSheet.create({
   container: { marginTop: 12 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },

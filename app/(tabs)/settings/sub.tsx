@@ -124,7 +124,7 @@ function SubscriptionInner() {
     <Header
         title='Subscription'
         leftIcon="chevron-back"
-        onLeftPress={() => (router.back())}/>
+        onLeftPress={() => (router.push('/(tabs)/settings'))}/>
     <View style={styles.container}>
       <View style={styles.currentPlanBox}>
         <Text style={styles.labelText}>Current plan:</Text>

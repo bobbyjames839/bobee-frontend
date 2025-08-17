@@ -19,31 +19,29 @@ export default function BobeeChatPage() {
   }>();
 
   // On first mount: either open an existing conversation or start a new one
+  const [pendingInitial, setPendingInitial] = useState<string | null>(null);
   useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      // Open existing conversation
-      if (conversationId && typeof conversationId === "string") {
-        await openConversation(conversationId);
-        return;
-      }
-
-      // Start new conversation with an initial question (if provided)
-      const q = typeof initialQuestion === "string" ? initialQuestion.trim() : "";
-      if (q) {
-        setInput(q);
-        // Let state update, then submit
-        setTimeout(() => {
-          if (!cancelled) handleSubmit();
-        }, 0);
-      }
-    })();
-
-    return () => { cancelled = true; };
-    // openConversation and handleSubmit are stable from the hook; params only need to be read once
+    // Open existing conversation
+    if (conversationId && typeof conversationId === "string") {
+      openConversation(conversationId);
+      return;
+    }
+    // Start new conversation with an initial question (if provided)
+    const q = typeof initialQuestion === "string" ? initialQuestion.trim() : "";
+    if (q) {
+      setPendingInitial(q);
+      setInput(q);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Trigger handleSubmit only after input is set
+  useEffect(() => {
+    if (pendingInitial && input === pendingInitial) {
+      handleSubmit();
+      setPendingInitial(null);
+    }
+  }, [input, pendingInitial, handleSubmit]);
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -59,8 +57,8 @@ export default function BobeeChatPage() {
           } catch (e) {
             console.warn("saveConversation failed", e);
           } finally {
+            router.push('/(tabs)/bobee');
             setIsSaving(false);
-            router.back();
           }
         }}
       />

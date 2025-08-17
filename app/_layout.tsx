@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -6,27 +5,27 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { View, ActivityIndicator, AppState } from 'react-native';
+import {
+  View,
+  AppState,
+  Image,
+  StyleSheet,
+  Animated,
+  Easing,
+  Platform,
+} from 'react-native';
 import Constants from 'expo-constants';
+import { Asset } from 'expo-asset';
 
 import { auth } from '../utils/firebase';
 import { JournalRefreshProvider } from '../context/JournalRefreshContext';
 import { SubscriptionProvider } from '../context/SubscriptionContext';
-import { colors } from '../constants/Colors';
 import { JournalProvider } from '~/context/JournalContext';
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-if (!__DEV__) {
-  const prev = (global as any).ErrorUtils?.getGlobalHandler?.();
-  (global as any).ErrorUtils?.setGlobalHandler?.((e: any, isFatal?: boolean) => {
-    console.log('JS fatal:', isFatal, e?.message, e?.stack);
-    prev && prev(e, isFatal);
-  });
-}
-
-// Prefer public env in Expo; fall back to app config extra
 const API_URL: string | undefined =
   process.env.EXPO_PUBLIC_BACKEND_URL ??
   (Constants.expoConfig?.extra?.backendUrl as string | undefined);
@@ -40,18 +39,29 @@ export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [bootDone, setBootDone] = useState(false);
 
-  const router = useRouter();
-  const segments = useSegments(); // e.g. ['(tabs)','journal'] or ['(auth)','main']
-  const mountedRef = useRef(true);
+  const [imageReady, setImageReady] = useState(false);
+  const [loaderGone, setLoaderGone] = useState(false);
 
+  const loaderOpacity = useRef(new Animated.Value(1)).current;
+
+  const router = useRouter();
+  const segments = useSegments();
+
+  // preload bee image asap
   useEffect(() => {
-    mountedRef.current = true;
+    let active = true;
+    (async () => {
+      try {
+        await Asset.loadAsync(require('../assets/images/happy.png'));
+      } catch {}
+      if (active) setImageReady(true);
+    })();
     return () => {
-      mountedRef.current = false;
+      active = false;
     };
   }, []);
 
-  // Firebase auth listener
+  // Firebase auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       setIsLoggedIn(!!user);
@@ -60,32 +70,21 @@ export default function RootLayout() {
     return unsub;
   }, []);
 
-  // Helper: tolerant server-side session check
+  // server session check
   const serverSessionCheck = useMemo(
     () => async (): Promise<boolean> => {
       if (!auth.currentUser) return false;
-
-      // If API_URL missing, don't boot the user out — allow local auth to stand
-      if (!API_URL) {
-        console.warn('API_URL not set; skipping server session check.');
-        return true;
-      }
-
-      // Force fresh token once after login
+      if (!API_URL) return true;
       const token = await auth.currentUser.getIdToken(true).catch(() => null);
       if (!token) return false;
-
       try {
         const res = await fetch(`${API_URL}/api/check-auth`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Only treat explicit non-OK as "not authed"
         return res.ok;
-      } catch (e) {
-        console.warn('check-auth network error, allowing session:', e);
-        // Network/CORS/offline should not kick user back to auth
-        return true;
+      } catch {
+        return true; // allow on network error
       }
     },
     []
@@ -99,34 +98,30 @@ export default function RootLayout() {
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');
-        if (mountedRef.current) setBootDone(true);
+        setBootDone(true);
         return;
       }
 
       const ok = await serverSessionCheck();
       if (!ok) {
         if (!inAuth) router.replace('/(auth)/main');
-        if (mountedRef.current) setBootDone(true);
+        setBootDone(true);
         return;
       }
 
       if (!allowedWhenAuthed.has(root)) {
         router.replace('/(tabs)/journal');
       }
-
-      if (mountedRef.current) setBootDone(true);
+      setBootDone(true);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isLoggedIn, segments]
+    [isLoggedIn, segments, router, serverSessionCheck]
   );
 
-  // Run when auth becomes ready or login state changes
   useEffect(() => {
-    if (!authReady) return;
-    decideRoute();
+    if (authReady) decideRoute();
   }, [authReady, decideRoute]);
 
-  // Re-check on foreground, but don't eject user for transient errors
+  // re-check on foreground
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active' && authReady) {
@@ -136,46 +131,70 @@ export default function RootLayout() {
     return () => sub.remove();
   }, [authReady, decideRoute]);
 
-  // Hide splash only when we’re truly ready to render
-  useEffect(() => {
-    if (fontsLoaded && authReady && bootDone) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, authReady, bootDone]);
+  const logicallyReady = fontsLoaded && authReady && bootDone;
 
-  if (!fontsLoaded || !authReady || !bootDone) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color={colors?.blue ?? '#4f50e3'} />
-      </View>
-    );
-  }
+  // fade the loader out (app is already rendered underneath)
+  useEffect(() => {
+    if (logicallyReady && imageReady && !loaderGone) {
+      SplashScreen.hideAsync().catch(() => {});
+      Animated.timing(loaderOpacity, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start(() => setLoaderGone(true));
+    }
+  }, [logicallyReady, imageReady, loaderGone, loaderOpacity]);
 
   return (
-    <SubscriptionProvider>
-      <JournalRefreshProvider>
-        <JournalProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              presentation: 'card',
-              animation: 'slide_from_right',
-              gestureEnabled: true,
-              gestureDirection: 'horizontal',
-              fullScreenGestureEnabled: true,
-            }}
-          >
-            {/* Auth group: /app/(auth)/... */}
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      {/* App content (always mounted, visible) */}
+      <SubscriptionProvider>
+        <JournalRefreshProvider>
+          <JournalProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                presentation: 'card',
+                animation: 'none',           // <- stop sliding
+                gestureEnabled: false,       // optional: prevent back-swipe ghost motion
+              }}
+            >
+              <Stack.Screen name="(auth)" options={{ animation: 'none' }} />
+              <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+            </Stack>
+            <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'auto'} />
+          </JournalProvider>
+        </JournalRefreshProvider>
+      </SubscriptionProvider>
 
-            {/* Main tabs: /app/(tabs)/... */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-          </Stack>
-
-          <StatusBar style="auto" />
-        </JournalProvider>
-      </JournalRefreshProvider>
-    </SubscriptionProvider>
+      {/* Loader overlay that fades out */}
+      {!loaderGone && (
+        <Animated.View style={[styles.loader, { opacity: loaderOpacity }]}>
+          {imageReady && (
+            <Image
+              source={require('../assets/images/happy.png')}
+              style={styles.image}
+              resizeMode="contain"
+              {...(Platform.OS === 'android' ? ({ fadeDuration: 0 } as any) : {})}
+            />
+          )}
+        </Animated.View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  loader: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  image: {
+    width: '60%',
+    maxWidth: 300,
+    aspectRatio: 1,
+  },
+});

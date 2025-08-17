@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
-import { getAuth } from 'firebase/auth';
 
-const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
+type Topic = { topic: string; count: number };
 
-export default function TopicsSection() {
-  const [topicsList, setTopicsList] = useState<Array<{ topic: string; count: number }>>([]);
+type Props = {
+  topics: Topic[] | null; // pass null before data arrives, [] if none
+};
+
+export default function TopicsSection({ topics }: Props) {
   const { isSubscribed } = useContext(SubscriptionContext);
   const router = useRouter();
 
@@ -19,40 +20,13 @@ export default function TopicsSection() {
   const windowWidth = Dimensions.get('window').width;
   const cardInnerWidth = windowWidth - PARENT_HORIZONTAL_PADDING - CARD_HORIZONTAL_PADDING;
 
-  // Dummy topics when there is no real data
-  const dummyTopics = [
+  const dummyTopics: Topic[] = [
     { topic: 'Mindfulness', count: 10 },
     { topic: 'Stress', count: 7 },
     { topic: 'Goals', count: 5 },
   ];
 
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchTopics = async () => {
-      try {
-        const user = getAuth().currentUser;
-        if (!user) return;
-
-        const token = await user.getIdToken();
-        const res = await fetch(`${API_BASE}/api/topics`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const { topics } = await res.json();
-        if (mounted) setTopicsList(topics);
-      } catch (err) {
-        console.error('Error fetching topics:', err);
-      }
-    };
-
-    fetchTopics();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
+  const topicsList = topics ?? []; // null -> treat as not loaded (will fall back below)
   const listToRender = topicsList.length > 0 ? topicsList : dummyTopics;
 
   const maxCount = listToRender[0].count;
@@ -73,25 +47,13 @@ export default function TopicsSection() {
           const isDummy = topicsList.length === 0;
           const lightness = 40 + (index / totalItems) * 35;
           const barColor = isDummy
-            ? colors.blue // brand blue for dummy state
+            ? colors.blue
             : `hsl(220, 90%, ${lightness}%)`;
 
           return (
             <View key={t.topic} style={styles.barRow}>
-              <View
-                style={[
-                  styles.topicBar,
-                  { width: barWidth, backgroundColor: barColor },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.topicText,
-                    { color: '#fff' },
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
+              <View style={[styles.topicBar, { width: barWidth, backgroundColor: barColor }]}>
+                <Text style={[styles.topicText, { color: '#fff' }]} numberOfLines={1} ellipsizeMode="tail">
                   {t.topic}
                 </Text>
               </View>
@@ -114,6 +76,7 @@ export default function TopicsSection() {
   );
 }
 
+/* styles unchanged */
 const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
@@ -141,9 +104,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lighter,
   },
-  barRow: {
-    marginBottom: 8,
-  },
+  barRow: { marginBottom: 8 },
   topicBar: {
     borderRadius: 12,
     paddingVertical: 10,
@@ -151,11 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  topicText: {
-    fontSize: 14,
-    fontFamily: 'SpaceMono',
-    flexShrink: 1,
-  },
+  topicText: { fontSize: 14, fontFamily: 'SpaceMono', flexShrink: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

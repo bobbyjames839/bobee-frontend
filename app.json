@@ -24,6 +24,11 @@
       "bundler": "metro",
       "output": "static"
     },
+    "splash": {
+      "image": "./assets/images/happy.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "plugins": [
       "expo-router",
       [

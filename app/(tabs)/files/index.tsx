@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import SpinningLoader from '~/components/other/SpinningLoader';
 import { useRouter } from 'expo-router';
 import Header from '~/components/Header';
 import { colors } from '~/constants/Colors';
@@ -24,7 +25,9 @@ export default function FilesTabIndex() {
       <Header title="Entries" />
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.blue} style={styles.loadingIndicator} />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <SpinningLoader size={40} />
+          </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <JournalCalendar journals={journals} onSelectDate={handleSelectDate} />
@@ -41,7 +44,6 @@ export default function FilesTabIndex() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.lightest },
-  loadingIndicator: { marginTop: '45%' },
   scrollContent: { paddingTop: 16, paddingHorizontal: 20 },
   sectionTitle: {
     marginTop: 34,

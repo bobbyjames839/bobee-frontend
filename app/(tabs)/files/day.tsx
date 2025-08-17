@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import SpinningLoader from '~/components/other/SpinningLoader';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
@@ -53,7 +54,7 @@ function DayEntriesScreenInner() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.blue} />
+          <SpinningLoader size={40} />
         </View>
       ) : entriesForDay.length > 0 ? (
         <ScrollView

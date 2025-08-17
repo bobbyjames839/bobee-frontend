@@ -5,17 +5,19 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        // gestures
         gestureEnabled: true,
         fullScreenGestureEnabled: true,
         gestureDirection: 'horizontal',
         animation: 'slide_from_right',
-
-        // completely hide native headers
         headerShown: false,
       }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen
+        name="index"
+        options={{
+          animation: 'slide_from_left',   // 👈 index now comes in from the left
+        }}
+      />
       <Stack.Screen name="how" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="priv" />

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet, Image, ActivityIndicator, Pressable } from 'react-native';
+import SpinningLoader from '~/components/other/SpinningLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native'; // if this import errors, use: import { useFocusEffect } from 'expo-router'
 import { JournalEntry } from '~/hooks/useFiles';
@@ -86,7 +87,7 @@ const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
           android_ripple={{ color: '#bd1212ff' }}
         >
           {deleteLoading ? (
-            <ActivityIndicator size="small" color="#bd1212ff" />
+            <SpinningLoader size={20} />
           ) : (
             <MaterialIcons
               name={confirmDelete ? 'check' : 'delete-outline'}

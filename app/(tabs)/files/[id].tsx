@@ -18,6 +18,7 @@ import { SubscriptionContext } from '~/context/SubscriptionContext';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
 import Header from '~/components/Header';
+import SpinningLoader from '~/components/other/SpinningLoader';
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
@@ -52,12 +53,12 @@ function JournalScreenInner() {
   }, [id]);
 
   const navigateToUpgrade = () => {
-    setUpgradeLoading(true);
-    router.replace('/(tabs)/settings/sub');
+    router.dismissAll();  
+    router.push('/(tabs)/settings/sub');
   };
 
   return (
-    <View style={styles.fullscreen}>
+      <View style={styles.absoluteOverlay}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
 
       <Header
@@ -67,7 +68,7 @@ function JournalScreenInner() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.blue} />
+          <SpinningLoader size={40} />
         </View>
       ) : !journal ? (
         <View style={styles.center}>
@@ -159,7 +160,7 @@ function JournalScreenInner() {
                     <TouchableOpacity onPress={navigateToUpgrade} disabled={upgradeLoading}>
                       <View style={styles.upgradeBlurButtonContent}>
                         {upgradeLoading ? (
-                          <ActivityIndicator size="small" color="#fff" />
+                          <SpinningLoader size={20} />
                         ) : (
                           <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
                         )}
@@ -188,7 +189,15 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
-  fullscreen: { flex: 1, backgroundColor: colors.lightest },
+    absoluteOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 999,
+      backgroundColor: colors.lightest,
+    },
   content: { paddingHorizontal: 20 },
   section: {
     marginTop: 20,

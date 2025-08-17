@@ -82,7 +82,6 @@ export default function useBobee() {
     const { conversationId: newId } = (await res.json()) as { conversationId: string }
     setConversationId(newId)
 
-    setShowChat(false)
   }, [history, conversationId])
 
 

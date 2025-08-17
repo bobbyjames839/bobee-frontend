@@ -1,8 +1,9 @@
 import React, { useContext, useRef, useEffect, useState } from 'react'
-import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet, ActivityIndicator, Modal } from 'react-native'
+import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet, Modal } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import AutoExpandingInput from './AutoExpandingInput'
+import SpinningLoader from '~/components/other/SpinningLoader'
 import { colors } from '~/constants/Colors'
 import { SubscriptionContext } from '~/context/SubscriptionContext'
 
@@ -158,10 +159,7 @@ export default function ChatScreen({
       {/* Saving conversation modal */}
       <Modal visible={isSaving} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.savingCard}>
-            <ActivityIndicator size="large" color={colors.blue} />
-            <Text style={styles.savingText}>Saving conversation…</Text>
-          </View>
+          <SpinningLoader size={48} />
         </View>
       </Modal>
 

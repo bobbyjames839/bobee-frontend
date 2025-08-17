@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect, useContext, useCallback } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { BlurView } from 'expo-blur'
+import { useFocusEffect } from '@react-navigation/native' // or from 'expo-router' if you prefer
+import { MaterialIcons } from '@expo/vector-icons'
 import AutoExpandingInput from './AutoExpandingInput'
 import QuotaBar from './QuotaBar'
+import SpinningLoader from '~/components/other/SpinningLoader'
 import { SubscriptionContext } from '~/context/SubscriptionContext'
 import { colors } from '~/constants/Colors'
 import Constants from 'expo-constants'
@@ -17,6 +19,7 @@ type ConversationSummary = {
 }
 
 const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
+const DELETE_RED = '#bd1212ff'
 
 export default function MainScreen({
   input,
@@ -32,7 +35,8 @@ export default function MainScreen({
   onSelectConversation: (id: string) => void
 }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null) // same pattern as JournalCard (armed id)
+  const [deletingId, setDeletingId] = useState<string | null>(null)       // id currently deleting (show spinner)
   const [todayCount, setTodayCount] = useState<number>(0)
   const { isSubscribed } = useContext(SubscriptionContext)
   const limit = isSubscribed ? 50 : 5
@@ -46,47 +50,71 @@ export default function MainScreen({
     return { Authorization: `Bearer ${token}` }
   }
 
+  // Reset confirm + spinner whenever screen gains focus (and on blur), like JournalCard's useFocusEffect.
+  useFocusEffect(
+    useCallback(() => {
+      setPendingDelete(null)
+      setDeletingId(null)
+      return () => {
+        setPendingDelete(null)
+        setDeletingId(null)
+      }
+    }, [])
+  )
+
+  // Fetch conversations (used on mount and on focus)
+  const fetchConversations = useCallback(async () => {
+    const user = getAuth().currentUser;
+    if (!user) {
+      setConversations([]);
+      setTodayCount(0);
+      return;
+    }
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE}/api/conversations-and-daily-count`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setConversations(
+        (json.conversations || []).map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          createdAt: new Date(c.createdAt),
+        }))
+      );
+      setTodayCount(json.todayCount ?? 0);
+    } catch (e: any) {
+      console.warn('Error loading conversations overview', e);
+      setTodayCount(0);
+    }
+  }, [isSubscribed]);
+
+  // Fetch on mount
   useEffect(() => {
-    const auth = getAuth()
+    fetchConversations();
+  }, [fetchConversations]);
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setConversations([])
-        setTodayCount(0)
-        return
-      }
-
-      try {
-        const token = await user.getIdToken()
-        const res = await fetch(`${API_BASE}/api/conversations-and-daily-count`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-
-        const json = await res.json()
-
-        setConversations(
-          (json.conversations || []).map((c: any) => ({
-            id: c.id,
-            title: c.title,
-            createdAt: new Date(c.createdAt),
-          }))
-        )
-        setTodayCount(json.todayCount ?? 0)
-      } catch (e: any) {
-        console.warn('Error loading conversations overview', e)
-        setTodayCount(0)
-      }
-    })
-
-    return () => unsubscribe()
-  }, [isSubscribed])
+  // Fetch on focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations();
+      setPendingDelete(null);
+      setDeletingId(null);
+      return () => {
+        setPendingDelete(null);
+        setDeletingId(null);
+      };
+    }, [fetchConversations])
+  );
 
   const handleDelete = async (id: string) => {
     try {
+      setDeletingId(id)
       const headers = await getAuthHeaders()
       const res = await fetch(`${API_BASE}/api/delete-conversation/${id}`, {
         method: 'DELETE',
@@ -98,6 +126,9 @@ export default function MainScreen({
     } catch (e: any) {
       console.warn('Delete error', e)
       Alert.alert('Error', e.message)
+    } finally {
+      setDeletingId(null)
+      setPendingDelete(null)
     }
   }
 
@@ -148,53 +179,48 @@ export default function MainScreen({
           )}
         </View>
 
-        {/* Recent Conversations section is always visible */}
         <Text style={styles.sectionTitle}>Recent Conversations</Text>
 
         {conversations.length > 0 ? (
           conversations.map((conv) => (
             <View key={conv.id} style={styles.conversationItem}>
-              {pendingDelete === conv.id ? (
-                <View style={styles.confirmContainer}>
-                  <TouchableOpacity
-                    style={styles.confirmButton}
-                    onPress={() => {
-                      handleDelete(conv.id)
-                      setPendingDelete(null)
-                    }}
-                  >
-                    <Text style={styles.confirmText}>Confirm</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => setPendingDelete(null)}
-                  >
-                    <Text style={styles.cancelText}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={styles.conversationContent}
-                    onPress={() => onSelectConversation(conv.id)}
-                  >
-                    <Text style={styles.conversationTitle}>{conv.title}</Text>
-                    <Text style={styles.conversationDate}>
-                      {conv.createdAt.toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => setPendingDelete(conv.id)}
-                  >
-                    <Ionicons name="trash" size={20} color="red" />
-                  </TouchableOpacity>
-                </>
-              )}
+              <TouchableOpacity
+                style={styles.conversationContent}
+                onPress={() => onSelectConversation(conv.id)}
+              >
+                <Text style={styles.conversationTitle}>{conv.title}</Text>
+                <Text style={styles.conversationDate}>
+                  {conv.createdAt.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (deletingId) return
+                  if (pendingDelete === conv.id) {
+                    // second tap confirms
+                    handleDelete(conv.id)
+                  } else {
+                    // first tap arms (bin -> check)
+                    setPendingDelete(conv.id)
+                  }
+                }}
+                style={styles.deleteButton}
+              >
+                {deletingId === conv.id ? (
+                  <SpinningLoader size={20} />
+                ) : (
+                  <MaterialIcons
+                    name={pendingDelete === conv.id ? 'check' : 'delete-outline'}
+                    size={30}
+                    color={DELETE_RED}
+                  />
+                )}
+              </TouchableOpacity>
             </View>
           ))
         ) : (
@@ -328,40 +354,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     top: '50%',
-    marginTop: -10,
+    transform: [{ translateY: '-50%' }],
     padding: 4,
-  },
-  confirmContainer: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#fff',
-  },
-  confirmButton: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 6,
-    marginHorizontal: 6,
-  },
-  cancelButton: {
-    backgroundColor: '#bdc3c7',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 6,
-    marginHorizontal: 6,
-  },
-  confirmText: {
-    fontFamily: 'SpaceMono',
-    color: '#fff',
-    fontSize: 14,
-  },
-  cancelText: {
-    fontFamily: 'SpaceMono',
-    color: '#fff',
-    fontSize: 14,
+    borderRadius: 20,
   },
 })

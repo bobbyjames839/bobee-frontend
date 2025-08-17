@@ -5,13 +5,24 @@ export default function BobeeStackLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        gestureEnabled: true,            // iOS: swipe-to-go-back
-        fullScreenGestureEnabled: true,  // iOS: anywhere on screen
-        animation: "slide_from_right",
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
       }}
     >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="chat" />
+      <Stack.Screen
+        name="index"
+        options={{
+          animation: 'none',
+        }}
+      />
+      <Stack.Screen
+        name="chat"
+        options={{
+          gestureEnabled: false,
+          fullScreenGestureEnabled: false,
+          animation: 'none',
+        }}
+      />
     </Stack>
   );
 }

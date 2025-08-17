@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Keyboard } from 'react-native';
+import SpinningLoader from '~/components/other/SpinningLoader';
 import { BlurView } from 'expo-blur';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '~/utils/firebase';
@@ -122,7 +123,7 @@ export default function SignIn() {
           activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <SpinningLoader size={20} />
           ) : (
             <Text style={styles.buttonText}>Log in</Text>
           )}
