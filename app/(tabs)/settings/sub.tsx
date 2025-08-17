@@ -6,6 +6,8 @@ import { getAuth } from 'firebase/auth';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import { Smiley, Crown, CheckCircle } from 'phosphor-react-native';
+import Header from '~/components/Header';
+import { router } from 'expo-router';
 
 
 type PlanKey = 'free' | 'pro';
@@ -118,8 +120,12 @@ function SubscriptionInner() {
   const DetailIcon = iconForPlan(selectedTab);
 
   return (
+    <>
+    <Header
+        title='Subscription'
+        leftIcon="chevron-back"
+        onLeftPress={() => (router.back())}/>
     <View style={styles.container}>
-      {/* Current Plan */}
       <View style={styles.currentPlanBox}>
         <Text style={styles.labelText}>Current plan:</Text>
         <Text style={styles.planText}>{plans[userPlan].title}</Text>
@@ -184,6 +190,7 @@ function SubscriptionInner() {
         })}
       </View>
     </View>
+    </>
   );
 }
 

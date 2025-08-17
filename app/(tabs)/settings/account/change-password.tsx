@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Modal, Animated } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { router, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '~/constants/Colors';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import SuccessBanner from '../../../../components/banners/SuccessBanner';
 import ErrorBanner from '../../../../components/banners/ErrorBanner';
+import Header from '~/components/Header';
 
 function BackChevron() {
   const router = useRouter();
@@ -106,6 +107,10 @@ export default function ChangePasswordScreen() {
 
   return (
     <>
+      <Header
+          title='Change Password'
+          leftIcon="chevron-back"
+          onLeftPress={() => (router.back())}/>
       <Stack.Screen
         options={{
           title: 'Change Password',

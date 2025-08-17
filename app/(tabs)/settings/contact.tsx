@@ -1,5 +1,7 @@
+import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import Header from '~/components/Header';
 import { colors } from '~/constants/Colors';
 
 export default function Contact() {
@@ -8,6 +10,11 @@ export default function Contact() {
   };
 
   return (
+    <>
+    <Header
+        title='Contact'
+        leftIcon="chevron-back"
+        onLeftPress={() => (router.back())}/>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
         <Text style={styles.boxTitle}>Contact Bobee</Text>
@@ -28,6 +35,7 @@ export default function Contact() {
         </Text>
       </View>
     </ScrollView>
+    </>
   );
 }
 

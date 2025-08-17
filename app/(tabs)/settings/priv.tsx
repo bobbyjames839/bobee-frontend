@@ -1,9 +1,16 @@
+import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import Header from '~/components/Header';
 import { colors } from '~/constants/Colors';
 
 export default function Privacy() {
   return (
+    <>
+    <Header
+        title='Privacy Statement'
+        leftIcon="chevron-back"
+        onLeftPress={() => (router.back())}/>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
         <Text style={styles.boxTitle}>Bobee Privacy Statement</Text>
@@ -39,6 +46,7 @@ export default function Privacy() {
         </Text>
       </View>
     </ScrollView>
+    </>
   );
 }
 

@@ -1,9 +1,16 @@
+import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import Header from '~/components/Header';
 import { colors } from '~/constants/Colors';
 
 export default function Terms() {
   return (
+    <>
+    <Header
+        title='Terms & Conditions'
+        leftIcon="chevron-back"
+        onLeftPress={() => (router.back())}/>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
         <Text style={styles.boxTitle}>Bobee Terms & Conditions</Text>
@@ -51,6 +58,7 @@ export default function Terms() {
         </Text>
       </View>
     </ScrollView>
+    </>
   );
 }
 

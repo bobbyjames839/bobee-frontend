@@ -1,64 +1,78 @@
-// app/(tabs)/journal.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+
 import JournalMic from '~/components/journal/JournalMic';
 import JournalPrompt from '~/components/journal/JournalPrompt';
 import JournalLoading from '~/components/journal/JournalLoading';
 import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import WelcomeBanner from '~/components/banners/Welcome';
-import { useJournalRecording } from '~/hooks/useJournals';
-import { useRouter } from 'expo-router';
+import { useJournalContext } from '~/context/JournalContext';
 import { colors } from '~/constants/Colors';
 
 export default function Journal() {
   const router = useRouter();
-  const journal = useJournalRecording();
+  const journal = useJournalContext();
+
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   const navigatedRef = useRef(false);
 
-  useEffect(() => {
-    const checkWelcome = async () => {
-      try {
-        const val = await AsyncStorage.getItem('showWelcomeOnce');
-        if (val === '1') {
-          setWelcomeVisible(true);
-          await AsyncStorage.removeItem('showWelcomeOnce');
+  // check one-shot flags whenever the tab gains focus (covers return from modal)
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      const checkFlags = async () => {
+        try {
+          const welcome = await AsyncStorage.getItem('showWelcomeOnce');
+
+          if (!isActive) return;
+
+          if (welcome === '1') {
+            setWelcomeVisible(true);
+            await AsyncStorage.removeItem('showWelcomeOnce');
+          }
+        } catch {
+          // ignore
         }
-      } catch {}
-    };
-    checkWelcome();
-  }, []);
-
-  // When we get an AI response, navigate to the modal and pass the data (URL-safe JSON)
-  useEffect(() => {
-    if (journal.aiResponse && !navigatedRef.current) {
-      const payloadObj = {
-        aiResponse: journal.aiResponse,
-        wordCount: journal.wordCount,
-        currentStreak: journal.currentStreak,
       };
-      const payload = encodeURIComponent(JSON.stringify(payloadObj));
 
-      navigatedRef.current = true;
-      router.push({ pathname: '/journal/response', params: { payload } });
-    }
-    if (!journal.aiResponse) {
-      navigatedRef.current = false;
-    }
-  }, [journal.aiResponse, journal.wordCount, journal.currentStreak, router]);
+      checkFlags();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
+  // navigate to the response screen once we have an AI response
+  useEffect(() => {
+    if (journal.aiResponse && !journal.loading && !navigatedRef.current) {
+      router.push('/(tabs)/journal/response'); // no storage; context provides the data now
+     }
+  }, [ journal.aiResponse, journal.loading, router ]);
 
   return (
     <>
       {journal.error && (
         <ErrorBanner message={journal.error} onHide={journal.clearError} />
       )}
+
+      <WelcomeBanner
+        visible={welcomeVisible}
+        onClose={() => setWelcomeVisible(false)}
+      />
+
       {journal.successBannerVisible && (
-        <SuccessBanner message="Journal submitted" onHide={journal.clearSuccessBanner} />
+        <SuccessBanner
+          message="Journal saved successfully."
+          onHide={journal.clearSuccessBanner}
+        />
       )}
-      <WelcomeBanner visible={welcomeVisible} onClose={() => setWelcomeVisible(false)} />
 
       <View style={styles.containerBase}>
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
@@ -72,8 +86,8 @@ export default function Journal() {
         </Animated.View>
 
         <View style={styles.containerPadding}>
-          {/* Response now lives in app/(modals)/journal/response.tsx */}
           <JournalPrompt prompt={journal.prompt} loading={journal.loading} />
+
           <View style={styles.centerContent}>
             <JournalMic
               onClearPrompt={journal.clearPrompt}
@@ -85,7 +99,11 @@ export default function Journal() {
               onToggle={journal.toggleRecording}
               pulseAnim={journal.pulseAnim}
             />
-            <JournalLoading loading={journal.loading} loadingStage={journal.loadingStage} />
+
+            <JournalLoading
+              loading={journal.loading}
+              loadingStage={journal.loadingStage}
+            />
           </View>
         </View>
       </View>
@@ -94,15 +112,8 @@ export default function Journal() {
 }
 
 const styles = StyleSheet.create({
-  containerBase: {
-    flex: 1,
-    backgroundColor: colors.lightest,
-  },
-  containerPadding: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
+  containerBase: { flex: 1, backgroundColor: colors.lightest },
+  containerPadding: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
   centerContent: {
     position: 'absolute',
     top: 300,

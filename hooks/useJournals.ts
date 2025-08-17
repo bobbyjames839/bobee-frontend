@@ -64,7 +64,6 @@ export function useJournalRecording() {
 
   const calculateWordCountAndStreak = async (transcriptText: string) => {
     const user = auth.currentUser;
-    console.log('backend', BACKEND_URL)
     if (!user) return null;
 
     const idToken = await user.getIdToken();
@@ -475,6 +474,7 @@ export function useJournalRecording() {
     try {
       // reuse the submit logic
       await doSubmitJournal();
+      router.back();
       router.push('/(tabs)/settings/sub');
     } finally {
       setSubscribeLoading(false);
@@ -486,6 +486,7 @@ export function useJournalRecording() {
     try {
       // reuse the submit logic
       await doSubmitJournal();
+      router.back();
       router.push('/(tabs)/settings/sub');
     } finally {
       setSecondSubscribeLoading(false);
@@ -496,6 +497,7 @@ export function useJournalRecording() {
     setSubmitLoading(true);
     try {
       await doSubmitJournal();
+      router.back();
     } catch (e) {
       console.error(e);
       setError('Failed to submit journal.');
@@ -530,5 +532,6 @@ export function useJournalRecording() {
     clearError,
     successBannerVisible,
     clearSuccessBanner,
+    resetState
   };
 }

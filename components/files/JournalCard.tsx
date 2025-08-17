@@ -1,6 +1,9 @@
-import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { TouchableOpacity, View, Text, StyleSheet, Image, ActivityIndicator, Pressable } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native'; // if this import errors, use: import { useFocusEffect } from 'expo-router'
 import { JournalEntry } from '~/hooks/useFiles';
+import useJournals from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
 
 interface Props {
@@ -15,7 +18,6 @@ const formatDate = (ts: Date | { toDate: () => Date }) =>
     day: 'numeric',
   });
 
-// Face assets (adjust names if your files differ)
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
 const FACE_NEUTRAL         = require('~/assets/images/mid.png');
@@ -32,9 +34,39 @@ function pickFace(score: number) {
 
 const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
   const faceSource = pickFace(entry.aiResponse.moodScore);
+  const { deleteJournal } = useJournals();
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Reset to bin whenever the screen gains focus (and also on blur)
+  useFocusEffect(
+    useCallback(() => {
+      setConfirmDelete(false);
+      setDeleteLoading(false);
+      return () => {
+        setConfirmDelete(false);
+        setDeleteLoading(false);
+      };
+    }, [entry.id])
+  );
+
+  const handleDeletePress = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    try {
+      setDeleteLoading(true);
+      await deleteJournal(entry.id);
+    } finally {
+      setDeleteLoading(false);
+      setConfirmDelete(false);
+    }
+  };
 
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
       <View style={styles.card}>
         <Image
           source={faceSource}
@@ -42,10 +74,27 @@ const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
           accessible
           accessibilityLabel="Mood"
         />
+
         <Text style={styles.date}>{formatDate(entry.createdAt)}</Text>
         <Text style={styles.text} numberOfLines={2}>
           {entry.transcript}
         </Text>
+
+        <Pressable
+          onPress={handleDeletePress}
+          style={styles.deleteButton}
+          android_ripple={{ color: '#bd1212ff' }}
+        >
+          {deleteLoading ? (
+            <ActivityIndicator size="small" color="#bd1212ff" />
+          ) : (
+            <MaterialIcons
+              name={confirmDelete ? 'check' : 'delete-outline'}
+              size={25}
+              color="#bd1212ff"
+            />
+          )}
+        </Pressable>
       </View>
     </TouchableOpacity>
   );
@@ -56,6 +105,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
+    height: 100,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -64,17 +114,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lighter,
     elevation: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between'
   },
-  // kept same positioning as your icon; added size in moodIconImage below
   moodIcon: {
     position: 'absolute',
     top: 3,
     right: 3,
   },
-  // new: just the size; no other visual changes
   moodIconImage: {
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     borderRadius: 20,
     resizeMode: 'contain',
   },
@@ -89,6 +140,18 @@ const styles = StyleSheet.create({
     color: '#222',
     lineHeight: 22,
     fontFamily: 'SpaceMono',
+    paddingRight: 56,
+  },
+  deleteButton: {
+    position: 'absolute',
+    right: 5,
+    bottom: 5,
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
   },
 });
 

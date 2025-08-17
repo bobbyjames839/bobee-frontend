@@ -7,7 +7,7 @@ import JournalCalendar from '~/components/files/JournalCalendar';
 import JournalList from '~/components/files/JournalList';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 
-export default function FilesTab() {
+export default function FilesTabIndex() {
   const router = useRouter();
   const { journals, loading, recentThree } = useJournals();
 

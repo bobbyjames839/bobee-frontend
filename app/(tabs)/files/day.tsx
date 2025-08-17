@@ -1,13 +1,31 @@
-// app/(modals)/files/day.tsx
 import React, { useMemo } from 'react';
-import { View, ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '~/constants/Colors';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import JournalList from '~/components/files/JournalList';
+import Header from '~/components/Header';
+
+function formatDateDisplay(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    const day = d.getDate();
+    const month = d.toLocaleString('en-US', { month: 'short' });
+    const year = d.getFullYear();
+
+    const j = day % 10;
+    const k = day % 100;
+    let suffix = 'th';
+    if (j === 1 && k !== 11) suffix = 'st';
+    else if (j === 2 && k !== 12) suffix = 'nd';
+    else if (j === 3 && k !== 13) suffix = 'rd';
+
+    return `${day}${suffix} ${month} ${year}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 function DayEntriesScreenInner() {
   const router = useRouter();
@@ -17,7 +35,9 @@ function DayEntriesScreenInner() {
 
   const entriesForDay = useMemo(() => {
     if (!date) return [];
-    return journals.filter(e => e.createdAt.toDate().toISOString().split('T')[0] === date);
+    return journals.filter(
+      (e) => e.createdAt.toDate().toISOString().split('T')[0] === date
+    );
   }, [journals, date]);
 
   const handleOpen = (j: JournalEntry) => {
@@ -26,29 +46,28 @@ function DayEntriesScreenInner() {
 
   return (
     <View style={styles.container}>
-      {/* Make status bar overlay content; header pads by insets.top */}
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
-
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconWrap}>
-          <Ionicons name="chevron-back" size={28} color="#222" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{date ? `Entries • ${date}` : 'Entries'}</Text>
-        <View style={styles.iconWrap} />
-      </View>
+    <Header
+        title={date ? `Entries on ${formatDateDisplay(date)}` : 'Entries'}
+        leftIcon="chevron-back"
+        onLeftPress={() => (router.back())}/>
 
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.blue} />
         </View>
       ) : entriesForDay.length > 0 ? (
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom || 24 }]}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom || 24 },
+          ]}
+        >
           <JournalList journals={entriesForDay} onSelect={handleOpen} />
           <View style={{ height: 60 }} />
         </ScrollView>
       ) : (
         <View style={styles.center}>
-          <Text>No entries for {date}</Text>
+          <Text style={styles.centerText}>There are no entries for this date</Text>
         </View>
       )}
     </View>
@@ -64,26 +83,11 @@ export default function DayEntriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.lightest }, // solid white all the way up
-  header: {
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 12, // bottom padding to match your original vertical spacing
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-    justifyContent: 'space-between',
-  },
-  iconWrap: { width: 28 },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#222',
-    fontFamily: 'SpaceMono',
-  },
+  container: { flex: 1, backgroundColor: colors.lightest },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centerText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 15,
+  },
 });

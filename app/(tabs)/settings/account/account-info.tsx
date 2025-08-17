@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Modal, Animated } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { router, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '~/constants/Colors';
 import SuccessBanner from '../../../../components/banners/SuccessBanner';
 import { getAuth, updateProfile, updateEmail as firebaseUpdateEmail } from 'firebase/auth';
+import Header from '~/components/Header';
 
 function BackChevron() {
   const router = useRouter();
@@ -106,6 +107,11 @@ export default function AccountInfoScreen() {
   }
 
   return (
+    <>
+    <Header
+        title='Change Email'
+        leftIcon="chevron-back"
+        onLeftPress={() => (router.back())}/>
     <View style={styles.wrapper}>
       {/* Banner as a modal overlay above everything (incl. header) */}
       <Modal
@@ -185,6 +191,7 @@ export default function AccountInfoScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </>
   );
 }
 

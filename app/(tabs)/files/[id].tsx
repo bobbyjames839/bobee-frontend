@@ -1,4 +1,3 @@
-// app/(modals)/files/[id].tsx
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -10,7 +9,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,8 +17,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
+import Header from '~/components/Header';
 
-// Face assets (adjust filenames if yours differ)
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
 const FACE_NEUTRAL         = require('~/assets/images/mid.png');
@@ -37,7 +36,7 @@ function pickFace(score: number) {
 function JournalScreenInner() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { journals, loading, deleteJournal } = useJournals();
+  const { journals, loading } = useJournals();
   const { isSubscribed } = useContext(SubscriptionContext);
   const insets = useSafeAreaInsets();
 
@@ -46,61 +45,25 @@ function JournalScreenInner() {
     [journals, id]
   );
 
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   useEffect(() => {
-    setConfirmDelete(false);
-    setDeleteLoading(false);
     setUpgradeLoading(false);
   }, [id]);
-
-  const doDelete = async () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
-    try {
-      setDeleteLoading(true);
-      await deleteJournal(journal!.id);
-      router.back();
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
 
   const navigateToUpgrade = () => {
     setUpgradeLoading(true);
     router.replace('/(tabs)/settings/sub');
   };
 
-  const renderHeader = () => (
-    <View style={[styles.header, { paddingTop: insets.top }]}>
-      <Pressable onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={28} color="#222" />
-      </Pressable>
-      <Text style={styles.title}>Journal Detail</Text>
-      <Pressable onPress={doDelete} disabled={deleteLoading}>
-        {deleteLoading ? (
-          <ActivityIndicator size="small" color="#B22222" />
-        ) : (
-          <MaterialIcons
-            name={confirmDelete ? 'check' : 'delete-outline'}
-            size={28}
-            color="#B22222"
-          />
-        )}
-      </Pressable>
-    </View>
-  );
-
   return (
     <View style={styles.fullscreen}>
-      {/* Match day.tsx: translucent status bar + header padded by insets.top */}
       <StatusBar style="dark" translucent backgroundColor="transparent" />
 
-      {renderHeader()}
+      <Header
+          title='Journal Details'
+          leftIcon="chevron-back"
+          onLeftPress={() => (router.back())}/>
 
       {loading ? (
         <View style={styles.center}>
@@ -226,24 +189,6 @@ export default function JournalScreen() {
 
 const styles = StyleSheet.create({
   fullscreen: { flex: 1, backgroundColor: colors.lightest },
-  header: {
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lighter,
-    justifyContent: 'space-between',
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#222',
-    fontFamily: 'SpaceMono',
-  },
   content: { paddingHorizontal: 20 },
   section: {
     marginTop: 20,
