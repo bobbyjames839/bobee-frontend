@@ -46,7 +46,7 @@ export default function AnimatedToggle({
 
 const styles = StyleSheet.create({
   toggleButton: {
-    backgroundColor: colors.light,
+    backgroundColor: colors.lighter,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -56,11 +56,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
   },
   toggleText: {
-    color: '#fff',
     fontSize: 14,
     fontFamily: 'SpaceMono',
+    color: colors.dark,
   },
   toggleTextActive: {
-    fontWeight: '600',
+    color: '#fff',
   },
 })

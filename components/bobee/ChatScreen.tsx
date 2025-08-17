@@ -195,7 +195,7 @@ export default function ChatScreen({
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightest },
   container: { padding: 20, paddingBottom: 10 },
-  bubbleWrapper: { marginBottom: 20 },
+  bubbleWrapper: { marginBottom: 8 },
   bubble: { borderRadius: 16, padding: 14, maxWidth: '85%' },
   userBubble: {
     backgroundColor: colors.lighter,
@@ -240,8 +240,8 @@ const styles = StyleSheet.create({
   },
   aiFollowupText: {
     fontFamily: 'SpaceMono',
-    fontSize: 14,
-    fontStyle: 'italic',
+    fontSize: 15,
+    lineHeight: 22,
     color: '#fff',
     marginTop: 4,
   },

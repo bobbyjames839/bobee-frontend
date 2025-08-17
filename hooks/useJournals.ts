@@ -64,6 +64,7 @@ export function useJournalRecording() {
 
   const calculateWordCountAndStreak = async (transcriptText: string) => {
     const user = auth.currentUser;
+    console.log('backend', BACKEND_URL)
     if (!user) return null;
 
     const idToken = await user.getIdToken();

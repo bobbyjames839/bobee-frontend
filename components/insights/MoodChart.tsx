@@ -11,7 +11,7 @@ import Placeholder from './Placeholder';
 import { colors } from '~/constants/Colors';
 
 type RangeKey = '7d' | '28d';
-interface MoodSeries { labels: string[]; values: Array<number|null> }
+interface MoodSeries { labels: string[]; values: Array<number | null> }
 type SeriesResponse = Record<RangeKey, MoodSeries>;
 
 export default function MoodChart() {
@@ -25,7 +25,13 @@ export default function MoodChart() {
   const [loading, setLoading] = useState(true);
 
   const cardWidth = Dimensions.get('window').width - 60;
-  const padding = 12;
+
+  // chart paddings – give a bit more space on the right so the last label isn't clipped
+  const padTop = 12;
+  const padBottom = 28; // room for x-axis labels
+  const padLeft = 12;
+  const padRight = 22;  // extra space to prevent the rightmost label from being cut off
+
   const dotRadius = 5;
   const chartHeight = 260;
 
@@ -53,28 +59,48 @@ export default function MoodChart() {
     return () => { mounted = false; };
   }, []);
 
-  const { labels, values } = series[range];
+  // Enforce exact window size on the client
+  const full = series[range];
+  const windowSize = range === '7d' ? 7 : 28;
+  const labels = full.labels.slice(-windowSize);
+  const values = full.values.slice(-windowSize);
+
   const hasAny = values.some(v => v != null);
 
-  const buildLine = (ys: number[]) => {
-    const localXStep = ys.length > 1
-      ? (cardWidth - 2 * padding - 2 * dotRadius) / (ys.length - 1)
-      : 0;
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+  // Build a line that connects across nulls while keeping time spacing
+  const buildLine = (vals: Array<number | null>) => {
+    const n = vals.length;
+
+    // Inner plotting width/height
+    const innerW = Math.max(0, (cardWidth - padLeft - padRight));
+    const innerH = Math.max(0, (chartHeight - padTop - padBottom));
+
+    const xStep = n > 1 ? innerW / (n - 1) : 0;
+
+    const nums = vals.filter((v): v is number => v != null);
+    const minY = nums.length ? Math.min(...nums) : 0;
+    const maxY = nums.length ? Math.max(...nums) : 1;
     const yRange = maxY - minY || 1;
 
-    const pts = ys.map((v, i) => ({
-      x: dotRadius + i * localXStep,
-      y: padding + (1 - (v - minY) / yRange) * (chartHeight - 2 * padding),
-    }));
+    // all points (for circles + labels)
+    const points = vals.map((v, i) => {
+      const x = padLeft + i * xStep;
+      const y = v == null
+        ? 0
+        : padTop + (1 - (v - minY) / yRange) * innerH;
+      return { i, v, x, y };
+    });
 
-    const path = d3.line<typeof pts[0]>()
+    // only defined points (for the joined line)
+    const definedPoints = points.filter(p => p.v != null) as Array<typeof points[number] & { v: number }>;
+
+    const line = d3
+      .line<typeof definedPoints[number]>()
       .x(d => d.x)
       .y(d => d.y)
-      .curve(d3.curveCatmullRom.alpha(0.1))(pts) || '';
+      .curve(d3.curveCatmullRom.alpha(0.1));
 
-    return { pts, path, xStep: localXStep };
+    return { points, definedPoints, path: line(definedPoints) || '', xStep, innerW, innerH };
   };
 
   let content: React.ReactNode;
@@ -86,13 +112,14 @@ export default function MoodChart() {
       </View>
     );
   } else if (!hasAny) {
+    // Soft placeholder chart encouraging first journal
     const dummyValues = [3, 5, 4, 6, 5, 7, 6];
-    const { pts: dummyPts, path: dummyPath } = buildLine(dummyValues);
+    const { points: dummyPts, path: dummyPath } = buildLine(dummyValues);
 
     content = (
       <View style={[styles.card, styles.fixedChartHeight]}>
         <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-          <Svg width={cardWidth - 2 * padding} height={chartHeight + 24}>
+          <Svg width={cardWidth} height={chartHeight}>
             <Path d={dummyPath} stroke="rgba(101, 122, 241, 0.35)" strokeWidth={4} fill="none" />
             {dummyPts.map((p, i) => (
               <Circle key={i} cx={p.x} cy={p.y} r={dotRadius} fill="rgba(101, 122, 241, 0.5)" />
@@ -111,30 +138,27 @@ export default function MoodChart() {
       </View>
     );
   } else {
-    const defined = values.filter((v): v is number => v != null);
-    const { pts, path, xStep } = buildLine(defined);
+    const { points, definedPoints, path, xStep } = buildLine(values);
 
     content = (
       <View style={styles.card}>
         <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-          <Svg width={cardWidth - 2 * padding} height={chartHeight + 24}>
+          <Svg width={cardWidth} height={chartHeight}>
+            {/* Joined line across missing days */}
             <Path d={path} stroke="rgba(172, 166, 255, 0.3)" strokeWidth={4} fill="none" />
-            {defined.map((_, j) => (
-              <Circle
-                key={j}
-                cx={dotRadius + j * xStep}
-                cy={pts[j].y}
-                r={dotRadius}
-                fill="rgba(172, 166, 255, 0.8)"
-              />
+
+            {/* Data points */}
+            {definedPoints.map((p, j) => (
+              <Circle key={j} cx={p.x} cy={p.y} r={dotRadius} fill="rgba(172, 166, 255, 0.8)" />
             ))}
+
+            {/* X-axis labels, spaced by original index.
+               Using padRight ensures the rightmost label isn't clipped. */}
             {labels.map((lab, i) => (
               <SvgText
                 key={i}
-                x={dotRadius + i * (values.length > 1
-                  ? (cardWidth - 2 * padding - 2 * dotRadius) / (values.length - 1)
-                  : 0)}
-                y={chartHeight + 14}
+                x={padLeft + i * xStep}
+                y={chartHeight - 6}
                 fontSize="10"
                 fill="#666"
                 textAnchor="middle"
@@ -154,8 +178,8 @@ export default function MoodChart() {
         <Text style={styles.title}>Mood over time</Text>
         {hasAny && !loading && (
           <View style={styles.toggleRow}>
-            <AnimatedToggle label="1W" active={range==='7d'} onPress={()=>setRange('7d')} />
-            <AnimatedToggle label="4W" active={range==='28d'} onPress={()=>setRange('28d')} />
+            <AnimatedToggle label="1W" active={range === '7d'} onPress={() => setRange('7d')} />
+            <AnimatedToggle label="4W" active={range === '28d'} onPress={() => setRange('28d')} />
           </View>
         )}
       </View>
@@ -184,7 +208,7 @@ const styles = StyleSheet.create({
     borderColor: colors.lighter,
   },
   fixedChartHeight: {
-    height: 260, 
+    height: 260,
     justifyContent: 'center',
   },
 

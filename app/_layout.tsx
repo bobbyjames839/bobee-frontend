@@ -1,9 +1,10 @@
+// app/_layout.tsx
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -33,9 +34,9 @@ export default function RootLayout() {
 
   const [authReady, setAuthReady] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [navDone, setNavDone] = useState(false); 
+  const [bootDone, setBootDone] = useState(false);
 
-  const segments = useSegments();
+  const segments = useSegments(); // e.g. ['files','[id]'] or ['(tabs)','journal']
   const router = useRouter();
 
   useEffect(() => {
@@ -47,55 +48,67 @@ export default function RootLayout() {
   }, []);
 
   const decideRoute = async () => {
-    const inAuthGroup = segments[0] === '(auth)';
-    const inTabsGroup = segments[0] === '(tabs)';
+    const root = (segments[0] ?? '') as string; // treat as plain string
+    const inAuth = root === '(auth)';
+    const inTabs = root === '(tabs)';
+    const inFiles = root === 'files'; // detail stack outside tabs
 
     if (!isLoggedIn) {
-      if (!inAuthGroup) router.replace('/(auth)/main');
-      setNavDone(true);
+      if (!inAuth) router.replace('/(auth)/main');
+      setBootDone(true);
       return;
     }
 
-    const token = await auth.currentUser?.getIdToken(false);
-    const res = await fetch(`${API_URL}/api/check-auth`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      console.log('Session check failed:', await res.text().catch(() => ''));
-      if (!inAuthGroup) router.replace('/(auth)/main');
-      setNavDone(true);
+    // optional server session check
+    try {
+      const token = await auth.currentUser?.getIdToken(false);
+      const res = await fetch(`${API_URL}/api/check-auth`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        if (!inAuth) router.replace('/(auth)/main');
+        setBootDone(true);
+        return;
+      }
+    } catch {
+      if (!inAuth) router.replace('/(auth)/main');
+      setBootDone(true);
       return;
     }
 
-    if (!inTabsGroup) router.replace('/(tabs)/journal');
-    setNavDone(true);
+    // allow staying on tabs or files when logged in; otherwise push to default tab
+    if (!(inTabs || inFiles)) {
+      router.replace('/(tabs)/journal');
+    }
+    setBootDone(true);
   };
 
+  // run once per auth readiness change (don’t fight normal navigation)
   useEffect(() => {
     if (!authReady) return;
-    setNavDone(false);   
     decideRoute();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady, isLoggedIn]);
 
+  // optional: re-check on foreground without yanking user away
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active' && authReady) {
-        setNavDone(false);
         decideRoute();
       }
     });
     return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady, isLoggedIn]);
 
   useEffect(() => {
-    if (fontsLoaded && authReady && navDone) {
+    if (fontsLoaded && authReady && bootDone) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded, authReady, navDone]);
+  }, [fontsLoaded, authReady, bootDone]);
 
-  if (!fontsLoaded || !authReady || !navDone) {
+  if (!fontsLoaded || !authReady || !bootDone) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color={colors?.blue ?? '#4f50e3'} />
@@ -106,7 +119,24 @@ export default function RootLayout() {
   return (
     <SubscriptionProvider>
       <JournalRefreshProvider>
-        <Slot />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            fullScreenGestureEnabled: true, // iOS full-screen swipe
+          }}
+        >
+          {/* auth flow */}
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          {/* tabs (files list lives here as app/(tabs)/files.tsx) */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* files group outside tabs (e.g., app/files/[id].tsx) */}
+          <Stack.Screen name="(modals)" options={{ headerShown: false }} />
+        </Stack>
+
         <StatusBar style="auto" />
       </JournalRefreshProvider>
     </SubscriptionProvider>

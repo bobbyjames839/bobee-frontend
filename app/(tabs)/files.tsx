@@ -1,112 +1,54 @@
-import React, { useState } from 'react';
-import { View, ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React from 'react';
+import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 import Header from '~/components/Header';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
 import JournalList from '~/components/files/JournalList';
-import useJournals from '~/hooks/useFiles';
-import JournalModal from '~/components/files/JournalModal';
+import useJournals, { JournalEntry } from '~/hooks/useFiles';
 
-export default function Files() {
-  const { journals, loading, modalVisible, selectedJournal, openModal, closeModal, handleDelete, recentThree } = useJournals();
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+export default function FilesTab() {
+  const router = useRouter();
+  const { journals, loading, recentThree } = useJournals();
 
-  const entriesForDay = selectedDate
-    ? journals.filter((e) => {
-        const d = e.createdAt.toDate().toISOString().split('T')[0];
-        return d === selectedDate;
-      })
-    : [];
+  const handleOpenEntry = (j: JournalEntry) => {
+    router.push({ pathname: '/files/[id]', params: { id: j.id } });
+  };
+
+  const handleSelectDate = (dateStr: string) => {
+    router.push({ pathname: '/files/day', params: { date: dateStr } });
+  };
 
   return (
     <View style={styles.container}>
       <Header title="Entries" />
 
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.blue}
-          style={styles.loadingIndicator}
-        />
-      ) : selectedDate === null ? (
+        <ActivityIndicator size="large" color={colors.blue} style={styles.loadingIndicator} />
+      ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <JournalCalendar
-            journals={journals}
-            onSelectDate={setSelectedDate}
-          />
+          <JournalCalendar journals={journals} onSelectDate={handleSelectDate} />
 
           <Text style={styles.sectionTitle}>Recent entries</Text>
-          <JournalList
-            journals={recentThree}
-            onSelect={openModal}
-          />
+          <JournalList journals={recentThree} onSelect={handleOpenEntry} />
 
           <View style={{ height: 80 }} />
         </ScrollView>
-      ) : (
-        <View style={{ flex: 1 }}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setSelectedDate(null)}
-          >
-            <Text style={styles.backText}>← Calendar</Text>
-          </TouchableOpacity>
-
-          {entriesForDay.length > 0 ? (
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-              <JournalList journals={entriesForDay} onSelect={openModal} />
-              <View style={{ height: 80 }} />
-            </ScrollView>
-          ) : (
-            <View style={styles.noEntries}>
-              <Text>No entries for {selectedDate}</Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {selectedJournal && (
-        <JournalModal
-          visible={modalVisible}
-          journal={selectedJournal}
-          onClose={closeModal}
-          onDelete={handleDelete}
-        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.lightest 
-  },
-  loadingIndicator: { 
-    marginTop: '45%' 
-  },
-  scrollContent: { 
-    paddingTop: 16, 
-    paddingHorizontal: 20 
-  },
-  backButton: { 
-    padding: 10 
-  },
-  backText: { 
-    fontSize: 18, color: 
-    colors.blue 
-  },
-  noEntries: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: colors.lightest },
+  loadingIndicator: { marginTop: '45%' },
+  scrollContent: { paddingTop: 16, paddingHorizontal: 20 },
   sectionTitle: {
-    marginTop:    34,
-    fontFamily: "SpaceMono",
+    marginTop: 34,
+    fontFamily: 'SpaceMono',
     marginBottom: 8,
-    fontSize:     20,
-    fontWeight:   '600',
-    color:        '#222',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#222',
   },
 });
