@@ -38,6 +38,7 @@ export default function MainScreen({
   const [pendingDelete, setPendingDelete] = useState<string | null>(null) // same pattern as JournalCard (armed id)
   const [deletingId, setDeletingId] = useState<string | null>(null)       // id currently deleting (show spinner)
   const [todayCount, setTodayCount] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(false)
   const { isSubscribed } = useContext(SubscriptionContext)
   const limit = isSubscribed ? 50 : 5
   const reachedLimit = todayCount >= limit
@@ -64,10 +65,12 @@ export default function MainScreen({
 
   // Fetch conversations (used on mount and on focus)
   const fetchConversations = useCallback(async () => {
+    setLoading(true);
     const user = getAuth().currentUser;
     if (!user) {
       setConversations([]);
       setTodayCount(0);
+      setLoading(false);
       return;
     }
     try {
@@ -91,6 +94,8 @@ export default function MainScreen({
     } catch (e: any) {
       console.warn('Error loading conversations overview', e);
       setTodayCount(0);
+    } finally {
+      setLoading(false);
     }
   }, [isSubscribed]);
 
@@ -170,7 +175,7 @@ export default function MainScreen({
               {!isSubscribed && (
                 <TouchableOpacity
                   style={styles.upgradeOverlayButton}
-                  onPress={() => router.push('/(tabs)/settings/sub')}
+                  onPress={() => router.push('/settings/sub')}
                 >
                   <Text style={styles.upgradeOverlayText}>Upgrade Plan</Text>
                 </TouchableOpacity>
@@ -181,7 +186,11 @@ export default function MainScreen({
 
         <Text style={styles.sectionTitle}>Recent Conversations</Text>
 
-        {conversations.length > 0 ? (
+        {loading ? (
+          <View style={{ alignItems: 'center', marginVertical: 24 }}>
+            <SpinningLoader size={40} />
+          </View>
+        ) : conversations.length > 0 ? (
           conversations.map((conv) => (
             <View key={conv.id} style={styles.conversationItem}>
               <TouchableOpacity
@@ -197,7 +206,6 @@ export default function MainScreen({
                   })}
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={() => {
                   if (deletingId) return
@@ -310,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 10,
   },
   upgradeOverlayText: {
     fontFamily: 'SpaceMono',

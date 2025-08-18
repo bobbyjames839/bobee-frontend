@@ -1,10 +1,9 @@
 import React from 'react';
-import { Tabs, usePathname } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { PenLine, FileText, Sparkles, Settings, User } from 'lucide-react-native';
 import { colors } from '~/constants/Colors';
 
 export default function TabLayout() {
-  const pathname = usePathname(); // e.g. "/", "/settings", "/settings/sub", "/bobee/chat"
 
   const baseTabBarStyle = {
     elevation: 0,
@@ -14,36 +13,13 @@ export default function TabLayout() {
     borderColor: colors.lighter,
   } as const;
 
-  // Is the user on any "deeper" page under a tab?
-  const isDeeper =
-    pathname.startsWith('/journal/') ||
-    pathname.startsWith('/files/') ||
-    pathname.startsWith('/insights/') ||
-    pathname.startsWith('/bobee/') ||
-    pathname.startsWith('/settings/');
-
-  // Exception: show the tabs specifically on /settings/sub
-  const isSettingsSub = pathname === '/settings/sub';
-
-  // Root tab pages should show the bar
-  const isTabRoot =
-    pathname === '/journal' ||
-    pathname === '/files' ||
-    pathname === '/insights' ||
-    pathname === '/bobee' ||
-    pathname === '/settings' ||
-    pathname === '/'; // in case your default route maps to a tab
-
-  const shouldHide = isDeeper && !isSettingsSub;
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
         tabBarActiveTintColor: '#4f50e3',
-        // merge styles instead of replacing, and toggle display
-        tabBarStyle: shouldHide ? [{ ...baseTabBarStyle }, { display: 'none' }] : baseTabBarStyle,
+        tabBarStyle: baseTabBarStyle,
       }}
     >
       <Tabs.Screen

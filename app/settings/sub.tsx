@@ -6,7 +6,7 @@ import { getAuth } from 'firebase/auth';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import { Smiley, Crown, CheckCircle } from 'phosphor-react-native';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 import { router } from 'expo-router';
 
 
@@ -124,7 +124,7 @@ function SubscriptionInner() {
     <Header
         title='Subscription'
         leftIcon="chevron-back"
-        onLeftPress={() => (router.push('/(tabs)/settings'))}/>
+        onLeftPress={() => (router.back())}/>
     <View style={styles.container}>
       <View style={styles.currentPlanBox}>
         <Text style={styles.labelText}>Current plan:</Text>
@@ -343,6 +343,7 @@ const styles = StyleSheet.create({
     borderColor: colors.lighter,
     borderRadius: 14,
     paddingVertical: 30,
+    marginBottom: 15,
   },
   activeTabBox: {
     backgroundColor: colors.blue,

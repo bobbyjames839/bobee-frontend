@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 
 export default function Terms() {

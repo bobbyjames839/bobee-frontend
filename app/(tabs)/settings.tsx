@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'rea
 import { useRouter, useFocusEffect, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, signOut } from 'firebase/auth';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 
 type Item = {

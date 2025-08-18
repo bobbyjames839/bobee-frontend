@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '~/constants/Colors';
 import { getAuth, signOut } from 'firebase/auth';
 import Constants from 'expo-constants';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 
 

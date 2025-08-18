@@ -94,7 +94,7 @@ export default function RootLayout() {
     () => async () => {
       const root = (segments?.[0] ?? '') as string;
       const inAuth = root === '(auth)';
-      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)']);
+      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');
@@ -156,10 +156,52 @@ export default function RootLayout() {
               screenOptions={{
                 headerShown: false,
                 presentation: 'card',
-                animation: 'none',           // <- stop sliding
-                gestureEnabled: false,       // optional: prevent back-swipe ghost motion
+                animation: 'none',          
+                gestureEnabled: false,       
               }}
             >
+              <Stack.Screen
+                name="files"
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
+                  headerShown: false,
+                }}
+              />
+
+              {/* other groups */}
+              <Stack.Screen
+                name="settings"
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="journal"
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="bobee"
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                    gestureEnabled: false,
+                    fullScreenGestureEnabled: false,
+                  gestureDirection: 'horizontal',
+                }}
+              />
               <Stack.Screen name="(auth)" options={{ animation: 'none' }} />
               <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
             </Stack>

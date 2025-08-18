@@ -3,21 +3,19 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 import SpinningLoader from '~/components/other/SpinningLoader';
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
@@ -34,7 +32,7 @@ function pickFace(score: number) {
   return FACE_VERY_HAPPY;
 }
 
-function JournalScreenInner() {
+export default function JournalScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { journals, loading } = useJournals();
@@ -53,18 +51,19 @@ function JournalScreenInner() {
   }, [id]);
 
   const navigateToUpgrade = () => {
-    router.dismissAll();  
-    router.push('/(tabs)/settings/sub');
+    router.dismissAll();
+    router.push('/settings/sub');
   };
 
   return (
-      <View style={styles.absoluteOverlay}>
+    <View style={styles.fullscreen}>
       <StatusBar style="dark" translucent backgroundColor="transparent" />
 
       <Header
-          title='Journal Details'
-          leftIcon="chevron-back"
-          onLeftPress={() => (router.back())}/>
+        title="Journal Details"
+        leftIcon="chevron-back"
+        onLeftPress={() => router.back()}
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -180,24 +179,8 @@ function JournalScreenInner() {
   );
 }
 
-export default function JournalScreen() {
-  return (
-    <SafeAreaProvider>
-      <JournalScreenInner />
-    </SafeAreaProvider>
-  );
-}
-
 const styles = StyleSheet.create({
-    absoluteOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 999,
-      backgroundColor: colors.lightest,
-    },
+  fullscreen: { flex: 1, backgroundColor: colors.lightest },
   content: { paddingHorizontal: 20 },
   section: {
     marginTop: 20,

@@ -49,13 +49,6 @@ export default function Journal() {
     }, [])
   );
 
-  // navigate to the response screen once we have an AI response
-  useEffect(() => {
-    if (journal.aiResponse && !journal.loading && !navigatedRef.current) {
-      router.push('/(tabs)/journal/response'); // no storage; context provides the data now
-     }
-  }, [ journal.aiResponse, journal.loading, router ]);
-
   return (
     <>
       {journal.error && (

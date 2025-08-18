@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
 import { useRouter } from 'expo-router';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
 import JournalList from '~/components/files/JournalList';
@@ -35,7 +35,6 @@ export default function FilesTabIndex() {
           <Text style={styles.sectionTitle}>Recent entries</Text>
           <JournalList journals={recentThree} onSelect={handleOpenEntry} />
 
-          <View style={{ height: 80 }} />
         </ScrollView>
       )}
     </View>

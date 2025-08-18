@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   StyleSheet,
   Image,
 } from 'react-native';
@@ -17,7 +16,8 @@ import { BlurView } from 'expo-blur';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import { colors } from '~/constants/Colors';
 import { useJournalContext } from '~/context/JournalContext'; // ✅ use context
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
+import SpinningLoader from '~/components/other/SpinningLoader';
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
@@ -56,7 +56,7 @@ export default function ResponseScreen() {
           <View style={styles.iconWrap} />
         </View>
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={colors.blue} />
+          <SpinningLoader size={40} />
           <Text style={styles.loaderText}>Preparing response…</Text>
         </View>
       </View>
@@ -140,7 +140,7 @@ export default function ResponseScreen() {
                       <TouchableOpacity onPress={onUpgrade} disabled={journal.subscribeLoading}>
                         <View style={styles.upgradeBlurButtonContent}>
                           {journal.subscribeLoading ? (
-                            <ActivityIndicator size="small" color="#fff" />
+                            <SpinningLoader size={24} />
                           ) : (
                             <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
                           )}
@@ -200,7 +200,7 @@ export default function ResponseScreen() {
                       <TouchableOpacity onPress={onUpgradeTwo} disabled={journal.secondSubscribeLoading}>
                         <View style={styles.upgradeBlurButtonContent}>
                           {journal.secondSubscribeLoading ? (
-                            <ActivityIndicator size="small" color="#fff" />
+                            <SpinningLoader size={24} />
                           ) : (
                             <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
                           )}
@@ -222,7 +222,7 @@ export default function ResponseScreen() {
                 disabled={journal.submitLoading}
               >
                 {journal.submitLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <SpinningLoader size={24} />
                 ) : (
                   <Text style={styles.submitButtonText}>Submit Journal</Text>
                 )}
@@ -446,13 +446,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 32,
-    gap: 10,
+    gap: 7,
     justifyContent: 'space-between'
   },
   submitButton: {
     backgroundColor: colors.blue,
-    height: 50,
-    borderRadius: 14,
+    height: 42,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     width: '70%'
@@ -465,10 +465,12 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: colors.lighter,
     flex: 1,
-    height: 50,
-    borderRadius: 14,
+    height: 42,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.light,
   },
   cancelButtonText: {
     color: colors.dark,

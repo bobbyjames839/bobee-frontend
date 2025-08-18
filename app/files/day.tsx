@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import JournalList from '~/components/files/JournalList';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 
 function formatDateDisplay(dateStr: string) {
   try {
@@ -34,10 +34,18 @@ function DayEntriesScreenInner() {
   const { journals, loading } = useJournals();
   const insets = useSafeAreaInsets();
 
+  // Helper: local YYYY-MM-DD (no UTC conversion)
+  function ymdLocal(d: Date) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   const entriesForDay = useMemo(() => {
     if (!date) return [];
     return journals.filter(
-      (e) => e.createdAt.toDate().toISOString().split('T')[0] === date
+      (e) => ymdLocal(e.createdAt.toDate()) === date
     );
   }, [journals, date]);
 

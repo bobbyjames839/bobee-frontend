@@ -4,9 +4,9 @@ import { router, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '~/constants/Colors';
-import SuccessBanner from '../../../../components/banners/SuccessBanner';
+import SuccessBanner from '../../../components/banners/SuccessBanner';
 import { getAuth, updateProfile, updateEmail as firebaseUpdateEmail } from 'firebase/auth';
-import Header from '~/components/Header';
+import Header from '~/components/other/Header';
 
 function BackChevron() {
   const router = useRouter();

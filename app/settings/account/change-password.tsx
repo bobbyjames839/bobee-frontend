@@ -5,9 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '~/constants/Colors';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
-import SuccessBanner from '../../../../components/banners/SuccessBanner';
-import ErrorBanner from '../../../../components/banners/ErrorBanner';
-import Header from '~/components/Header';
+import SuccessBanner from '../../../components/banners/SuccessBanner';
+import ErrorBanner from '../../../components/banners/ErrorBanner';
+import Header from '~/components/other/Header';
 
 function BackChevron() {
   const router = useRouter();

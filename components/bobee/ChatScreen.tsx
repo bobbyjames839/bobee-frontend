@@ -1,7 +1,9 @@
+// ChatScreen.tsx
 import React, { useContext, useRef, useEffect, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet, Modal } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+import { useRouter, useFocusEffect } from 'expo-router'
+import { useIsFocused } from '@react-navigation/native'
 import AutoExpandingInput from './AutoExpandingInput'
 import SpinningLoader from '~/components/other/SpinningLoader'
 import { colors } from '~/constants/Colors'
@@ -25,6 +27,7 @@ export default function ChatScreen({
   isLoading,
   onSubmit,
   isSaving = false,
+  onSaveAndBack,
 }: {
   history: ChatHistoryItem[]
   expanded: Set<number>
@@ -36,13 +39,24 @@ export default function ChatScreen({
   isLoading: boolean
   onSubmit: () => void
   isSaving?: boolean
+  onSaveAndBack?: () => void
 }) {
   const { isSubscribed } = useContext(SubscriptionContext)
   const router = useRouter()
   const [showPaywall, setShowPaywall] = useState(false)
   const busy = isLoading || isSaving
+  const isFocused = useIsFocused()
 
-  // Track mount status to prevent flash after unmount
+  // Ensure footer/input collapses when leaving this screen
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        setInput('')
+      }
+    }, [setInput])
+  )
+
+  // Track mount status to prevent modal flash after unmount
   const isMountedRef = useRef(true)
   useEffect(() => {
     return () => {
@@ -50,14 +64,18 @@ export default function ChatScreen({
     }
   }, [])
 
+  // CHANGE 1: force-close paywall whenever saving starts
+  useEffect(() => {
+    if (isSaving) setShowPaywall(false)
+  }, [isSaving])
+
   const handleToggleReasoning = (idx: number) => {
+    if (isSaving) return // CHANGE 2: never open paywall while saving
     if (!history[idx]?.reasoning) return
     if (isSubscribed) {
       toggleReasoning(idx)
     } else {
-      if (isMountedRef.current) {
-        setShowPaywall(true)
-      }
+      if (isMountedRef.current) setShowPaywall(true)
     }
   }
 
@@ -65,7 +83,7 @@ export default function ChatScreen({
     <View style={styles.flex}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[styles.container, { paddingBottom: 120 }]} // leave room for footer
         keyboardShouldPersistTaps="handled"
       >
         {history.map((item, idx) => (
@@ -96,9 +114,7 @@ export default function ChatScreen({
                   <TouchableOpacity
                     activeOpacity={isSubscribed ? 1 : 0.7}
                     onPress={() => {
-                      if (!isSubscribed && isMountedRef.current) {
-                        setShowPaywall(true)
-                      }
+                      if (!isSubscribed && isMountedRef.current) setShowPaywall(true)
                     }}
                     style={[styles.bubble, styles.aiReasoningBubble]}
                   >
@@ -133,27 +149,46 @@ export default function ChatScreen({
         ))}
       </ScrollView>
 
-      <View style={styles.inputBar}>
-        <AutoExpandingInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask a follow-up…"
-          placeholderTextColor="rgba(95, 95, 95, 1)"
-          minHeight={40}
-          maxHeight={120}
-          style={styles.input}
-          editable={!busy}
-          returnKeyType="send"
-          onSubmitEditing={onSubmit}
-          blurOnSubmit={false}
-        />
-        <TouchableOpacity
-          onPress={onSubmit}
-          disabled={busy}
-          style={styles.sendButton}
-        >
-          <Ionicons name="send" size={24} color="white" />
-        </TouchableOpacity>
+      {/* Footer pinned to bottom: input above buttons */}
+      <View style={styles.footer}>
+        <View style={styles.inputContainer}>
+          <AutoExpandingInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Ask anything"
+            placeholderTextColor="rgba(107, 107, 107, 1)"
+            minHeight={25}
+            maxHeight={120}
+            style={styles.input}
+            editable={!busy}
+            returnKeyType="send"
+            onSubmitEditing={onSubmit}
+            blurOnSubmit={false}
+          />
+        </View>
+
+        <View style={styles.buttonsRow}>
+          <View style={styles.leftButtons}>
+            <TouchableOpacity
+              onPress={onSaveAndBack}
+              style={styles.saveButton}
+              disabled={isSaving}
+            >
+              <MaterialIcons name="save-alt" size={20} color="green" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => console.log('Delete pressed')}
+              style={styles.deleteButton}
+            >
+              <MaterialIcons name="delete-outline" size={20} color="rgba(119, 10, 10, 1)" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity onPress={onSubmit} disabled={busy} style={styles.sendButton}>
+            <Ionicons name="arrow-up" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Saving conversation modal */}
@@ -164,28 +199,31 @@ export default function ChatScreen({
       </Modal>
 
       {/* Paywall modal */}
-      <Modal visible={showPaywall} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.paywallCard}>
-            <Text style={styles.paywallTitle}>Upgrade to view reasoning</Text>
-            <Text style={styles.paywallDesc}>
-              Unlock detailed reasoning for every AI answer and get deeper insights.
-            </Text>
-            <TouchableOpacity
-              style={styles.paywallButton}
-              onPress={() => {
-                setShowPaywall(false)
-                router.push('/(tabs)/settings/sub')
-              }}
-            >
-              <Text style={styles.paywallButtonText}>Upgrade Now</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowPaywall(false)}>
-              <Text style={styles.paywallCancel}>Cancel</Text>
-            </TouchableOpacity>
+      {/* CHANGE 3: only mount when focused and not saving */}
+      {showPaywall && isFocused && !isSaving ? (
+        <Modal visible transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.paywallCard}>
+              <Text style={styles.paywallTitle}>Upgrade to view reasoning</Text>
+              <Text style={styles.paywallDesc}>
+                Unlock detailed reasoning for every AI answer and get deeper insights.
+              </Text>
+              <TouchableOpacity
+                style={styles.paywallButton}
+                onPress={() => {
+                  router.push('/settings/sub')
+                  setShowPaywall(false)
+                }}
+              >
+                <Text style={styles.paywallButtonText}>Upgrade Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowPaywall(false)}>
+                <Text style={styles.paywallCancel}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      ) : null}
     </View>
   )
 }
@@ -256,37 +294,67 @@ const styles = StyleSheet.create({
     color: colors.blue,
   },
   pulseIcon: { alignSelf: 'flex-start', marginTop: 8 },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: 'white',
-    paddingHorizontal: 10,
-    paddingTop: 15,
-    paddingBottom: 40,
-    borderTopWidth: 1,
-    borderColor: colors.lighter,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+
+  // Footer pinned at bottom; input above buttons
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    elevation: 10,
     backgroundColor: colors.lightest,
+  },
+
+  inputContainer: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    backgroundColor: 'white',
+    paddingHorizontal: 18,
+    paddingTop: 8,
     borderWidth: 1,
     borderColor: colors.lighter,
+    borderBottomWidth: 0,
+  },
+  buttonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingBottom: 30,
+    paddingTop: 12,
+  },
+  leftButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  saveButton: {
+    padding: 7,
+    backgroundColor: colors.green,
+    borderRadius: 500,
+  },
+  deleteButton: {
+    padding: 7,
+    backgroundColor: 'rgba(233, 127, 127, 1)',
+    borderRadius: 500,
+  },
+
+  input: {
+    flex: 1,
     fontFamily: 'SpaceMono',
     fontSize: 15,
+    letterSpacing: 0.3,
+    lineHeight: 22,
     color: '#333',
   },
   sendButton: {
     marginLeft: 8,
-    padding: 10,
+    padding: 7,
     backgroundColor: colors.blue,
-    borderRadius: 10,
-    paddingTop: 9,
+    borderRadius: 500,
   },
 
-  // Modal shared styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.25)',
@@ -294,7 +362,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Saving card
   savingCard: {
     backgroundColor: '#fff',
     paddingVertical: 20,
@@ -310,7 +377,6 @@ const styles = StyleSheet.create({
     color: colors.darkest,
   },
 
-  // Paywall card
   paywallCard: {
     backgroundColor: '#fff',
     padding: 24,
@@ -338,7 +404,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
-    marginBottom: 12,
   },
   paywallButtonText: {
     color: '#fff',
@@ -349,5 +414,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     fontSize: 14,
     color: colors.blue,
+    marginTop: 12,
   },
 })

@@ -5,7 +5,7 @@ import HabitCards from '~/components/insights/HabitCards'
 import MoodChart from '~/components/insights/MoodChart'
 import TopicsSection from '~/components/insights/TopicsSection'
 import PersonalitySection from '~/components/insights/Personality'
-import Header from '~/components/Header'
+import Header from '~/components/other/Header'
 import { colors } from '~/constants/Colors'
 import SpinningLoader from '~/components/other/SpinningLoader'
 

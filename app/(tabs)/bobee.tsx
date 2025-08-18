@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet } from "react-native";
-import Header from "~/components/Header";
+import Header from "~/components/other/Header";
 import useBobee from "~/hooks/useBobee";
 import MainScreen from "~/components/bobee/MainScreen";
 import { colors } from "~/constants/Colors";
@@ -21,14 +21,14 @@ export default function BobeeMainPage() {
         onSubmit={() => {
           // Send the first question to the Chat page to submit there
           router.push({
-            pathname: "/(tabs)/bobee/chat",
+            pathname: "/bobee/chat",
             params: { initialQuestion: input },
           });
         }}
         onSelectConversation={(id) => {
           // Open an existing conversation in the Chat page
           router.push({
-            pathname: "/(tabs)/bobee/chat",
+            pathname: "/bobee/chat",
             params: { conversationId: id },
           });
         }}

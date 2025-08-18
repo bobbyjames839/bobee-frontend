@@ -337,7 +337,6 @@ export function useJournalRecording() {
 
 
       // 2. Call AI with transcript, prompt, and personality
-      console.log('getting response')
       setLoadingStage(5); // Getting AI response
       const aiPromise = fetch(`${BACKEND_URL}/api/journal-response`, {
         method: 'POST',
@@ -380,8 +379,11 @@ export function useJournalRecording() {
         const aiRes = await aiPromise;
         if (thisRunId !== runIdRef.current) return;
         setAiResponse(aiRes);
-        setLoading(false);
-        setLoadingStage(0);
+        router.push('/journal/response');
+        setTimeout(() => {
+          setLoading(false);
+          setLoadingStage(0);
+        }, 1000);
       } catch (aiErr: any) {
         if (aiErr.message === 'InvalidJournal') {
           await safeStopAndClearRecording();
@@ -475,7 +477,7 @@ export function useJournalRecording() {
       // reuse the submit logic
       await doSubmitJournal();
       router.back();
-      router.push('/(tabs)/settings/sub');
+      router.push('/settings/sub');
     } finally {
       setSubscribeLoading(false);
     }
@@ -487,7 +489,7 @@ export function useJournalRecording() {
       // reuse the submit logic
       await doSubmitJournal();
       router.back();
-      router.push('/(tabs)/settings/sub');
+      router.push('/settings/sub');
     } finally {
       setSecondSubscribeLoading(false);
     }

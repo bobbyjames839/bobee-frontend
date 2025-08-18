@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import Header from "~/components/Header";
+import Header from "~/components/other/Header";
 import useBobee from "~/hooks/useBobee";
 import ChatScreen from "~/components/bobee/ChatScreen";
 import { colors } from "~/constants/Colors";
@@ -48,19 +48,6 @@ export default function BobeeChatPage() {
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
       <Header
         title="Conversation"
-        leftIcon="chevron-back"
-        onLeftPress={async () => {
-          if (isSaving) return;
-          try {
-            setIsSaving(true);
-            await saveConversation();
-          } catch (e) {
-            console.warn("saveConversation failed", e);
-          } finally {
-            router.push('/(tabs)/bobee');
-            setIsSaving(false);
-          }
-        }}
       />
       <ChatScreen
         history={history}
@@ -73,6 +60,20 @@ export default function BobeeChatPage() {
         isLoading={isLoading}
         onSubmit={handleSubmit}
         isSaving={isSaving}
+        onSaveAndBack={async () => {
+          if (isSaving) return;
+          try {
+            setIsSaving(true);
+            await saveConversation();
+          } catch (e) {
+            console.warn("saveConversation failed", e);
+          } finally {
+            router.back();
+            setTimeout(() => {
+              setIsSaving(false);
+            }, 1000);
+          }
+        }}
       />
     </KeyboardAvoidingView>
   );
