@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { View, Animated, Easing, StyleSheet } from 'react-native';
 import { colors } from '~/constants/Colors';
 
-export default function SpinningLoader({ size = 48 }) {
+export default function SpinningLoader({ size = 48, thickness = 5, color = colors.blue }) {
   const spinAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -26,7 +27,19 @@ export default function SpinningLoader({ size = 48 }) {
   return (
     <View style={styles.center}>
       <Animated.View
-        style={[styles.spinner, { width: size, height: size, borderRadius: size / 2, transform: [{ rotate: spin }] }]}
+        style={[
+          styles.spinner,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderWidth: thickness,
+            borderColor: color,
+            borderTopColor: 'transparent',
+            backgroundColor: 'transparent',
+            transform: [{ rotate: spin }],
+          },
+        ]}
       />
     </View>
   );
@@ -38,8 +51,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   spinner: {
-    borderWidth: 5,
-    borderColor: colors.blue,
+    // borderColor is now set via prop
     borderTopColor: colors.lightest,
     backgroundColor: 'transparent',
   },

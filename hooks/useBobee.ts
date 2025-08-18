@@ -23,9 +23,35 @@ export default function useBobee() {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [showChat, setShowChat] = useState(false)
   const [userFacts, setUserFacts] = useState<string[] | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const deleteConversation = useCallback(async () => {
+    if (!conversationId) return;
+    setIsDeleting(true);
+    try {
+      const user = getAuth().currentUser;
+      if (!user) throw new Error('No user');
+      const idToken = await user.getIdToken(true);
+      const res = await fetch(`${API_BASE}/api/delete-conversation/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      setHistory([]);
+      setExpanded(new Set());
+      setConversationId(null);
+      setShowChat(false);
+    } catch (e) {
+      console.warn('Delete failed:', e);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [conversationId]);
 
   const scrollRef = useRef<ScrollView>(null)
   const pulseAnim = useRef(new Animated.Value(1)).current
@@ -256,6 +282,7 @@ export default function useBobee() {
     history,
     expanded,
     isLoading,
+    isDeleting,
     showChat,
     setShowChat,
     scrollRef,
@@ -264,5 +291,6 @@ export default function useBobee() {
     handleSubmit,
     saveConversation,
     openConversation,
+    deleteConversation,
   }
 }

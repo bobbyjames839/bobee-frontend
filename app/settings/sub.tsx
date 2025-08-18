@@ -1,5 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
+import SuccessBanner from '~/components/banners/SuccessBanner';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, useWindowDimensions } from 'react-native';
+import ErrorBanner from '~/components/banners/ErrorBanner';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { getAuth } from 'firebase/auth';
@@ -8,6 +10,7 @@ import { SubscriptionContext } from '~/context/SubscriptionContext';
 import { Smiley, Crown, CheckCircle } from 'phosphor-react-native';
 import Header from '~/components/other/Header';
 import { router } from 'expo-router';
+import SpinningLoader from '~/components/other/SpinningLoader';
 
 
 type PlanKey = 'free' | 'pro';
@@ -48,9 +51,11 @@ function SubscriptionInner() {
   const { isSubscribed } = useContext(SubscriptionContext);
   const [selectedTab, setSelectedTab] = useState<PlanKey>('free');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
+  const [successMsg, setSuccessMsg] = useState<string>('');
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
-  const { height } = useWindowDimensions()
+  const { height } = useWindowDimensions();
 
 
   useEffect(() => {
@@ -67,6 +72,7 @@ function SubscriptionInner() {
       if (!user) throw new Error('Not logged in');
       const idToken = await user.getIdToken(false);
 
+      // Step 1: ask backend (existing stripe.ts route) for SetupIntent + EphemeralKey
       const resp = await fetch(`${API_BASE}/api/subscribe`, {
         method: 'POST',
         headers: {
@@ -77,15 +83,14 @@ function SubscriptionInner() {
       });
 
       const json = await resp.json();
-      if (!resp.ok) {
-        throw new Error(json.error || `HTTP ${resp.status}`);
-      }
+      if (!resp.ok) throw new Error(json.error || `HTTP ${resp.status}`);
 
       const { customer, ephemeralKey, setupIntent } = json;
       if (!customer || !ephemeralKey || !setupIntent) {
         throw new Error('Invalid response from server');
       }
 
+      // Step 2: init & present PaymentSheet (setup mode)
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: 'Bobee',
         customerId: customer,
@@ -94,17 +99,35 @@ function SubscriptionInner() {
       });
       if (initError) throw initError;
 
+      setLoading(false);
       const { error: presentError } = await presentPaymentSheet();
       if (presentError) throw presentError;
 
-      Alert.alert('Success', 'Card saved! You can now access Pro features.');
+      // Step 3: confirm on backend → creates Subscription (NEW route)
+      setLoading(true);
+      const confirmResp = await fetch(`${API_BASE}/api/subscribe/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
+      const confirmJson = await confirmResp.json();
+      if (!confirmResp.ok) throw new Error(confirmJson.error || `HTTP ${confirmResp.status}`);
 
+      setSuccessMsg('Your subscription is active!');
+      setErrorMsg('');
+      setLoading(false);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Something went wrong');
-    } finally {
+      setErrorMsg(e.message || 'Something went wrong');
+      setSuccessMsg('');
       setLoading(false);
     }
   };
+
+
+  const handleHideError = () => setErrorMsg('');
+  const handleHideSuccess = () => setSuccessMsg('');
 
   if (isSubscribed === null) {
     return (
@@ -121,75 +144,79 @@ function SubscriptionInner() {
 
   return (
     <>
-    <Header
+      <Header
         title='Subscription'
         leftIcon="chevron-back"
-        onLeftPress={() => (router.back())}/>
-    <View style={styles.container}>
-      <View style={styles.currentPlanBox}>
-        <Text style={styles.labelText}>Current plan:</Text>
-        <Text style={styles.planText}>{plans[userPlan].title}</Text>
-      </View>
-
-      {/* Plan Detail */}
-      <View style={styles.planDetailBox}>
-        <View style={styles.decorCircle}>
-          <DetailIcon size={50} color={colors.blue} weight="fill" />
-        </View>
-        <Text style={styles.planTitle}>{planDetails.title}</Text>
-        <Text style={styles.planTagline}>{planDetails.tagline}</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.planPrice}>{planDetails.price}</Text>
-          <Text style={styles.planUnit}> USD / month</Text>
-        </View>
-        <View style={styles.featuresList}>
-          {planDetails.features.map((f, i) => (
-            <View key={i} style={styles.featureRow}>
-              <CheckCircle size={20} color={colors.blue} weight="fill" />
-              <Text style={styles.featureText}>{f}</Text>
-            </View>
-          ))}
+        onLeftPress={() => (router.back())}
+      />
+      {/* Success and Error Banners */}
+      <SuccessBanner message={successMsg} onHide={handleHideSuccess} />
+      <ErrorBanner message={errorMsg} onHide={handleHideError} />
+      <View style={styles.container}>
+        <View style={styles.currentPlanBox}>
+          <Text style={styles.labelText}>Current plan:</Text>
+          <Text style={styles.planText}>{plans[userPlan].title}</Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.upgradeButton, isCurrentPlan && styles.currentButton]}
-          onPress={handleUpgrade}
-          disabled={loading || isCurrentPlan}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={[styles.upgradeButtonText, isCurrentPlan && styles.currentButtonText]}>
-                {isCurrentPlan ? 'Your current plan' : 'Upgrade to Pro'}
-              </Text>
-          }
-        </TouchableOpacity>
-      </View>
+        {/* Plan Detail */}
+        <View style={styles.planDetailBox}>
+          <View style={styles.decorCircle}>
+            <DetailIcon size={50} color={colors.blue} weight="fill" />
+          </View>
+          <Text style={styles.planTitle}>{planDetails.title}</Text>
+          <Text style={styles.planTagline}>{planDetails.tagline}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.planPrice}>{planDetails.price}</Text>
+            <Text style={styles.planUnit}> USD / month</Text>
+          </View>
+          <View style={styles.featuresList}>
+            {planDetails.features.map((f, i) => (
+              <View key={i} style={styles.featureRow}>
+                <CheckCircle size={20} color={colors.blue} weight="fill" />
+                <Text style={styles.featureText}>{f}</Text>
+              </View>
+            ))}
+          </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        {(['free','pro'] as PlanKey[]).map((key) => {
-          const active = selectedTab === key;
-          const TabIcon = iconForPlan(key);
-          return (
-            <TouchableOpacity
-              key={key}
-              style={[styles.tabBox, { width: tabWidth }, active && styles.activeTabBox]}
-              onPress={() => setSelectedTab(key)}
-            >
-              <TabIcon size={28} color={active ? '#fff' : colors.darkest} weight={active ? 'fill' : 'regular'} style={{ marginBottom: 6 }} />
-              <Text style={[styles.tabText, active && styles.activeTabText]}>
-                {plans[key].title.split(' ')[0]}
-              </Text>
-              {key === 'pro' && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Best value</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+          <TouchableOpacity
+            style={[styles.upgradeButton, isCurrentPlan && styles.currentButton]}
+            onPress={handleUpgrade}
+            disabled={loading || isCurrentPlan}
+          >
+            {loading
+              ? <SpinningLoader size={20} thickness={3} color='white'/>
+              : <Text style={[styles.upgradeButtonText, isCurrentPlan && styles.currentButtonText]}>
+                  {isCurrentPlan ? 'Your current plan' : 'Upgrade to Pro'}
+                </Text>
+            }
+          </TouchableOpacity>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          {(['free','pro'] as PlanKey[]).map((key) => {
+            const active = selectedTab === key;
+            const TabIcon = iconForPlan(key);
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.tabBox, { width: tabWidth }, active && styles.activeTabBox]}
+                onPress={() => setSelectedTab(key)}
+              >
+                <TabIcon size={28} color={active ? '#fff' : colors.darkest} weight={active ? 'fill' : 'regular'} style={{ marginBottom: 6 }} />
+                <Text style={[styles.tabText, active && styles.activeTabText]}>
+                  {plans[key].title.split(' ')[0]}
+                </Text>
+                {key === 'pro' && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Best value</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
-    </View>
     </>
   );
 }

@@ -220,7 +220,7 @@ export default function MainScreen({
                 style={styles.deleteButton}
               >
                 {deletingId === conv.id ? (
-                  <SpinningLoader size={20} />
+                  <SpinningLoader size={20} thickness={3} color={DELETE_RED} />
                 ) : (
                   <MaterialIcons
                     name={pendingDelete === conv.id ? 'check' : 'delete-outline'}

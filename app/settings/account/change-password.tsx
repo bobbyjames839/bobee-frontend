@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Animated } from 'react-native';
 import { router, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '~/constants/Colors';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import SpinningLoader from '~/components/other/SpinningLoader';
 import SuccessBanner from '../../../components/banners/SuccessBanner';
 import ErrorBanner from '../../../components/banners/ErrorBanner';
 import Header from '~/components/other/Header';
@@ -150,6 +151,18 @@ export default function ChangePasswordScreen() {
           onFocus={() => setFocused('new')}
           onBlur={() => setFocused(null)}
         />
+        {focused === 'new' && (
+          <Text style={{
+            fontSize: 13,
+            color: colors.darkest,
+            fontFamily: 'SpaceMono',
+            marginBottom: 4,
+            textAlign: 'right',
+            opacity: 0.8,
+          }}>
+            Must be at least 8 characters
+          </Text>
+        )}
 
         <TextInput
           style={inputStyle('confirm')}
@@ -167,7 +180,7 @@ export default function ChangePasswordScreen() {
           onPress={handleChange}
           disabled={loading || !canSubmit}
         >
-          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Save New Password</Text>}
+          {loading ? <SpinningLoader size={24} thickness={3} color='white'/> : <Text style={styles.buttonText}>Save New Password</Text>}
         </TouchableOpacity>
       </View>
     </>

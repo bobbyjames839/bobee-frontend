@@ -1,11 +1,23 @@
 // ChatScreen.tsx
-import React, { useContext, useRef, useEffect, useState } from 'react'
-import { View, ScrollView, Text, TouchableOpacity, Animated, StyleSheet, Modal } from 'react-native'
+import React, { useContext, useRef, useEffect, useState, useCallback } from 'react'
+import {
+  View,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+  Modal,
+  Keyboard,
+  Platform,
+} from 'react-native'
+import SpinningLoader from '~/components/other/SpinningLoader'
+
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useIsFocused } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AutoExpandingInput from './AutoExpandingInput'
-import SpinningLoader from '~/components/other/SpinningLoader'
 import { colors } from '~/constants/Colors'
 import { SubscriptionContext } from '~/context/SubscriptionContext'
 
@@ -27,6 +39,8 @@ export default function ChatScreen({
   isLoading,
   onSubmit,
   isSaving = false,
+  isDeleting,
+  onDelete,
   onSaveAndBack,
 }: {
   history: ChatHistoryItem[]
@@ -37,6 +51,8 @@ export default function ChatScreen({
   input: string
   setInput: (s: string) => void
   isLoading: boolean
+  isDeleting?: boolean
+  onDelete?: () => void
   onSubmit: () => void
   isSaving?: boolean
   onSaveAndBack?: () => void
@@ -46,6 +62,24 @@ export default function ChatScreen({
   const [showPaywall, setShowPaywall] = useState(false)
   const busy = isLoading || isSaving
   const isFocused = useIsFocused()
+
+  // Keyboard + safe-area handling
+  const insets = useSafeAreaInsets()
+  const [kbVisible, setKbVisible] = useState(false)
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+    const showSub = Keyboard.addListener(showEvt, () => setKbVisible(true))
+    const hideSub = Keyboard.addListener(hideEvt, () => setKbVisible(false))
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
+  }, [])
+
+  // Dynamic paddings (smaller when keyboard hidden)
+  const buttonsBottomPad = kbVisible ? 6 : Math.max(insets.bottom, 12)
+  const scrollBottomPad = kbVisible ? 12 : 80
 
   // Ensure footer/input collapses when leaving this screen
   useFocusEffect(
@@ -64,13 +98,13 @@ export default function ChatScreen({
     }
   }, [])
 
-  // CHANGE 1: force-close paywall whenever saving starts
+  // Close paywall whenever saving starts
   useEffect(() => {
     if (isSaving) setShowPaywall(false)
   }, [isSaving])
 
   const handleToggleReasoning = (idx: number) => {
-    if (isSaving) return // CHANGE 2: never open paywall while saving
+    if (isSaving) return
     if (!history[idx]?.reasoning) return
     if (isSubscribed) {
       toggleReasoning(idx)
@@ -79,12 +113,22 @@ export default function ChatScreen({
     }
   }
 
+  // Two-tap delete (bin -> check -> spinner), same UX as MainScreen
+  const [pendingDelete, setPendingDelete] = useState(false)
+  useFocusEffect(
+    useCallback(() => {
+      setPendingDelete(false)
+      return () => setPendingDelete(false)
+    }, [])
+  )
+
   return (
     <View style={styles.flex}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.container, { paddingBottom: 120 }]} // leave room for footer
+        contentContainerStyle={[styles.container, { paddingBottom: scrollBottomPad }]}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         {history.map((item, idx) => (
           <View key={idx} style={styles.bubbleWrapper}>
@@ -167,21 +211,43 @@ export default function ChatScreen({
           />
         </View>
 
-        <View style={styles.buttonsRow}>
+        <View style={[styles.buttonsRow, { paddingBottom: buttonsBottomPad }]}>
           <View style={styles.leftButtons}>
             <TouchableOpacity
               onPress={onSaveAndBack}
               style={styles.saveButton}
               disabled={isSaving}
             >
-              <MaterialIcons name="save-alt" size={20} color="green" />
+              {isSaving ? (
+                <SpinningLoader size={20} thickness={3} color='green' />
+              ) : (
+                <MaterialIcons name="save-alt" size={20} color="green" />
+              )}
             </TouchableOpacity>
 
+            {/* Delete: first tap arms (bin -> check). Second tap confirms and shows spinner. */}
             <TouchableOpacity
-              onPress={() => console.log('Delete pressed')}
+              onPress={async () => {
+                if (!onDelete || isDeleting) return
+                if (pendingDelete) {
+                  await onDelete()
+                  router.back()
+                } else {
+                  setPendingDelete(true)
+                }
+              }}
               style={styles.deleteButton}
+              disabled={!!isDeleting}
             >
-              <MaterialIcons name="delete-outline" size={20} color="rgba(119, 10, 10, 1)" />
+              {isDeleting ? (
+                <SpinningLoader size={20} thickness={3} color="rgba(119, 10, 10, 1)" />
+              ) : (
+                <MaterialIcons
+                  name={pendingDelete ? 'check' : 'delete-outline'}
+                  size={20}
+                  color="rgba(119, 10, 10, 1)"
+                />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -191,15 +257,7 @@ export default function ChatScreen({
         </View>
       </View>
 
-      {/* Saving conversation modal */}
-      <Modal visible={isSaving} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <SpinningLoader size={48} />
-        </View>
-      </Modal>
-
       {/* Paywall modal */}
-      {/* CHANGE 3: only mount when focused and not saving */}
       {showPaywall && isFocused && !isSaving ? (
         <Modal visible transparent animationType="fade">
           <View style={styles.modalOverlay}>
@@ -322,7 +380,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'white',
     paddingHorizontal: 12,
-    paddingBottom: 30,
+    paddingBottom: 30, // overridden dynamically at runtime
     paddingTop: 12,
   },
   leftButtons: {

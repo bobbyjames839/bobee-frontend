@@ -123,7 +123,7 @@ export default function SignIn() {
           activeOpacity={0.85}
         >
           {loading ? (
-            <SpinningLoader size={20} />
+            <SpinningLoader size={20} thickness={3} color='white'/>
           ) : (
             <Text style={styles.buttonText}>Log in</Text>
           )}

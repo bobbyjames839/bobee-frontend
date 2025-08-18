@@ -9,8 +9,8 @@ import { colors } from "~/constants/Colors";
 export default function BobeeChatPage() {
   const [isSaving, setIsSaving] = useState(false);
   const {
-    input, setInput, history, expanded, isLoading,
-    scrollRef, pulseAnim, toggleReasoning, handleSubmit, saveConversation, openConversation,
+    input, setInput, history, expanded, isLoading, isDeleting,
+    scrollRef, pulseAnim, toggleReasoning, handleSubmit, saveConversation, openConversation, deleteConversation,
   } = useBobee();
 
   const { conversationId, initialQuestion } = useLocalSearchParams<{
@@ -58,6 +58,8 @@ export default function BobeeChatPage() {
         input={input}
         setInput={setInput}
         isLoading={isLoading}
+        isDeleting={isDeleting}
+        onDelete={deleteConversation}
         onSubmit={handleSubmit}
         isSaving={isSaving}
         onSaveAndBack={async () => {

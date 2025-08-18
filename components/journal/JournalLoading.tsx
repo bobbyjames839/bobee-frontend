@@ -89,6 +89,7 @@ export default function JournalLoading({ loading, loadingStage }: { loading: boo
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={false}
       >
         {loadingMessages.map((msg, index) =>
           loadingStage > index ? (

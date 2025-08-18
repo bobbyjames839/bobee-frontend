@@ -170,7 +170,7 @@ export default function SignUpScreen() {
         disabled={isDisabled}
         activeOpacity={0.85}
       >
-  {loading ? <SpinningLoader size={20} /> : <Text style={styles.buttonText}>Sign Up</Text>}
+  {loading ? <SpinningLoader size={20} thickness={3} color='white'/> : <Text style={styles.buttonText}>Sign Up</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.replace('/sign-in')} activeOpacity={0.8}>

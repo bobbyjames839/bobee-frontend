@@ -1,4 +1,3 @@
-// ⬇️ imports: remove AsyncStorage + useJournalRecording, add useJournalContext
 import React, { useContext, useRef } from 'react';
 import {
   View,
@@ -12,10 +11,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-
 import { SubscriptionContext } from '~/context/SubscriptionContext';
 import { colors } from '~/constants/Colors';
-import { useJournalContext } from '~/context/JournalContext'; // ✅ use context
+import { useJournalContext } from '~/context/JournalContext'; 
 import Header from '~/components/other/Header';
 import SpinningLoader from '~/components/other/SpinningLoader';
 
@@ -140,7 +138,7 @@ export default function ResponseScreen() {
                       <TouchableOpacity onPress={onUpgrade} disabled={journal.subscribeLoading}>
                         <View style={styles.upgradeBlurButtonContent}>
                           {journal.subscribeLoading ? (
-                            <SpinningLoader size={24} />
+                            <SpinningLoader size={24} thickness={3} color='white'/>
                           ) : (
                             <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
                           )}
@@ -200,7 +198,7 @@ export default function ResponseScreen() {
                       <TouchableOpacity onPress={onUpgradeTwo} disabled={journal.secondSubscribeLoading}>
                         <View style={styles.upgradeBlurButtonContent}>
                           {journal.secondSubscribeLoading ? (
-                            <SpinningLoader size={24} />
+                            <SpinningLoader size={24} thickness={3} color='white'/>
                           ) : (
                             <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
                           )}
@@ -222,7 +220,7 @@ export default function ResponseScreen() {
                 disabled={journal.submitLoading}
               >
                 {journal.submitLoading ? (
-                  <SpinningLoader size={24} />
+                  <SpinningLoader size={24} thickness={3} color='white'/>
                 ) : (
                   <Text style={styles.submitButtonText}>Submit Journal</Text>
                 )}
@@ -243,8 +241,6 @@ export default function ResponseScreen() {
   );
 }
 
-
-// ---- EXACT styles from your component, plus minimal navbar/page padding additions ----
 const styles = StyleSheet.create({
   // NEW: page wrapper + navbar + side padding + loader styles
   pageWrapper: {

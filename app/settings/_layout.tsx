@@ -12,12 +12,6 @@ export default function SettingsLayout() {
         headerShown: false,
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          animation: 'slide_from_left',   // 👈 index now comes in from the left
-        }}
-      />
       <Stack.Screen name="how" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="priv" />

@@ -19,14 +19,14 @@ export default function BobeeMainPage() {
         setInput={setInput}
         isLoading={isLoading}
         onSubmit={() => {
-          // Send the first question to the Chat page to submit there
+          if (!input.trim()) return;
           router.push({
             pathname: "/bobee/chat",
             params: { initialQuestion: input },
           });
+          setInput("");
         }}
         onSelectConversation={(id) => {
-          // Open an existing conversation in the Chat page
           router.push({
             pathname: "/bobee/chat",
             params: { conversationId: id },

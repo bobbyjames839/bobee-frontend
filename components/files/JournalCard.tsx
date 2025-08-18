@@ -87,7 +87,7 @@ const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
           android_ripple={{ color: '#bd1212ff' }}
         >
           {deleteLoading ? (
-            <SpinningLoader size={20} />
+            <SpinningLoader size={20} thickness={3} />
           ) : (
             <MaterialIcons
               name={confirmDelete ? 'check' : 'delete-outline'}
