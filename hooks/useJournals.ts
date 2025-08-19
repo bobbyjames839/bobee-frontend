@@ -62,37 +62,7 @@ export function useJournalRecording() {
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const calculateWordCountAndStreak = async (transcriptText: string) => {
-    const user = auth.currentUser;
-    if (!user) return null;
-
-    const idToken = await user.getIdToken();
-
-    try {
-      const resp = await fetch(`${BACKEND_URL}/api/update-word-count-and-streak`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          journal: transcriptText,
-          userId: user.uid,
-        }),
-      });
-
-      if (!resp.ok) return null;
-
-      const data = await resp.json();
-      return {
-        wordCount: data.wordCount,
-        currentStreak: data.currentStreak,
-      };
-    } catch (err) {
-      console.error('updateWordCountAndStreak error:', err);
-      return null;
-    }
-  };
+  // ...existing code...
 
   //pulse on the mic
   const startPulse = () => {
@@ -304,13 +274,42 @@ export function useJournalRecording() {
       if (thisRunId !== runIdRef.current) return;
       setTranscript(text);
 
-      //update the word count and the streak for the response page
-      setLoadingStage(3); // Calculating word and streak count
-      const statsPromise = calculateWordCountAndStreak(text);
-      const [stats] = await Promise.all([statsPromise, delay(1000)]);
-      if (stats) {
-        setWordCount(stats.wordCount);
-        setCurrentStreak(stats.currentStreak);
+
+      setLoadingStage(3);
+      // Inline the logic for word count and streak
+      {
+        const user = auth.currentUser;
+        let stats = null;
+        if (user) {
+          const idToken = await user.getIdToken();
+          try {
+            const resp = await fetch(`${BACKEND_URL}/api/get-word-count-and-streak`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({
+                journal: text,
+                userId: user.uid,
+              }),
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              stats = {
+                wordCount: data.wordCount,
+                currentStreak: data.currentStreak,
+              };
+            }
+          } catch (err) {
+            console.error('updateWordCountAndStreak error:', err);
+          }
+        }
+        await delay(1000);
+        if (stats) {
+          setWordCount(stats.wordCount);
+          setCurrentStreak(stats.currentStreak);
+        }
       }
 
       //Load personality scores or set defaults
@@ -337,6 +336,7 @@ export function useJournalRecording() {
 
 
       // 2. Call AI with transcript, prompt, and personality
+
       setLoadingStage(5); // Getting AI response
       const aiPromise = fetch(`${BACKEND_URL}/api/journal-response`, {
         method: 'POST',
@@ -368,10 +368,20 @@ export function useJournalRecording() {
         return data.aiResponse;
       });
 
+      setLoadingStage(6);
+      await fetch(`${BACKEND_URL}/api/journal/update-user-metrics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ secondsUsed: timer }),
+      });
+
       // Add a delay for the final loading stage
       setTimeout(() => {
         if (thisRunId === runIdRef.current) {
-          setLoadingStage(6); // Final loading stage
+          setLoadingStage(7); // Final loading stage
         }
       }, 2000);
 

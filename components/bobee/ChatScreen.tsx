@@ -1,5 +1,11 @@
 // ChatScreen.tsx
-import React, { useContext, useRef, useEffect, useState, useCallback } from 'react'
+import React, {
+  useContext,
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react'
 import {
   View,
   ScrollView,
@@ -10,9 +16,9 @@ import {
   Modal,
   Keyboard,
   Platform,
+  EmitterSubscription,
 } from 'react-native'
 import SpinningLoader from '~/components/other/SpinningLoader'
-
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useIsFocused } from '@react-navigation/native'
@@ -66,24 +72,52 @@ export default function ChatScreen({
   // Keyboard + safe-area handling
   const insets = useSafeAreaInsets()
   const [kbVisible, setKbVisible] = useState(false)
+
+  // Animated keyboard offset for the footer
+  const footerTranslate = useRef(new Animated.Value(0)).current
+  const [kbHeight, setKbHeight] = useState(0)
+
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-    const showSub = Keyboard.addListener(showEvt, () => setKbVisible(true))
-    const hideSub = Keyboard.addListener(hideEvt, () => setKbVisible(false))
+
+    const onShow = (e: any) => {
+      setKbVisible(true)
+      const height = Math.max(0, (e?.endCoordinates?.height ?? 0) - insets.bottom)
+      setKbHeight(height)
+
+      Animated.timing(footerTranslate, {
+        toValue: -height, // move footer up
+        duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 250,
+        useNativeDriver: true,
+      }).start()
+    }
+
+    const onHide = (e: any) => {
+      setKbVisible(false)
+      setKbHeight(0)
+
+      Animated.timing(footerTranslate, {
+        toValue: 0, // reset to bottom
+        duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 250,
+        useNativeDriver: true,
+      }).start()
+    }
+
+    const showSub: EmitterSubscription = Keyboard.addListener(showEvt, onShow)
+    const hideSub: EmitterSubscription = Keyboard.addListener(hideEvt, onHide)
     return () => {
       showSub.remove()
       hideSub.remove()
     }
-  }, [])
+  }, [footerTranslate, insets.bottom])
 
   // Dynamic paddings (smaller when keyboard hidden)
-  const buttonsBottomPad = kbVisible ? 6 : Math.max(insets.bottom, 12)
-  const scrollBottomPad = kbVisible ? 12 : 80
+  const buttonsBottomPad = kbVisible ? 10 : Math.max(insets.bottom, 12)
 
   // Ensure footer/input collapses when leaving this screen
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       return () => {
         setInput('')
       }
@@ -126,7 +160,10 @@ export default function ChatScreen({
     <View style={styles.flex}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.container, { paddingBottom: scrollBottomPad }]}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 120 + kbHeight }, // keep last bubble visible when keyboard is open
+        ]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
@@ -193,8 +230,8 @@ export default function ChatScreen({
         ))}
       </ScrollView>
 
-      {/* Footer pinned to bottom: input above buttons */}
-      <View style={styles.footer}>
+      {/* Footer pinned to bottom: input above buttons, animated with keyboard */}
+      <Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslate }] }]}>
         <View style={styles.inputContainer}>
           <AutoExpandingInput
             value={input}
@@ -219,7 +256,7 @@ export default function ChatScreen({
               disabled={isSaving}
             >
               {isSaving ? (
-                <SpinningLoader size={20} thickness={3} color='green' />
+                <SpinningLoader size={20} thickness={3} color="green" />
               ) : (
                 <MaterialIcons name="save-alt" size={20} color="green" />
               )}
@@ -255,7 +292,7 @@ export default function ChatScreen({
             <Ionicons name="arrow-up" size={20} color="white" />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Paywall modal */}
       {showPaywall && isFocused && !isSaving ? (
@@ -318,7 +355,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     marginTop: 4,
-    padding: 10,
   },
   userText: {
     color: '#333',
@@ -342,6 +378,7 @@ const styles = StyleSheet.create({
   reasoningText: {
     color: colors.lightest,
     fontSize: 15,
+        lineHeight: 22,
     fontFamily: 'SpaceMono',
   },
   divider: { height: 1, marginVertical: 8 },

@@ -52,11 +52,9 @@ export default function TopicsSection({ topics }: Props) {
 
           return (
             <View key={t.topic} style={styles.barRow}>
-              <View style={[styles.topicBar, { width: barWidth, backgroundColor: barColor }]}>
-                <Text style={[styles.topicText, { color: '#fff' }]} numberOfLines={1} ellipsizeMode="tail">
-                  {t.topic}
-                </Text>
-              </View>
+              {/* Topic name above the bar */}
+              <Text style={styles.topicName}>{t.topic}</Text>
+              <View style={[styles.topicBar, { width: barWidth, backgroundColor: barColor }]} />
             </View>
           );
         })}
@@ -78,6 +76,13 @@ export default function TopicsSection({ topics }: Props) {
 
 /* styles unchanged */
 const styles = StyleSheet.create({
+  topicName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#444',
+    marginBottom: 4,
+    marginLeft: 4,
+  },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
@@ -107,10 +112,10 @@ const styles = StyleSheet.create({
   barRow: { marginBottom: 8 },
   topicBar: {
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    height: 44,
     justifyContent: 'center',
     overflow: 'hidden',
+    marginBottom: 2,
   },
   topicText: { fontSize: 14, fontFamily: 'SpaceMono', flexShrink: 1 },
   overlay: {
