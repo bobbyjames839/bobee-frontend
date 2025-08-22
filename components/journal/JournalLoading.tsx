@@ -9,7 +9,6 @@ const loadingMessages = [
   'Calculating word and streak count.',
   'Getting personality metrics.',
   'Getting AI response.',
-  'Updating user metrics.',
   'Finalising...',
 ];
 

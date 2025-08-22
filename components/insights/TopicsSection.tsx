@@ -32,6 +32,9 @@ export default function TopicsSection({ topics }: Props) {
   const maxCount = listToRender[0].count;
   const totalItems = listToRender.length;
 
+  // Determine if user has no topics with count > 0
+  const hasNoTopics = isSubscribed && (topicsList.length === 0 || topicsList.every(t => t.count === 0));
+
   return (
     <>
       <Text style={styles.sectionTitle}>Common topics</Text>
@@ -69,6 +72,17 @@ export default function TopicsSection({ topics }: Props) {
             </View>
           </BlurView>
         )}
+
+        {hasNoTopics && (
+          <BlurView intensity={12} tint="light" style={styles.overlay}>
+            <View
+              style={styles.subscribeButton}
+              onTouchEnd={() => router.push('/journal')}
+            >
+              <Text style={styles.subscribeText}>Make a journal</Text>
+            </View>
+          </BlurView>
+        )}
       </View>
     </>
   );
@@ -82,6 +96,7 @@ const styles = StyleSheet.create({
     color: '#444',
     marginBottom: 4,
     marginLeft: 4,
+    fontFamily: 'SpaceMono',
   },
   sectionTitle: {
     fontSize: 22,

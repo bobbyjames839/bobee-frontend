@@ -33,7 +33,7 @@ export default function Privacy() {
           We use Firebase for authentication and data storage, and OpenAI for AI processing. We do not sell your personal information, and any sharing is limited to anonymized data for the sole purpose of improving AI functionality.
           {"\n\n"}
           <Text style={styles.sectionTitle}>Your Rights</Text>{"\n"}
-          You can request a copy of your stored data at any time by contacting us at privacy@bobee.app. You may also delete your account and associated data. Data is retained until such a request or action is made.
+          You can request a copy of your stored data at any time by contacting us at contact@bobee.co.uk. You may also delete your account and associated data. Data is retained until such a request or action is made.
           {"\n\n"}
           <Text style={styles.sectionTitle}>Cookies & Tracking</Text>{"\n"}
           The Bobee mobile app does not use cookies or tracking technologies. Our website may use basic analytics tools for performance and security monitoring.
@@ -42,7 +42,7 @@ export default function Privacy() {
           We may update this statement periodically to reflect changes in our practices. Any updates will be posted in the app with the date of the latest revision.
           {"\n\n"}
           <Text style={styles.sectionTitle}>Contact Us</Text>{"\n"}
-          For privacy-related questions or requests, please email us at privacy@bobee.app.
+          For privacy-related questions or requests, please email us at contact@bobee.co.uk.
         </Text>
       </View>
     </ScrollView>

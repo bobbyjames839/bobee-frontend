@@ -6,7 +6,7 @@ import { colors } from '~/constants/Colors';
 
 export default function Contact() {
   const handleEmailPress = () => {
-    Linking.openURL('mailto:privacy@bobee.app');
+    Linking.openURL('mailto:contact@bobee.co.uk');
   };
 
   return (
@@ -30,7 +30,7 @@ export default function Contact() {
           {"\n\n"}
           <Text style={styles.sectionTitle}>Email</Text>{"\n"}
           <TouchableOpacity onPress={handleEmailPress} activeOpacity={0.7}>
-            <Text style={styles.linkText}>privacy@bobee.app</Text>
+            <Text style={styles.linkText}>contact@bobee.co.uk</Text>
           </TouchableOpacity>
         </Text>
       </View>

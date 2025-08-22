@@ -16,12 +16,17 @@ import { colors } from '~/constants/Colors';
 import { useJournalContext } from '~/context/JournalContext'; 
 import Header from '~/components/other/Header';
 import SpinningLoader from '~/components/other/SpinningLoader';
+import { Brain, CheckCircle, Heart, AlertCircle, Lightbulb, ShieldCheck, ArrowUp, ArrowDown } from 'lucide-react-native';
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
 const FACE_NEUTRAL         = require('~/assets/images/mid.png');
 const FACE_SLIGHTLY_HAPPY  = require('~/assets/images/happy.png');
 const FACE_VERY_HAPPY      = require('~/assets/images/veryhappy.png');
+
+const PERSONALITY_KEYS = ['resilience', 'discipline', 'focus', 'selfWorth', 'confidence', 'clarity'] as const;
+const ICONS = { resilience: AlertCircle, discipline: CheckCircle, focus: Brain, selfWorth: Heart, confidence: ShieldCheck, clarity: Lightbulb };
+const LABELS: Record<string, string> = { resilience: 'Resilience', discipline: 'Discipline', focus: 'Focus', selfWorth: 'Self-Worth', confidence: 'Confidence', clarity: 'Purpose' };
 
 function pickFace(score: number) {
   if (score <= 2) return FACE_VERY_SAD;
@@ -149,6 +154,29 @@ export default function ResponseScreen() {
                 </View>
               </View>
             )}
+            
+            <View style={styles.personalityDeltaRow}>
+              {PERSONALITY_KEYS.map((key) => {
+                const delta = aiResponse.personalityDeltas?.[key] || 0;
+                const IconComp = ICONS[key as keyof typeof ICONS];
+                
+                return (
+                  <View key={key} style={styles.personalityDeltaBox}>
+                    <IconComp color={colors.blue} size={24} strokeWidth={2} />
+                    {delta !== 0 ? (
+                      <View style={styles.deltaBadge}>
+                        {delta > 0 ? <ArrowUp size={14} color="white" /> : <ArrowDown size={14} color="white" />}
+                        <Text style={styles.deltaText}>{Math.abs(delta)}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.emptyDeltaBadge}>
+                        <Text style={styles.emptyDeltaText}>0</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
 
             <View style={styles.moodRowContainer}>
               <View style={styles.moodBox}>
@@ -365,7 +393,6 @@ const styles = StyleSheet.create({
   moodRowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 30,
   },
   moodBox: {
     flex: 1,
@@ -472,6 +499,63 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontSize: 16,
     fontFamily: 'SpaceMono',
+  },
+  personalityDeltaRow: {
+    marginTop: 30,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+    paddingHorizontal: 5,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    shadowOffset: { height: 0, width: 0 },
+  },
+  personalityDeltaBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deltaBadge: {
+    backgroundColor: colors.blue,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    gap: 2,
+  },
+  emptyDeltaBadge: {
+    backgroundColor: '#e0e0e0',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  deltaText: {
+    fontSize: 13,
+    color: 'white',
+    fontWeight: '600',
+    fontFamily: 'SpaceMono',
+  },
+  emptyDeltaText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '600',
+    fontFamily: 'SpaceMono',
+  },
+  iconLabel: {
+    fontSize: 10,
+    fontFamily: 'SpaceMono',
+    color: '#555',
+    marginTop: 2,
   },
   cornerBadgeContainer: {
     zIndex: 1000,

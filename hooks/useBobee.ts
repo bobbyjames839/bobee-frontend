@@ -25,7 +25,7 @@ export default function useBobee() {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showChat, setShowChat] = useState(false)
-  const [userFacts, setUserFacts] = useState<string[] | null>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const deleteConversation = useCallback(async () => {
     if (!conversationId) return;
@@ -187,9 +187,9 @@ export default function useBobee() {
         })
         if (!res.ok) throw new Error(`Status ${res.status}`)
 
-        const { facts } = (await res.json()) as { facts: string[] | null }
-        if (Array.isArray(facts)) {
-          setUserFacts(facts)
+        const { userProfile } = (await res.json()) as { userProfile: any }
+        if (userProfile) {
+          setUserProfile(userProfile)
         }
       } catch (e) {
         console.warn('Failed to load user facts:', e)
@@ -224,7 +224,7 @@ export default function useBobee() {
       const requestBody: Record<string, any> = {
         question,
         history,
-        userFacts,
+        userProfile,
       }
       if (conversationId) {
         requestBody.conversationId = conversationId

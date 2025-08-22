@@ -17,6 +17,7 @@ export type JournalEntry = {
     topic: string;
     thoughtPattern: string;
     selfInsight: string;
+    personalityDeltas?: Record<string, number>;
   };
 };
 

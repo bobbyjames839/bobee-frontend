@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   Keyboard,
   Modal,
   ScrollView,
@@ -196,7 +195,7 @@ export default function SignUpScreen() {
                 These Terms & Conditions govern your access to and use of Bobee. By using the app, you agree to these terms. If you do not agree, do not use Bobee.
                 {'\n\n'}
                 <Text style={styles.sectionTitle}>Who We Are</Text>{'\n'}
-                Bobee is provided on an as-is, as-available basis by “Bobee” (unregistered). You can contact us at privacy@bobee.app for any questions about these terms.
+                Bobee is provided on an as-is, as-available basis by “Bobee” (unregistered). You can contact us at contact@bobee.co.uk for any questions about these terms.
                 {'\n\n'}
                 <Text style={styles.sectionTitle}>Eligibility & Accounts</Text>{'\n'}
                 You must be at least 13 years old to use Bobee. You are responsible for the security of your device and any credentials used to access the app, and for all activity that occurs under your account.
@@ -229,7 +228,7 @@ export default function SignUpScreen() {
                 We may update these terms periodically to reflect changes in our service or legal requirements. We will post updates with the date of the latest revision. Your continued use of Bobee after changes take effect constitutes acceptance of the updated terms.
                 {'\n\n'}
                 <Text style={styles.sectionTitle}>Contact</Text>{'\n'}
-                For questions about these Terms & Conditions, please email privacy@bobee.app.
+                For questions about these Terms & Conditions, please email contact@bobee.co.uk.
               </Text>
             </ScrollView>
           </View>
@@ -267,7 +266,7 @@ export default function SignUpScreen() {
                 We use Firebase for authentication and data storage, and OpenAI for AI processing. We do not sell your personal information, and any sharing is limited to anonymized data for the sole purpose of improving AI functionality.
                 {'\n\n'}
                 <Text style={styles.sectionTitle}>Your Rights</Text>{'\n'}
-                You can request a copy of your stored data at any time by contacting us at privacy@bobee.app. You may also delete your account and associated data. Data is retained until such a request or action is made.
+                You can request a copy of your stored data at any time by contacting us at contact@bobee.co.uk. You may also delete your account and associated data. Data is retained until such a request or action is made.
                 {'\n\n'}
                 <Text style={styles.sectionTitle}>Cookies & Tracking</Text>{'\n'}
                 The Bobee mobile app does not use cookies or tracking technologies. Our website may use basic analytics tools for performance and security monitoring.
@@ -276,7 +275,7 @@ export default function SignUpScreen() {
                 We may update this statement periodically to reflect changes in our practices. Any updates will be posted with the date of the latest revision.
                 {'\n\n'}
                 <Text style={styles.sectionTitle}>Contact Us</Text>{'\n'}
-                For privacy-related questions or requests, please email us at privacy@bobee.app.
+                For privacy-related questions or requests, please email us at contact@bobee.co.uk.
               </Text>
             </ScrollView>
           </View>

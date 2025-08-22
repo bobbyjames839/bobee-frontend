@@ -25,7 +25,7 @@ type AIResponse = {
   nextStep:   string
   feelings:   string[]
   topic:      string
-  personality: PersonalityScores
+  personalityDeltas: PersonalityScores
   newFacts: string[]
   selfInsight: string
   thoughtPattern: string
@@ -365,23 +365,12 @@ export function useJournalRecording() {
           }
           throw new Error(data.error);
         }
-        return data.aiResponse;
+  return data.aiResponse;
       });
 
-      setLoadingStage(6);
-      await fetch(`${BACKEND_URL}/api/journal/update-user-metrics`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ secondsUsed: timer }),
-      });
-
-      // Add a delay for the final loading stage
       setTimeout(() => {
         if (thisRunId === runIdRef.current) {
-          setLoadingStage(7); // Final loading stage
+          setLoadingStage(6); // Final loading stage
         }
       }, 2000);
 
@@ -389,6 +378,7 @@ export function useJournalRecording() {
         const aiRes = await aiPromise;
         if (thisRunId !== runIdRef.current) return;
         setAiResponse(aiRes);
+        // If you need to use the deltas, access aiRes.personalityDeltas
         router.push('/journal/response');
         setTimeout(() => {
           setLoading(false);
