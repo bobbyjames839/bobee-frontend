@@ -83,11 +83,23 @@ export default function ChatScreen({
 
     const onShow = (e: any) => {
       setKbVisible(true)
-      const height = Math.max(0, (e?.endCoordinates?.height ?? 0) - insets.bottom)
-      setKbHeight(height)
+      // For iOS, we only need to account for the difference between keyboard height and safe area
+      // For Android, we need the full keyboard height as it doesn't automatically adjust
+      const keyboardHeight = e?.endCoordinates?.height ?? 0
+      let adjustedHeight = 0
+      
+      if (Platform.OS === 'ios') {
+        // On iOS, subtract the safe area inset to prevent over-adjustment
+        adjustedHeight = Math.max(0, keyboardHeight - insets.bottom)
+      } else {
+        // On Android, use a smaller offset to prevent too much movement
+        adjustedHeight = Math.max(0, keyboardHeight * 0.7)
+      }
+      
+      setKbHeight(adjustedHeight)
 
       Animated.timing(footerTranslate, {
-        toValue: -height, // move footer up
+        toValue: -adjustedHeight, // move footer up by the adjusted height
         duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 250,
         useNativeDriver: true,
       }).start()
@@ -165,7 +177,8 @@ export default function ChatScreen({
           { paddingBottom: 120 + kbHeight }, // keep last bubble visible when keyboard is open
         ]}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
+        automaticallyAdjustKeyboardInsets={false} // Disable automatic adjustment as we're manually handling it
+        keyboardDismissMode="interactive" // Better dismiss behavior when dragging
       >
         {history.map((item, idx) => (
           <View key={idx} style={styles.bubbleWrapper}>

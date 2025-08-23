@@ -44,7 +44,11 @@ export default function BobeeChatPage() {
   }, [input, pendingInitial, handleSubmit]);
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView 
+      style={styles.flex} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40} // Add offset for Android
+    >
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
       <Header
         title="Conversation"

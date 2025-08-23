@@ -6,13 +6,51 @@ interface Props {
   onHide: () => void;
 }
 
+// Sanitize error messages to remove any sensitive information
+const sanitizeErrorMessage = (message: string): string => {
+  if (!message) return '';
+  
+  // Check for sensitive patterns
+  if (message.includes('price_') || message.includes('STRIPE_PRO_PRICE_ID')) {
+    return 'Payment setup error. Please try again later.';
+  }
+  
+  if (message.includes('cus_') || message.includes('customerId') || message.includes('Customer')) {
+    return 'Account verification error. Please try again later.';
+  }
+  
+  if (message.includes('sub_') || message.includes('subscriptionId')) {
+    return 'Subscription error. Please try again later.';
+  }
+  
+  if (message.includes('sk_') || message.includes('pk_')) {
+    return 'Authentication error. Please try again later.';
+  }
+  
+  // Generic payment/card errors should be user-friendly
+  if (message.includes('card') || message.includes('payment')) {
+    return 'Payment error. Please check your card details and try again.';
+  }
+  
+  // If it's a technical error with JSON, server communication, etc.
+  if (message.includes('JSON') || message.includes('network') || message.includes('fetch')) {
+    return 'Connection error. Please check your internet and try again.';
+  }
+  
+  // Allow common user errors to pass through as they don't contain sensitive info
+  return message;
+};
+
 export default function ErrorBanner({ message, onHide }: Props) {
   const startY = -145;
   const slideTop = useRef(new Animated.Value(startY)).current;
   const { width } = Dimensions.get('window');
+  
+  // Sanitize the error message
+  const sanitizedMessage = sanitizeErrorMessage(message);
 
   useEffect(() => {
-    if (!message) return;
+    if (!sanitizedMessage) return;
     Animated.sequence([
       Animated.timing(slideTop, {
         toValue: 0,            
@@ -26,9 +64,9 @@ export default function ErrorBanner({ message, onHide }: Props) {
         useNativeDriver: false,
       }),
     ]).start(onHide);
-  }, [message]);
+  }, [sanitizedMessage]);
 
-  if (!message) return null;
+  if (!sanitizedMessage) return null;
 
   return (
     <Animated.View
@@ -37,7 +75,7 @@ export default function ErrorBanner({ message, onHide }: Props) {
         { top: slideTop, width },
       ]}
     >
-      <Text style={styles.text}>{message}</Text>
+      <Text style={styles.text}>{sanitizedMessage}</Text>
     </Animated.View>
   );
 }
