@@ -96,7 +96,7 @@ export default function ResponseScreen() {
   return (
     <View style={styles.pageWrapper}>
       <Header
-        title="Conversation"
+        title="Response"
         leftIcon="chevron-back"
         onLeftPress={() => (router.back(), doResetOnce())}/>
 

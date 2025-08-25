@@ -73,8 +73,7 @@ export default function ChatScreen({
   const insets = useSafeAreaInsets()
   const [kbVisible, setKbVisible] = useState(false)
 
-  // Animated keyboard offset for the footer
-  const footerTranslate = useRef(new Animated.Value(0)).current
+  // Only track keyboard visibility for bottom padding
   const [kbHeight, setKbHeight] = useState(0)
 
   useEffect(() => {
@@ -83,37 +82,13 @@ export default function ChatScreen({
 
     const onShow = (e: any) => {
       setKbVisible(true)
-      // For iOS, we only need to account for the difference between keyboard height and safe area
-      // For Android, we need the full keyboard height as it doesn't automatically adjust
-      const keyboardHeight = e?.endCoordinates?.height ?? 0
-      let adjustedHeight = 0
-      
-      if (Platform.OS === 'ios') {
-        // On iOS, subtract the safe area inset to prevent over-adjustment
-        adjustedHeight = Math.max(0, keyboardHeight - insets.bottom)
-      } else {
-        // On Android, use a smaller offset to prevent too much movement
-        adjustedHeight = Math.max(0, keyboardHeight * 0.7)
-      }
-      
-      setKbHeight(adjustedHeight)
-
-      Animated.timing(footerTranslate, {
-        toValue: -adjustedHeight, // move footer up by the adjusted height
-        duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 250,
-        useNativeDriver: true,
-      }).start()
+      // Set a small extra padding for the ScrollView
+      setKbHeight(30)
     }
 
     const onHide = (e: any) => {
       setKbVisible(false)
       setKbHeight(0)
-
-      Animated.timing(footerTranslate, {
-        toValue: 0, // reset to bottom
-        duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 250,
-        useNativeDriver: true,
-      }).start()
     }
 
     const showSub: EmitterSubscription = Keyboard.addListener(showEvt, onShow)
@@ -122,7 +97,7 @@ export default function ChatScreen({
       showSub.remove()
       hideSub.remove()
     }
-  }, [footerTranslate, insets.bottom])
+  }, [insets.bottom])
 
   // Dynamic paddings (smaller when keyboard hidden)
   const buttonsBottomPad = kbVisible ? 10 : Math.max(insets.bottom, 12)
@@ -243,8 +218,8 @@ export default function ChatScreen({
         ))}
       </ScrollView>
 
-      {/* Footer pinned to bottom: input above buttons, animated with keyboard */}
-      <Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslate }] }]}>
+      {/* Footer pinned to bottom: input above buttons */}
+      <View style={styles.footer}>
         <View style={styles.inputContainer}>
           <AutoExpandingInput
             value={input}
@@ -305,7 +280,7 @@ export default function ChatScreen({
             <Ionicons name="arrow-up" size={20} color="white" />
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </View>
 
       {/* Paywall modal */}
       {showPaywall && isFocused && !isSaving ? (
