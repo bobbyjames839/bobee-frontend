@@ -1,6 +1,9 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
+// Subscription.tsx
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import * as PlatformModule from 'react-native';
+import * as RNIap from 'react-native-iap';
+import type { Subscription, Purchase, PurchaseError } from 'react-native-iap';
 import Constants from 'expo-constants';
 import { getAuth } from 'firebase/auth';
 import { colors } from '~/constants/Colors';
@@ -10,7 +13,7 @@ import ErrorBanner from '~/components/banners/ErrorBanner';
 import { Smiley, Crown, CheckCircle } from 'phosphor-react-native';
 import Header from '~/components/other/Header';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 
 type PlanKey = 'free' | 'pro';
 
@@ -45,135 +48,213 @@ const TAB_MARGIN = 8;
 const tabWidth = (Dimensions.get('window').width - 32 - TAB_MARGIN) / 2;
 const iconForPlan = (key: PlanKey) => (key === 'pro' ? Crown : Smiley);
 
+const APPLE_PRODUCT_ID = 'com.bobee.pro.monthly';
+const isIOS = PlatformModule.Platform.OS === 'ios';
+
+// A tolerant type that works across IAP versions/platforms
+type AnySub = Partial<Subscription> & {
+  productId?: string;
+  price?: number | string;          // some versions return number, some string
+  currency?: string;                // e.g., "USD"
+  localizedPrice?: string;          // iOS often provides this
+};
+
 function SubscriptionInner() {
-  const { isSubscribed, cancelDate } = useContext(SubscriptionContext);
+  const { isSubscribed, cancelDate, refresh } = useContext(SubscriptionContext);
   const [selectedTab, setSelectedTab] = useState<PlanKey>('free');
   const [loading, setLoading] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
-  const [confirmCancel, setConfirmCancel] = useState(false);
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
-  const { height } = useWindowDimensions();
 
-  useEffect(() => {
-    if (isSubscribed !== null) {
-      setSelectedTab(isSubscribed ? 'pro' : 'free');
+  // IAP bits
+  const [iapReady, setIapReady] = useState(false);
+  const [iapProduct, setIapProduct] = useState<AnySub | null>(null);
+  const [iapInitError, setIapInitError] = useState<string | null>(null);
+
+  const purchaseUpdateSub = useRef<ReturnType<typeof RNIap.purchaseUpdatedListener> | null>(null);
+  const purchaseErrorSub = useRef<ReturnType<typeof RNIap.purchaseErrorListener> | null>(null);
+
+  // Helper: make a nice price label from whatever fields exist
+  const getDisplayPrice = (sub?: AnySub | null): string | undefined => {
+    if (!sub) return undefined;
+    if (typeof sub.localizedPrice === 'string' && sub.localizedPrice.length > 0) {
+      return sub.localizedPrice; // best, already localized
     }
+    if (sub.price != null && typeof sub.currency === 'string') {
+      const num = typeof sub.price === 'string' ? Number(sub.price) : sub.price;
+      if (!Number.isNaN(num)) {
+        try {
+          return new Intl.NumberFormat(undefined, { style: 'currency', currency: sub.currency }).format(num);
+        } catch {
+          return `${num} ${sub.currency}`;
+        }
+      }
+    }
+    if (typeof sub.price === 'string') return sub.price;
+    if (typeof sub.price === 'number') return `${sub.price}`;
+    return undefined;
+  };
+
+  // Initialize IAP + listeners
+  useEffect(() => {
+    if (!isIOS) return;
+    let mounted = true;
+
+    (async () => {
+      try {
+        if (typeof RNIap.initConnection !== 'function') {
+          throw new Error('IAP native module not linked (needs custom dev client / EAS build — Expo Go will not work)');
+        }
+
+        const ok = await RNIap.initConnection();
+        if (!ok) throw new Error('initConnection returned false');
+
+        // Some versions accept { skus }, others want string[]
+        const subs: any =
+          typeof RNIap.getSubscriptions === 'function'
+            ? await (RNIap as any).getSubscriptions({ skus: [APPLE_PRODUCT_ID] }).catch(async () => {
+                // fallback legacy signature
+                return await (RNIap as any).getSubscriptions([APPLE_PRODUCT_ID]);
+              })
+            : [];
+
+        if (mounted) {
+          setIapProduct((subs && subs[0]) || null);
+          setIapReady(true);
+        }
+
+        // Purchase success
+        purchaseUpdateSub.current = RNIap.purchaseUpdatedListener(async (purchase: Purchase) => {
+          try {
+            const receipt = (purchase as any).transactionReceipt;
+            if (!receipt) return;
+
+            const auth = getAuth();
+            const user = auth.currentUser;
+            if (!user) {
+              setErrorMsg('Not logged in');
+              return;
+            }
+
+            const idToken = await user.getIdToken(false);
+            const resp = await fetch(`${API_BASE}/api/subscribe/iap/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+              body: JSON.stringify({ receiptData: receipt }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data?.error || 'Receipt verify failed');
+
+            // Newer RN-IAP expects an object arg
+            await (RNIap as any).finishTransaction({ purchase, isConsumable: false });
+
+            setSuccessMsg('Subscription activated via Apple');
+            setErrorMsg('');
+            refresh();
+          } catch (e: any) {
+            setErrorMsg(e?.message || 'Verification failed');
+          } finally {
+            setLoading(false);
+          }
+        });
+
+        // Purchase errors
+        purchaseErrorSub.current = RNIap.purchaseErrorListener((err: PurchaseError) => {
+          setLoading(false);
+          setErrorMsg(err?.message || 'Purchase error');
+        });
+      } catch (e: any) {
+        if (mounted) setIapInitError(e?.message || String(e));
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      try {
+        purchaseUpdateSub.current?.remove?.();
+        purchaseErrorSub.current?.remove?.();
+      } catch {}
+      RNIap.endConnection?.();
+    };
+  }, []);
+
+  // Reflect current plan in tabs
+  useEffect(() => {
+    if (isSubscribed !== null) setSelectedTab(isSubscribed ? 'pro' : 'free');
   }, [isSubscribed]);
 
-  // reset confirmCancel when leaving/returning to screen
-  useFocusEffect(
-    React.useCallback(() => {
-      setConfirmCancel(false);
-    }, [])
-  );
+  // Start an Apple purchase
+  const purchaseWithApple = async () => {
+    setLoading(true);
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) throw new Error('Not logged in');
+      if (!iapReady) throw new Error('IAP not ready yet');
+      if (!iapProduct) throw new Error('Product not available');
 
-  const handleUpgrade = async () => {
-    // If a cancellation is pending, do nothing
-    if (cancelDate) return;
+      // Current RN-IAP accepts { sku } on iOS; older accepts string
+      if (typeof (RNIap as any).requestSubscription === 'function') {
+        try {
+          await (RNIap as any).requestSubscription({ sku: APPLE_PRODUCT_ID });
+        } catch {
+          await (RNIap as any).requestSubscription(APPLE_PRODUCT_ID);
+        }
+      }
+      // Listener handles verification & finishTransaction
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMsg(err?.message || 'Apple purchase failed');
+      setSuccessMsg('');
+    }
+  };
 
+  // Restore from device purchases
+  const handleRestore = async () => {
     setLoading(true);
     try {
       const auth = getAuth();
       const user = auth.currentUser;
       if (!user) throw new Error('Not logged in');
 
+      const purchases = await RNIap.getAvailablePurchases();
+      const match = purchases.find(
+        (p) => p.productId === APPLE_PRODUCT_ID && (p as any).transactionReceipt
+      );
+      if (!match) {
+        setErrorMsg('No purchases to restore');
+        return;
+      }
+
+      const receipt = (match as any).transactionReceipt as string;
       const idToken = await user.getIdToken(false);
-
-      const resp = await fetch(`${API_BASE}/api/subscribe/start`, {
+      const resp = await fetch(`${API_BASE}/api/subscribe/iap/verify`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ receiptData: receipt }),
       });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || 'Restore failed');
 
-      const {
-        subscriptionId,
-        clientSecret,
-        customerId,
-        ephemeralKeySecret,
-        error,
-      } = await resp.json();
-
-      if (error || !clientSecret) throw new Error(error || 'Missing client secret');
-
-      const { error: initErr } = await initPaymentSheet({
-        paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Bobee',
-        customerId,
-        customerEphemeralKeySecret: ephemeralKeySecret,
-        primaryButtonLabel: 'Start Pro – $9.99/mo',
-      });
-      if (initErr) throw new Error(initErr.message);
-
-      setLoading(false);
-
-      const { error: presentErr } = await presentPaymentSheet();
-      if (presentErr) throw new Error(presentErr.message);
-
-      await fetch(`${API_BASE}/api/subscribe/finalise`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ subscriptionId }),
-      });
-
-      setSuccessMsg('Your payment was successful!');
+      setSuccessMsg('Subscription restored');
       setErrorMsg('');
+      refresh();
     } catch (e: any) {
-      setErrorMsg(e?.message || 'Something went wrong');
-      setSuccessMsg('');
+      setErrorMsg(e?.message || 'Restore failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = async () => {
-    // If a cancellation is already pending, do nothing
+  const handleUpgrade = async () => {
     if (cancelDate) return;
+    if (isIOS) return purchaseWithApple();
+    setErrorMsg('Purchases are only available on iOS in this build.');
+  };
 
-    if (!confirmCancel) {
-      setConfirmCancel(true);
-      return;
-    }
-
-    setCancelLoading(true);
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not logged in');
-
-      const idToken = await user.getIdToken(false);
-
-      const resp = await fetch(`${API_BASE}/api/subscribe/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error || 'Failed to cancel');
-
-      setSuccessMsg(
-        data?.cancel_at_period_end
-          ? 'Subscription will cancel at the period end.'
-          : 'Subscription cancelled.'
-      );
-      setErrorMsg('');
-    } catch (e: any) {
-      setErrorMsg(e?.message || 'Something went wrong');
-      setSuccessMsg('');
-    } finally {
-      setCancelLoading(false);
-      setConfirmCancel(false);
-    }
+  const handleCancel = () => {
+    Alert.alert('Manage subscription', 'Manage or cancel in your Apple ID subscriptions.');
   };
 
   const isLoadingInitial = isSubscribed === null;
@@ -183,11 +264,7 @@ function SubscriptionInner() {
   const DetailIcon = iconForPlan(selectedTab);
 
   const cancellationPending = Boolean(cancelDate);
-  const disableAction =
-    loading ||
-    cancelLoading ||
-    cancellationPending ||
-    (!cancellationPending && !cancelLoading && !loading && isCurrentPlan && selectedTab !== 'free');
+  const disableAction: boolean = !!(loading || (isSubscribed && selectedTab === 'pro'));
 
   if (isLoadingInitial) {
     return (
@@ -197,28 +274,33 @@ function SubscriptionInner() {
     );
   }
 
-  // Compute button label based on state
+  const priceLabel = selectedTab === 'pro' ? (getDisplayPrice(iapProduct) ?? plans.pro.price) : plans.free.price;
+
   const getButtonLabel = () => {
     if (cancellationPending) {
       return selectedTab === 'free' ? 'Pending cancellation' : 'Current plan';
     }
     if (isSubscribed) {
       if (selectedTab === 'pro') return 'Your current plan';
-      // selectedTab === 'free'
-      return confirmCancel ? 'Confirm cancel' : 'Return to free version';
+      return 'Switch to free (Stripe flow disabled)';
     }
-    // not subscribed
-    return selectedTab === 'pro' ? 'Upgrade to Pro' : 'Your current plan';
+    if (selectedTab === 'pro') {
+      if (iapInitError) return 'IAP unavailable';
+      return `Subscribe ${priceLabel}`;
+    }
+    return 'Your current plan';
   };
 
-  // Decide which action to run when pressed
   const onPrimaryPress = () => {
     if (disableAction) return;
     if (cancellationPending) return;
     if (isSubscribed && selectedTab === 'free') return handleCancel();
     if (!isSubscribed && selectedTab === 'pro') return handleUpgrade();
-    // otherwise no-op
   };
+
+  useEffect(() => {
+    if (iapInitError && !errorMsg) setErrorMsg(`IAP init issue: ${iapInitError}`);
+  }, [iapInitError, errorMsg]);
 
   return (
     <>
@@ -244,8 +326,8 @@ function SubscriptionInner() {
           <Text style={styles.planTagline}>{planDetails.tagline}</Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.planPrice}>{planDetails.price}</Text>
-            <Text style={styles.planUnit}> USD / month</Text>
+            <Text style={styles.planPrice}>{priceLabel}</Text>
+            <Text style={styles.planUnit}>{selectedTab === 'pro' ? '' : ' USD / month'}</Text>
           </View>
 
           <View style={styles.featuresList}>
@@ -261,29 +343,31 @@ function SubscriptionInner() {
           <TouchableOpacity
             style={[
               styles.upgradeButton,
-              // grey out if current plan OR cancellation pending
-              ((isCurrentPlan && !(!isSubscribed && selectedTab === 'pro')) || cancellationPending) &&
-                styles.currentButton,
-              // keep red style only when actively offering cancel (no pending, free tab, subscribed)
+              ((isCurrentPlan && !(!isSubscribed && selectedTab === 'pro')) || cancellationPending) && styles.currentButton,
               isSubscribed && !cancellationPending && selectedTab === 'free' && styles.cancelButton,
             ]}
             onPress={onPrimaryPress}
             disabled={disableAction}
           >
-            {loading || cancelLoading ? (
+            {loading ? (
               <SpinningLoader size={20} thickness={3} color="white" />
             ) : (
               <Text
                 style={[
                   styles.upgradeButtonText,
-                  ((isCurrentPlan && selectedTab !== 'free') || cancellationPending) &&
-                    styles.currentButtonText,
+                  ((isCurrentPlan && selectedTab !== 'free') || cancellationPending) && styles.currentButtonText,
                 ]}
               >
                 {getButtonLabel()}
               </Text>
             )}
           </TouchableOpacity>
+
+          {isIOS && (
+            <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
+              <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* tabs */}
@@ -321,11 +405,7 @@ function SubscriptionInner() {
 }
 
 export default function Subscription() {
-  return (
-    <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_KEY!}>
-      <SubscriptionInner />
-    </StripeProvider>
-  );
+  return <SubscriptionInner />;
 }
 
 const styles = StyleSheet.create({
@@ -350,17 +430,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     elevation: 1,
   },
-  labelText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 14,
-    color: colors.darkest,
-  },
-  planText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.darkest,
-  },
+  labelText: { fontFamily: 'SpaceMono', fontSize: 14, color: colors.darkest },
   planDetailBox: {
     flex: 1,
     backgroundColor: '#fff',
@@ -382,6 +452,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(173, 216, 230, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  planText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.darkest,
   },
   planTitle: {
     marginTop: 10,
@@ -500,6 +576,23 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     fontSize: 12,
     fontWeight: '600',
+    color: colors.darkest,
+  },
+  // new, minimal styles
+  restoreButton: {
+    position: 'absolute',
+    bottom: 85,
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    backgroundColor: '#fff',
+  },
+  restoreButtonText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 13,
     color: colors.darkest,
   },
 });

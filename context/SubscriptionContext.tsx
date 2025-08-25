@@ -18,7 +18,6 @@ export const SubscriptionContext = createContext<SubContextType>({
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [cancelDate, setCancelDate] = useState<number | false | null>(null);
-
   const API_BASE = (Constants.expoConfig?.extra?.backendUrl || '').toString();
 
   const fetchStatus = async () => {
