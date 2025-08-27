@@ -94,7 +94,7 @@ export default function RootLayout() {
     () => async () => {
       const root = (segments?.[0] ?? '') as string;
       const inAuth = root === '(auth)';
-      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal']);
+      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'insights']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');
@@ -168,6 +168,15 @@ export default function RootLayout() {
                   gestureEnabled: true,
                   fullScreenGestureEnabled: true,
                   headerShown: false,
+                }}
+              />
+
+              <Stack.Screen
+                name="insights"
+                options={{
+                  presentation: 'card',
+                  gestureEnabled: true,
+                  animation: 'slide_from_right',
                 }}
               />
 

@@ -25,7 +25,7 @@ export default function useBobee() {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showChat, setShowChat] = useState(false)
-  const [userProfile, setUserProfile] = useState<any>(null)
+  // userProfile removed – no longer fetched or sent
   const [conversationId, setConversationId] = useState<string | null>(null)
   const deleteConversation = useCallback(async () => {
     if (!conversationId) return;
@@ -171,31 +171,7 @@ export default function useBobee() {
 
 
   
-  useEffect(() => {
-    const user = getAuth().currentUser
-    if (!user) return
-
-    (async () => {
-      try {
-        const idToken = await user.getIdToken(true)
-
-        const res = await fetch(`${API_BASE}/api/load-user-facts`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        })
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-
-        const { userProfile } = (await res.json()) as { userProfile: any }
-        if (userProfile) {
-          setUserProfile(userProfile)
-        }
-      } catch (e) {
-        console.warn('Failed to load user facts:', e)
-      }
-    })()
-  }, [])
+  // Removed effect that fetched userProfile
 
 
   const toggleReasoning = (idx: number) =>
@@ -224,7 +200,6 @@ export default function useBobee() {
       const requestBody: Record<string, any> = {
         question,
         history,
-        userProfile,
       }
       if (conversationId) {
         requestBody.conversationId = conversationId

@@ -66,7 +66,7 @@ export default function HabitCards({ stats }: Props) {
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', color: '#222', marginTop: 36, marginBottom: 10 },
+  sectionTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', color: '#222', marginTop: 34, marginBottom: 10 },
   largeCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8, height: 120, justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 3 }, shadowRadius: 8, elevation: 2, borderColor: colors.lighter, borderWidth: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   faceCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, width: (Dimensions.get('window').width - 40) / 2.5, height: 200, justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 1, borderColor: colors.lighter, borderWidth: 1 },

@@ -26,7 +26,6 @@ type AIResponse = {
   feelings:   string[]
   topic:      string
   personalityDeltas: PersonalityScores
-  newFacts: string[]
   selfInsight: string
   thoughtPattern: string
 }
@@ -415,6 +414,7 @@ export function useJournalRecording() {
     }
   };
 
+
   //submit the journal recording
   const doSubmitJournal = async () => {
     const user = auth.currentUser;
@@ -444,6 +444,24 @@ export function useJournalRecording() {
         return;
       }
       
+      // Trigger backend-powered profile fact generation (decoupled from initial AI journal response)
+      try {
+        const u = auth.currentUser;
+        if (u) {
+          const idToken = await u.getIdToken();
+          await fetch(`${BACKEND_URL}/api/generate-profile-facts`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ transcript, prompt }),
+          });
+        }
+      } catch (pfErr) {
+        console.warn('generate-profile-facts failed (non-blocking):', pfErr);
+      }
+
       triggerRefresh();
       setAiResponse(null);
       setPrompt('');
