@@ -23,6 +23,7 @@ import { auth } from '../utils/firebase';
 import { JournalRefreshProvider } from '../context/JournalRefreshContext';
 import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { JournalProvider } from '~/context/JournalContext';
+import { JournalsProvider } from '~/context/JournalsContext';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -151,6 +152,7 @@ export default function RootLayout() {
       {/* App content (always mounted, visible) */}
       <SubscriptionProvider>
         <JournalRefreshProvider>
+          <JournalsProvider>
           <JournalProvider>
             <Stack
               screenOptions={{
@@ -216,6 +218,7 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'auto'} />
           </JournalProvider>
+          </JournalsProvider>
         </JournalRefreshProvider>
       </SubscriptionProvider>
 
