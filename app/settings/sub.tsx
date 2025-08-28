@@ -1,6 +1,6 @@
 // Subscription.tsx
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert, Linking } from 'react-native';
 import * as PlatformModule from 'react-native';
 import * as RNIap from 'react-native-iap';
 import type { Subscription, Purchase, PurchaseError } from 'react-native-iap';
@@ -60,7 +60,7 @@ type AnySub = Partial<Subscription> & {
 };
 
 function SubscriptionInner() {
-  const { isSubscribed, cancelDate, refresh } = useContext(SubscriptionContext);
+  const { isSubscribed, refresh } = useContext(SubscriptionContext);
   const [selectedTab, setSelectedTab] = useState<PlanKey>('free');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -210,51 +210,22 @@ function SubscriptionInner() {
     }
   };
 
-  // Restore from device purchases
-  const handleRestore = async () => {
-    setLoading(true);
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not logged in');
-
-      const purchases = await RNIap.getAvailablePurchases();
-      const match = purchases.find(
-        (p) => p.productId === APPLE_PRODUCT_ID && (p as any).transactionReceipt
-      );
-      if (!match) {
-        setErrorMsg('No purchases to restore');
-        return;
-      }
-
-      const receipt = (match as any).transactionReceipt as string;
-      const idToken = await user.getIdToken(false);
-      const resp = await fetch(`${API_BASE}/api/subscribe/iap/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ receiptData: receipt }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error || 'Restore failed');
-
-      setSuccessMsg('Subscription restored');
-      setErrorMsg('');
-      refresh();
-    } catch (e: any) {
-      setErrorMsg(e?.message || 'Restore failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleUpgrade = async () => {
-    if (cancelDate) return;
+  // no cancelDate handling; Apple manages cancellation externally
     if (isIOS) return purchaseWithApple();
     setErrorMsg('Purchases are only available on iOS in this build.');
   };
 
   const handleCancel = () => {
-    Alert.alert('Manage subscription', 'Manage or cancel in your Apple ID subscriptions.');
+    if (isIOS) {
+      // iOS manage subscriptions deep link
+      Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => {
+        Alert.alert('Manage subscription', 'Open Settings > Apple ID > Subscriptions to manage.');
+      });
+    } else {
+      Alert.alert('Manage subscription', 'Subscription management not available on this platform.');
+    }
   };
 
   const isLoadingInitial = isSubscribed === null;
@@ -263,7 +234,6 @@ function SubscriptionInner() {
   const isCurrentPlan = selectedTab === userPlan;
   const DetailIcon = iconForPlan(selectedTab);
 
-  const cancellationPending = Boolean(cancelDate);
   const disableAction: boolean = !!(loading || (isSubscribed && selectedTab === 'pro'));
 
   if (isLoadingInitial) {
@@ -277,9 +247,7 @@ function SubscriptionInner() {
   const priceLabel = selectedTab === 'pro' ? (getDisplayPrice(iapProduct) ?? plans.pro.price) : plans.free.price;
 
   const getButtonLabel = () => {
-    if (cancellationPending) {
-      return selectedTab === 'free' ? 'Pending cancellation' : 'Current plan';
-    }
+  // cancellationPending removed (Apple managed outside app)
     if (isSubscribed) {
       if (selectedTab === 'pro') return 'Your current plan';
       return 'Switch to free (Stripe flow disabled)';
@@ -292,8 +260,7 @@ function SubscriptionInner() {
   };
 
   const onPrimaryPress = () => {
-    if (disableAction) return;
-    if (cancellationPending) return;
+  if (disableAction) return;
     if (isSubscribed && selectedTab === 'free') return handleCancel();
     if (!isSubscribed && selectedTab === 'pro') return handleUpgrade();
   };
@@ -312,7 +279,7 @@ function SubscriptionInner() {
         {/* current plan box */}
         <View style={styles.currentPlanBox}>
           <Text style={styles.labelText}>
-            {cancellationPending ? 'Current plan (pending):' : 'Current plan:'}
+            Current plan:
           </Text>
           <Text style={styles.planText}>{plans[userPlan].title}</Text>
         </View>
@@ -343,8 +310,8 @@ function SubscriptionInner() {
           <TouchableOpacity
             style={[
               styles.upgradeButton,
-              ((isCurrentPlan && !(!isSubscribed && selectedTab === 'pro')) || cancellationPending) && styles.currentButton,
-              isSubscribed && !cancellationPending && selectedTab === 'free' && styles.cancelButton,
+              (isCurrentPlan && !(!isSubscribed && selectedTab === 'pro')) && styles.currentButton,
+              isSubscribed && selectedTab === 'free' && styles.cancelButton,
             ]}
             onPress={onPrimaryPress}
             disabled={disableAction}
@@ -355,7 +322,7 @@ function SubscriptionInner() {
               <Text
                 style={[
                   styles.upgradeButtonText,
-                  ((isCurrentPlan && selectedTab !== 'free') || cancellationPending) && styles.currentButtonText,
+                  (isCurrentPlan && selectedTab !== 'free') && styles.currentButtonText,
                 ]}
               >
                 {getButtonLabel()}
@@ -363,11 +330,7 @@ function SubscriptionInner() {
             )}
           </TouchableOpacity>
 
-          {isIOS && (
-            <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
-              <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-            </TouchableOpacity>
-          )}
+          {/* Restore purchases button removed: entitlement now refreshed only after new purchase */}
         </View>
 
         {/* tabs */}
@@ -578,21 +541,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.darkest,
   },
-  // new, minimal styles
-  restoreButton: {
-    position: 'absolute',
-    bottom: 85,
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    backgroundColor: '#fff',
-  },
-  restoreButtonText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 13,
-    color: colors.darkest,
-  },
+  // restoreButton styles removed
 });

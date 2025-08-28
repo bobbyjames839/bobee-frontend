@@ -5,31 +5,27 @@ import { auth } from '../utils/firebase';
 
 export type SubContextType = {
   isSubscribed: boolean | null;
-  cancelDate: number | false | null;
   refresh: () => void;
 };
 
 export const SubscriptionContext = createContext<SubContextType>({
   isSubscribed: null,
-  cancelDate: null,
   refresh: () => {},
 });
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
-  const [cancelDate, setCancelDate] = useState<number | false | null>(null);
   const API_BASE = (Constants.expoConfig?.extra?.backendUrl || '').toString();
 
   const fetchStatus = async () => {
     const user = auth.currentUser;
     if (!user) {
-      setIsSubscribed(null);
-      setCancelDate(null);
+  setIsSubscribed(null);
       return;
     }
     try {
       const idToken = await user.getIdToken(false);
-      const resp = await fetch(`${API_BASE}/api/subscribe/status`, {
+  const resp = await fetch(`${API_BASE}/api/subscribe/unified-status`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -38,15 +34,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data?.error || 'Failed to load status');
-      setIsSubscribed(
-        typeof data?.isSubscribed === 'boolean' ? data.isSubscribed : false
-      );
-      setCancelDate(
-        typeof data?.cancelDate === 'number' ? data.cancelDate : false
-      );
+  setIsSubscribed(typeof data?.isSubscribed === 'boolean' ? data.isSubscribed : false);
     } catch (e) {
-      setIsSubscribed(false);
-      setCancelDate(false);
+  setIsSubscribed(false);
     }
   };
 
@@ -60,7 +50,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [API_BASE]);
 
   return (
-    <SubscriptionContext.Provider value={{ isSubscribed, cancelDate, refresh: fetchStatus }}>
+  <SubscriptionContext.Provider value={{ isSubscribed, refresh: fetchStatus }}>
       {children}
     </SubscriptionContext.Provider>
   );
