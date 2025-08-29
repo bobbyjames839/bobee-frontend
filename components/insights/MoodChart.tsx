@@ -40,37 +40,51 @@ export default function MoodChart({ series }: Props) {
   const hasAny = values.some(v => v != null);
 
   // Build a line that connects across nulls while keeping time spacing
-  const buildLine = (vals: Array<number | null>) => {
-    const n = vals.length;
+const buildLine = (vals: Array<number | null>) => {
+  const n = vals.length;
 
-    const innerW = Math.max(0, (cardWidth - padLeft - padRight));
-    const innerH = Math.max(0, (chartHeight - padTop - padBottom));
+  const innerW = Math.max(0, cardWidth - padLeft - padRight);
+  const innerH = Math.max(0, chartHeight - padTop - padBottom);
 
-    const xStep = n > 1 ? innerW / (n - 1) : 0;
+  const xStep = n > 1 ? innerW / (n - 1) : 0;
 
-    const nums = vals.filter((v): v is number => v != null);
-    const minY = nums.length ? Math.min(...nums) : 0;
-    const maxY = nums.length ? Math.max(...nums) : 1;
-    const yRange = maxY - minY || 1;
+  // numbers only
+  const nums = vals.filter((v): v is number => v != null);
 
-    const points = vals.map((v, i) => {
-      const x = padLeft + i * xStep;
-      const y = v == null
+  // default domain if no data
+  let minY = nums.length ? Math.min(...nums) : 0;
+  let maxY = nums.length ? Math.max(...nums) : 1;
+
+  // add vertical padding (top only so the baseline stays tight)
+  const topPaddingPct = 0.1; // 10% headroom
+  const span = Math.max(1e-6, maxY - minY); // avoid zero span
+  const minYp = minY;                       // no bottom padding
+  const maxYp = maxY + span * topPaddingPct;
+
+  const yRange = maxYp - minYp;
+
+  const points = vals.map((v, i) => {
+    const x = padLeft + i * xStep;
+    const y =
+      v == null
         ? 0
-        : padTop + (1 - (v - minY) / yRange) * innerH;
-      return { i, v, x, y };
-    });
+        : padTop + (1 - (v - minYp) / yRange) * innerH;
+    return { i, v, x, y };
+  });
 
-    const definedPoints = points.filter(p => p.v != null) as Array<typeof points[number] & { v: number }>;
+  const definedPoints = points.filter(
+    p => p.v != null
+  ) as Array<typeof points[number] & { v: number }>;
 
-    const line = d3
-      .line<typeof definedPoints[number]>()
-      .x(d => d.x)
-      .y(d => d.y)
-      .curve(d3.curveCatmullRom.alpha(0.1));
+  const line = d3
+    .line<typeof definedPoints[number]>()
+    .x(d => d.x)
+    .y(d => d.y)
+    .curve(d3.curveCatmullRom.alpha(0.1)); // keep your current curve
 
-    return { definedPoints, path: line(definedPoints) || '', xStep };
-  };
+  return { definedPoints, path: line(definedPoints) || '', xStep };
+};
+
 
   let content: React.ReactNode;
 
@@ -105,7 +119,7 @@ export default function MoodChart({ series }: Props) {
 
     content = (
       <View style={styles.card}>
-        <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+        <View style={{ alignItems: 'center', paddingBottom: 20 }}>
           <Svg width={cardWidth} height={chartHeight}>
             {/* Joined line across missing days */}
             <Path d={path} stroke="rgba(172, 166, 255, 0.3)" strokeWidth={4} fill="none" />

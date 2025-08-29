@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lighter,
     borderRadius: 16,
-    height: 100,
+    height: 80,
     marginBottom: 8,
     overflow: 'hidden',
     justifyContent: 'center',
@@ -353,9 +353,9 @@ const styles = StyleSheet.create({
     color: colors.darkest,
   },
   conversationDate: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'SpaceMono',
-    color: colors.light,
+    color: colors.dark,
     marginTop: 4,
   },
   deleteButton: {

@@ -105,8 +105,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 20,
-    height: 100,
+    padding: 12,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -132,13 +131,13 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    color: '#666',
+    color: colors.dark,
     marginBottom: 8,
     fontFamily: 'SpaceMono',
   },
   text: {
     fontSize: 16,
-    color: '#222',
+    color: colors.darkest,
     lineHeight: 22,
     fontFamily: 'SpaceMono',
     paddingRight: 56,

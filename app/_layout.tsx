@@ -1,5 +1,9 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
+// Polyfills for Node globals needed by streaming audio code
+import { Buffer } from 'buffer';
+// @ts-ignore
+if (!(global as any).Buffer) (global as any).Buffer = Buffer;
 
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';

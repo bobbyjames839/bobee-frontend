@@ -51,7 +51,8 @@ export default function InsightsPage() {
   // personal message cooldown tracking (frontend only for now)
   const [lastMessageAt, setLastMessageAt] = useState<number | null>(null)
   // Personal message cooldown: 24 hours
-  const COOLDOWN_MS = 24 * 60 * 60 * 1000
+  // const COOLDOWN_MS = 24 * 60 * 60 * 1000
+  const COOLDOWN_MS = 10
 
   useEffect(() => {
     let mounted = true
