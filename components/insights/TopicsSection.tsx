@@ -1,9 +1,10 @@
-import React, { useContext } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useContext, useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
+import Svg, { G, Path } from 'react-native-svg';
 
 type Topic = { topic: string; count: number };
 
@@ -15,11 +16,6 @@ export default function TopicsSection({ topics }: Props) {
   const { isSubscribed } = useContext(SubscriptionContext);
   const router = useRouter();
 
-  const PARENT_HORIZONTAL_PADDING = 40;
-  const CARD_HORIZONTAL_PADDING = 24;
-  const windowWidth = Dimensions.get('window').width;
-  const cardInnerWidth = windowWidth - PARENT_HORIZONTAL_PADDING - CARD_HORIZONTAL_PADDING;
-
   const dummyTopics: Topic[] = [
     { topic: 'Mindfulness', count: 10 },
     { topic: 'Stress', count: 7 },
@@ -29,38 +25,62 @@ export default function TopicsSection({ topics }: Props) {
   const topicsList = topics ?? []; // null -> treat as not loaded (will fall back below)
   const listToRender = topicsList.length > 0 ? topicsList : dummyTopics;
 
-  const maxCount = listToRender[0].count;
-  const totalItems = listToRender.length;
-
-  // Determine if user has no topics with count > 0
+  const totalCount = listToRender.reduce((sum, t) => sum + t.count, 0) || 1; // avoid div by 0
   const hasNoTopics = isSubscribed && (topicsList.length === 0 || topicsList.every(t => t.count === 0));
+
+  // Pie chart geometry
+  const size = 220; // diameter
+  const radius = size / 2;
+  const strokeGap = 0; // no gap
+
+  const slices = useMemo(() => {
+    let cumulative = 0;
+    return listToRender.map((t, idx) => {
+      const value = t.count;
+      const fraction = value / totalCount;
+      const startAngle = cumulative * 2 * Math.PI;
+      cumulative += fraction;
+      const endAngle = cumulative * 2 * Math.PI;
+      // Large-arc-flag for SVG
+      const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+      const x1 = radius + radius * Math.sin(startAngle);
+      const y1 = radius - radius * Math.cos(startAngle);
+      const x2 = radius + radius * Math.sin(endAngle);
+      const y2 = radius - radius * Math.cos(endAngle);
+      const path = `M ${radius} ${radius} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      // Color scale (cooler hues) mixing base blue lightness
+      const lightness = 45 + (idx / Math.max(1, listToRender.length - 1)) * 30;
+      const fill = `hsl(220, 85%, ${lightness}%)`;
+      return { topic: t.topic, value, fraction, path, fill };
+    });
+  }, [listToRender, totalCount, radius]);
+
+  const legend = slices.slice(0, 6); // show up to 6 legend rows
 
   return (
     <>
       <Text style={styles.sectionTitle}>Common topics</Text>
       <View style={styles.card}>
-        {listToRender.map((t, index) => {
-          const fraction = t.count / maxCount;
-          let barWidth = fraction * cardInnerWidth;
-
-          const MIN_WIDTH = 60;
-          if (barWidth < MIN_WIDTH) barWidth = MIN_WIDTH;
-          if (barWidth > cardInnerWidth) barWidth = cardInnerWidth;
-
-          const isDummy = topicsList.length === 0;
-          const lightness = 40 + (index / totalItems) * 35;
-          const barColor = isDummy
-            ? colors.blue
-            : `hsl(220, 90%, ${lightness}%)`;
-
-          return (
-            <View key={t.topic} style={styles.barRow}>
-              {/* Topic name above the bar */}
-              <Text style={styles.topicName}>{t.topic}</Text>
-              <View style={[styles.topicBar, { width: barWidth, backgroundColor: barColor }]} />
+        <View style={styles.pieWrapper}>
+          <Svg width={size} height={size}>
+            <G>
+              {slices.map(s => (
+                <Path key={s.topic} d={s.path} fill={s.fill} />
+              ))}
+            </G>
+          </Svg>
+        </View>
+        <View style={styles.legend}>
+          {legend.map(s => (
+            <View key={s.topic} style={styles.legendRow}>
+              <View style={[styles.legendSwatch, { backgroundColor: s.fill }]} />
+              <Text style={styles.legendText} numberOfLines={1}>{s.topic}</Text>
             </View>
-          );
-        })}
+          ))}
+          {slices.length > legend.length && (
+            <Text style={styles.moreLabel}>+{slices.length - legend.length} more</Text>
+          )}
+        </View>
 
         {!isSubscribed && (
           <BlurView intensity={12} tint="light" style={styles.overlay}>
@@ -90,14 +110,6 @@ export default function TopicsSection({ topics }: Props) {
 
 /* styles unchanged */
 const styles = StyleSheet.create({
-  topicName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#444',
-    marginBottom: 4,
-    marginLeft: 4,
-    fontFamily: 'SpaceMono',
-  },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
@@ -109,30 +121,57 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 0,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 2,
     position: 'relative',
     overflow: 'hidden',
     minHeight: 120,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: colors.lighter,
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  barRow: { marginBottom: 8 },
-  topicBar: {
-    borderRadius: 12,
-    height: 44,
+  pieWrapper: {
+    width: 250,
+    height: 250,
     justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: 2,
+    alignItems: 'center',
   },
-  topicText: { fontSize: 14, fontFamily: 'SpaceMono', flexShrink: 1 },
+  legend: {
+    flex: 1,
+    paddingLeft: 12,
+    justifyContent: 'center'
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  legendSwatch: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  legendText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'SpaceMono',
+    color: '#333',
+  },
+  legendCount: {
+    fontSize: 13,
+    fontFamily: 'SpaceMono',
+    color: '#555',
+    marginLeft: 6,
+  },
+  moreLabel: {
+    fontSize: 12,
+    fontFamily: 'SpaceMono',
+    color: '#666',
+    marginTop: 4,
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

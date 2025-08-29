@@ -22,6 +22,7 @@ type Stats = {
   totalEntries: number
   currentStreak: number
   avgMoodLast3Days: number | null
+  hourlyHistogram?: number[]
 }
 
 type RangeKey = '7d' | '28d'

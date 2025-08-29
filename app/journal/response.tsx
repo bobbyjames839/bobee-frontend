@@ -104,7 +104,7 @@ export default function ResponseScreen() {
       <View style={styles.pagePadding}>
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.responseBox}>
-            <View style={styles.cornerBadgeContainer}>
+            {/* <View style={styles.cornerBadgeContainer}>
               <View
                 style={[
                   styles.cornerBadgeTriangle,
@@ -114,7 +114,7 @@ export default function ResponseScreen() {
               <Text style={styles.cornerBadgeText}>
                 {isSubscribed ? 'Pro' : 'Free'}
               </Text>
-            </View>
+            </View> */}
 
             {prompt ? (
               <>

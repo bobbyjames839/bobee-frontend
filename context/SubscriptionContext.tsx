@@ -1,6 +1,5 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import Constants from 'expo-constants';
 import { auth } from '../utils/firebase';
 
 export type SubContextType = {
@@ -14,40 +13,25 @@ export const SubscriptionContext = createContext<SubContextType>({
 });
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
-  const API_BASE = (Constants.expoConfig?.extra?.backendUrl || '').toString();
+  // We now treat the entire app as "Pro" / subscribed. All subscription
+  // checks collapse to true, and no backend call is made. We still watch
+  // auth state so we can reset to true once a user object exists (or null while
+  // auth is determining). If you want to remove the transient null state,
+  // initialize to true directly and skip auth listener.
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(true);
 
-  const fetchStatus = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-  setIsSubscribed(null);
-      return;
-    }
-    try {
-      const idToken = await user.getIdToken(false);
-  const resp = await fetch(`${API_BASE}/api/subscribe/unified-status`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error || 'Failed to load status');
-  setIsSubscribed(typeof data?.isSubscribed === 'boolean' ? data.isSubscribed : false);
-    } catch (e) {
-  setIsSubscribed(false);
-    }
+  const fetchStatus = () => {
+    // Previously fetched from backend; now forced true.
+    setIsSubscribed(true);
   };
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, () => {
-      fetchStatus();
+    const unsub = onAuthStateChanged(auth, () => {
+      // Regardless of user / anon, mark as subscribed.
+      setIsSubscribed(true);
     });
-    return () => {
-      unsubAuth();
-    };
-  }, [API_BASE]);
+    return () => unsub();
+  }, []);
 
   return (
   <SubscriptionContext.Provider value={{ isSubscribed, refresh: fetchStatus }}>

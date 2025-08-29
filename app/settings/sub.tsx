@@ -1,8 +1,9 @@
 // Subscription.tsx
-import React, { useState, useContext, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert, Linking } from 'react-native';
+import React, { useState, useContext, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert, Linking, ScrollView } from 'react-native';
 import * as PlatformModule from 'react-native';
-import * as RNIap from 'react-native-iap';
+// We will lazy-load IAP to reduce chance of native crash if not linked
+let RNIap: any = {} as any; // assigned after dynamic import
 import type { Subscription, Purchase, PurchaseError } from 'react-native-iap';
 import Constants from 'expo-constants';
 import { getAuth } from 'firebase/auth';
@@ -67,20 +68,32 @@ function SubscriptionInner() {
   const [successMsg, setSuccessMsg] = useState<string>('');
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
 
-  // IAP bits
+  // IAP state
   const [iapReady, setIapReady] = useState(false);
   const [iapProduct, setIapProduct] = useState<AnySub | null>(null);
   const [iapInitError, setIapInitError] = useState<string | null>(null);
+  const purchaseUpdateSub = useRef<any>(null);
+  const purchaseErrorSub = useRef<any>(null);
+  const DEBUG = __DEV__ || Constants.expoConfig?.extra?.iapDebug;
 
-  const purchaseUpdateSub = useRef<ReturnType<typeof RNIap.purchaseUpdatedListener> | null>(null);
-  const purchaseErrorSub = useRef<ReturnType<typeof RNIap.purchaseErrorListener> | null>(null);
+  // On-screen debug log (works in release/TestFlight)
+  const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [debugVisible, setDebugVisible] = useState<boolean>(false);
+  const pushLog = useCallback((msg: string, data?: any) => {
+    const ts = new Date().toISOString().split('T')[1].replace('Z', '');
+    let line = `[${ts}] ${msg}`;
+    if (data !== undefined) {
+      try { line += ' :: ' + (typeof data === 'string' ? data : JSON.stringify(data)); } catch {}
+    }
+    setLogMessages(prev => [...prev.slice(-180), line]);
+  }, []);
+  useEffect(() => {
+    if (!__DEV__ && (errorMsg || iapInitError) && !debugVisible) setDebugVisible(true);
+  }, [errorMsg, iapInitError, debugVisible]);
 
-  // Helper: make a nice price label from whatever fields exist
   const getDisplayPrice = (sub?: AnySub | null): string | undefined => {
     if (!sub) return undefined;
-    if (typeof sub.localizedPrice === 'string' && sub.localizedPrice.length > 0) {
-      return sub.localizedPrice; // best, already localized
-    }
+    if (typeof sub.localizedPrice === 'string' && sub.localizedPrice.length > 0) return sub.localizedPrice;
     if (sub.price != null && typeof sub.currency === 'string') {
       const num = typeof sub.price === 'string' ? Number(sub.price) : sub.price;
       if (!Number.isNaN(num)) {
@@ -96,48 +109,68 @@ function SubscriptionInner() {
     return undefined;
   };
 
-  // Initialize IAP + listeners
+  // Reflect current plan in tabs
   useEffect(() => {
-    if (!isIOS) return;
-    let mounted = true;
+    if (isSubscribed !== null) setSelectedTab(isSubscribed ? 'pro' : 'free');
+  }, [isSubscribed]);
 
-    (async () => {
+  const loadIapModule = async () => {
+    try {
+      pushLog('Loading IAP module');
+      const mod = await import('react-native-iap');
+      const IAP = (mod as any).default ?? mod;
+      if (!IAP || typeof IAP.initConnection !== 'function') {
+        throw new Error('IAP native module unavailable');
+      }
+      pushLog('IAP module loaded ok');
+      return IAP;
+    } catch (e: any) {
+      pushLog('Failed to load IAP module', e?.message || String(e));
+      throw new Error('Failed to load IAP: ' + (e?.message || String(e)));
+    }
+  };
+
+  const purchaseWithApple = async () => {
+    setLoading(true);
+    pushLog('Purchase flow start');
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) throw new Error('Not logged in');
+      if (!isIOS) throw new Error('iOS only environment');
+
+      if (!RNIap || typeof RNIap.initConnection !== 'function') {
+        RNIap = await loadIapModule();
+      }
+
+      pushLog('Calling initConnection');
+      let initOk = false;
       try {
-        if (typeof RNIap.initConnection !== 'function') {
-          throw new Error('IAP native module not linked (needs custom dev client / EAS build — Expo Go will not work)');
-        }
+        initOk = await RNIap.initConnection();
+      } catch (e: any) {
+        pushLog('initConnection threw', e?.message || String(e));
+        throw e;
+      }
+      pushLog('initConnection result', initOk);
+      if (!initOk) throw new Error('Could not initialize App Store connection');
 
-        const ok = await RNIap.initConnection();
-        if (!ok) throw new Error('initConnection returned false');
+      const detach = () => {
+        try { purchaseUpdateSub.current?.remove?.(); } catch {}
+        try { purchaseErrorSub.current?.remove?.(); } catch {}
+        try { RNIap?.endConnection?.(); } catch {}
+        pushLog('Detached listeners & ended connection');
+      };
 
-        // Some versions accept { skus }, others want string[]
-        const subs: any =
-          typeof RNIap.getSubscriptions === 'function'
-            ? await (RNIap as any).getSubscriptions({ skus: [APPLE_PRODUCT_ID] }).catch(async () => {
-                // fallback legacy signature
-                return await (RNIap as any).getSubscriptions([APPLE_PRODUCT_ID]);
-              })
-            : [];
-
-        if (mounted) {
-          setIapProduct((subs && subs[0]) || null);
-          setIapReady(true);
-        }
-
-        // Purchase success
+      // Register listeners
+      if (typeof RNIap.purchaseUpdatedListener === 'function') {
         purchaseUpdateSub.current = RNIap.purchaseUpdatedListener(async (purchase: Purchase) => {
+          pushLog('purchaseUpdatedListener fired', { productId: (purchase as any)?.productId });
           try {
             const receipt = (purchase as any).transactionReceipt;
-            if (!receipt) return;
-
-            const auth = getAuth();
-            const user = auth.currentUser;
-            if (!user) {
-              setErrorMsg('Not logged in');
-              return;
-            }
-
+            if (!receipt) { pushLog('No receipt on purchase'); return; }
+            pushLog('Receipt length', String(receipt.length));
             const idToken = await user.getIdToken(false);
+            pushLog('Verifying with backend');
             const resp = await fetch(`${API_BASE}/api/subscribe/iap/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
@@ -145,74 +178,74 @@ function SubscriptionInner() {
             });
             const data = await resp.json();
             if (!resp.ok) throw new Error(data?.error || 'Receipt verify failed');
-
-            // Newer RN-IAP expects an object arg
-            await (RNIap as any).finishTransaction({ purchase, isConsumable: false });
-
+            pushLog('Backend verification success');
+            try {
+              if (typeof RNIap.finishTransaction === 'function') {
+                pushLog('Finishing transaction');
+                await RNIap.finishTransaction({ purchase, isConsumable: false });
+                pushLog('finishTransaction ok');
+              }
+            } catch (finishErr: any) {
+              pushLog('finishTransaction error', finishErr?.message || String(finishErr));
+            }
             setSuccessMsg('Subscription activated via Apple');
             setErrorMsg('');
             refresh();
           } catch (e: any) {
             setErrorMsg(e?.message || 'Verification failed');
+            pushLog('Verification error', e?.message || String(e));
           } finally {
             setLoading(false);
+            detach();
           }
         });
-
-        // Purchase errors
+      }
+      if (typeof RNIap.purchaseErrorListener === 'function') {
         purchaseErrorSub.current = RNIap.purchaseErrorListener((err: PurchaseError) => {
+          pushLog('purchaseErrorListener', { code: (err as any)?.code, message: err?.message });
           setLoading(false);
           setErrorMsg(err?.message || 'Purchase error');
+          setSuccessMsg('');
+          try { RNIap?.endConnection?.(); } catch {}
         });
-      } catch (e: any) {
-        if (mounted) setIapInitError(e?.message || String(e));
       }
-    })();
 
-    return () => {
-      mounted = false;
+      // Fetch product (optional)
       try {
-        purchaseUpdateSub.current?.remove?.();
-        purchaseErrorSub.current?.remove?.();
-      } catch {}
-      RNIap.endConnection?.();
-    };
-  }, []);
-
-  // Reflect current plan in tabs
-  useEffect(() => {
-    if (isSubscribed !== null) setSelectedTab(isSubscribed ? 'pro' : 'free');
-  }, [isSubscribed]);
-
-  // Start an Apple purchase
-  const purchaseWithApple = async () => {
-    setLoading(true);
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not logged in');
-      if (!iapReady) throw new Error('IAP not ready yet');
-      if (!iapProduct) throw new Error('Product not available');
-
-      // Current RN-IAP accepts { sku } on iOS; older accepts string
-      if (typeof (RNIap as any).requestSubscription === 'function') {
-        try {
-          await (RNIap as any).requestSubscription({ sku: APPLE_PRODUCT_ID });
-        } catch {
-          await (RNIap as any).requestSubscription(APPLE_PRODUCT_ID);
+        if (typeof RNIap.getSubscriptions === 'function') {
+            pushLog('Fetching subscriptions');
+            let subs: any[] = [];
+            try { subs = await RNIap.getSubscriptions({ skus: [APPLE_PRODUCT_ID] }); }
+            catch { subs = await RNIap.getSubscriptions([APPLE_PRODUCT_ID]); }
+            pushLog('Subscriptions fetched count', String(subs?.length || 0));
+            setIapProduct(subs?.[0] || null);
         }
+        setIapReady(true);
+      } catch (e: any) {
+        pushLog('getSubscriptions failed', e?.message || String(e));
       }
-      // Listener handles verification & finishTransaction
+
+      // Request subscription
+      if (typeof RNIap.requestSubscription !== 'function') throw new Error('requestSubscription not available');
+      try {
+        pushLog('Requesting subscription (object arg)');
+        await RNIap.requestSubscription({ sku: APPLE_PRODUCT_ID });
+      } catch {
+        pushLog('Retry requestSubscription (string arg)');
+        await RNIap.requestSubscription(APPLE_PRODUCT_ID as any);
+      }
     } catch (err: any) {
-      setLoading(false);
-      setErrorMsg(err?.message || 'Apple purchase failed');
+      const msg = err?.message || String(err);
+      setIapInitError(msg);
+      setErrorMsg(msg);
       setSuccessMsg('');
+      pushLog('Purchase flow error', msg);
+      setLoading(false);
     }
   };
 
 
   const handleUpgrade = async () => {
-  // no cancelDate handling; Apple manages cancellation externally
     if (isIOS) return purchaseWithApple();
     setErrorMsg('Purchases are only available on iOS in this build.');
   };
@@ -247,7 +280,7 @@ function SubscriptionInner() {
   const priceLabel = selectedTab === 'pro' ? (getDisplayPrice(iapProduct) ?? plans.pro.price) : plans.free.price;
 
   const getButtonLabel = () => {
-  // cancellationPending removed (Apple managed outside app)
+    // cancellationPending removed (Apple managed outside app)
     if (isSubscribed) {
       if (selectedTab === 'pro') return 'Your current plan';
       return 'Switch to free (Stripe flow disabled)';
@@ -260,14 +293,17 @@ function SubscriptionInner() {
   };
 
   const onPrimaryPress = () => {
-  if (disableAction) return;
+    if (disableAction) return;
     if (isSubscribed && selectedTab === 'free') return handleCancel();
     if (!isSubscribed && selectedTab === 'pro') return handleUpgrade();
   };
 
   useEffect(() => {
     if (iapInitError && !errorMsg) setErrorMsg(`IAP init issue: ${iapInitError}`);
+    if (DEBUG && iapInitError) console.log('[IAP] init error state', iapInitError);
+  if (iapInitError) pushLog('iapInitError state', iapInitError);
   }, [iapInitError, errorMsg]);
+
 
   return (
     <>
@@ -363,6 +399,31 @@ function SubscriptionInner() {
           })}
         </View>
       </View>
+      {/* Debug toggle button (always available). Small, unobtrusive. */}
+      <TouchableOpacity
+        style={styles.debugToggle}
+        onPress={() => setDebugVisible(v => !v)}
+        accessibilityLabel="Toggle debug log"
+      >
+        <Text style={styles.debugToggleText}>{debugVisible ? 'Hide Logs' : 'Show Logs'}</Text>
+      </TouchableOpacity>
+      {debugVisible && (
+        <View style={styles.debugPanel} pointerEvents="box-none">
+          <Text style={styles.debugTitle}>IAP Debug Log (local only)</Text>
+          <ScrollView style={styles.debugScroll} contentContainerStyle={{ paddingBottom: 8 }}>
+            {logMessages.length === 0 && (
+              <Text style={styles.debugLine}>No log messages yet. Start a purchase to populate.</Text>
+            )}
+            {logMessages.map((l, i) => (
+              <Text key={i} style={styles.debugLine}>{l}</Text>
+            ))}
+          </ScrollView>
+          <View style={styles.debugRow}>
+            <TouchableOpacity onPress={() => setLogMessages([])} style={styles.debugBtn}><Text style={styles.debugBtnText}>Clear</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => { setDebugVisible(false); }} style={styles.debugBtn}><Text style={styles.debugBtnText}>Close</Text></TouchableOpacity>
+          </View>
+        </View>
+      )}
     </>
   );
 }
@@ -542,4 +603,71 @@ const styles = StyleSheet.create({
     color: colors.darkest,
   },
   // restoreButton styles removed
+  
+  debugToggle: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  debugToggleText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: 'SpaceMono',
+  },
+  debugPanel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: '55%',
+    backgroundColor: '#0f172acc',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingTop: 8,
+    paddingHorizontal: 10,
+  },
+  debugTitle: {
+    color: '#fff',
+    fontFamily: 'SpaceMono',
+    fontSize: 12,
+    marginBottom: 4,
+    opacity: 0.8,
+  },
+  debugScroll: {
+    flexGrow: 0,
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    padding: 6,
+    backgroundColor: '#1e293b',
+    maxHeight: 220,
+  },
+  debugLine: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    fontFamily: 'SpaceMono',
+    marginBottom: 2,
+  },
+  debugRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  debugBtn: {
+    backgroundColor: '#334155',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  debugBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: 'SpaceMono',
+  },
 });

@@ -41,7 +41,7 @@ export default function SettingsIndex() {
 
   const accountItems: Item[] = [
     { label: 'Account',      icon: 'person-circle-outline', path: '/settings/account' },
-    { label: 'Subscription', icon: 'card-outline',          path: '/settings/sub' },
+    { label: 'My Data',      icon: 'document-text-outline', path: '/settings/my-data' },
     { label: confirmLogout ? 'Confirm' : 'Log Out', icon: 'log-out-outline', destructive: true, onPress: onPressLogout },
   ];
 
