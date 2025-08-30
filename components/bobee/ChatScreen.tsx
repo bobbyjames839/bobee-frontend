@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Animated,
   StyleSheet,
-  Modal,
   Keyboard,
   Platform,
   EmitterSubscription,
@@ -25,7 +24,7 @@ import { useIsFocused } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AutoExpandingInput from './AutoExpandingInput'
 import { colors } from '~/constants/Colors'
-import { SubscriptionContext } from '~/context/SubscriptionContext'
+// Subscription gating removed – reasoning now always visible
 
 type ChatHistoryItem = {
   question: string
@@ -63,9 +62,9 @@ export default function ChatScreen({
   isSaving?: boolean
   onSaveAndBack?: () => void
 }) {
-  const { isSubscribed } = useContext(SubscriptionContext)
+  // const { isSubscribed } = useContext(SubscriptionContext)
   const router = useRouter()
-  const [showPaywall, setShowPaywall] = useState(false)
+  // Paywall removed
   const busy = isLoading || isSaving
   const isFocused = useIsFocused()
 
@@ -120,19 +119,10 @@ export default function ChatScreen({
   }, [])
 
   // Close paywall whenever saving starts
-  useEffect(() => {
-    if (isSaving) setShowPaywall(false)
-  }, [isSaving])
+  // useEffect(() => { if (isSaving) setShowPaywall(false) }, [isSaving])
 
-  const handleToggleReasoning = (idx: number) => {
-    if (isSaving) return
-    if (!history[idx]?.reasoning) return
-    if (isSubscribed) {
-      toggleReasoning(idx)
-    } else {
-      if (isMountedRef.current) setShowPaywall(true)
-    }
-  }
+  // Toggle no longer needed – reasoning always shown inline
+  const handleToggleReasoning = (_idx: number) => {}
 
   // Two-tap delete (bin -> check -> spinner), same UX as MainScreen
   const [pendingDelete, setPendingDelete] = useState(false)
@@ -162,48 +152,24 @@ export default function ChatScreen({
             </View>
 
             {item.answer ? (
-              <>
-                <View
-                  style={[
-                    styles.bubble,
-                    styles.aiBubble,
-                    expanded.has(idx) && styles.aiBubbleAttached,
-                  ]}
-                >
-                  <Text style={styles.aiText}>{item.answer}</Text>
-                  {item.followup && (
-                    <>
-                      <View style={styles.divider} />
-                      <Text style={styles.aiFollowupText}>{item.followup}</Text>
-                    </>
-                  )}
-                </View>
-
-                {expanded.has(idx) && item.reasoning && (
-                  <TouchableOpacity
-                    activeOpacity={isSubscribed ? 1 : 0.7}
-                    onPress={() => {
-                      if (!isSubscribed && isMountedRef.current) setShowPaywall(true)
-                    }}
-                    style={[styles.bubble, styles.aiReasoningBubble]}
-                  >
-                    <Text style={styles.reasoningText}>
-                      {isSubscribed ? item.reasoning : 'Upgrade to view reasoning'}
+              <View
+                style={[
+                  styles.bubble,
+                  styles.aiBubble,
+                ]}
+              >
+                {(() => {
+                  const parts: string[] = []
+                  if (item.answer) parts.push(item.answer.trim())
+                  if (item.followup) parts.push(item.followup.trim())
+                  if (item.reasoning) parts.push(item.reasoning.trim())
+                  return (
+                    <Text style={styles.aiText}>
+                      {parts.join('\n\n')}
                     </Text>
-                  </TouchableOpacity>
-                )}
-
-                {item.reasoning && (
-                  <TouchableOpacity
-                    onPress={() => handleToggleReasoning(idx)}
-                    style={styles.reasoningButton}
-                  >
-                    <Text style={styles.reasoningButtonText}>
-                      {expanded.has(idx) ? 'Hide reasoning' : 'Show reasoning'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
+                  )
+                })()}
+              </View>
             ) : (
               isLoading &&
               idx === history.length - 1 && (
@@ -282,31 +248,7 @@ export default function ChatScreen({
         </View>
       </View>
 
-      {/* Paywall modal */}
-      {showPaywall && isFocused && !isSaving ? (
-        <Modal visible transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.paywallCard}>
-              <Text style={styles.paywallTitle}>Upgrade to view reasoning</Text>
-              <Text style={styles.paywallDesc}>
-                Unlock detailed reasoning for every AI answer and get deeper insights.
-              </Text>
-              <TouchableOpacity
-                style={styles.paywallButton}
-                onPress={() => {
-                  router.push('/settings/sub')
-                  setShowPaywall(false)
-                }}
-              >
-                <Text style={styles.paywallButtonText}>Upgrade Now</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowPaywall(false)}>
-                <Text style={styles.paywallCancel}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      ) : null}
+  {/* Paywall removed */}
     </View>
   )
 }
@@ -329,10 +271,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     marginTop: 8,
-  },
-  aiBubbleAttached: {
-    borderBottomRightRadius: 0,
-    borderBottomLeftRadius: 0,
   },
   aiReasoningBubble: {
     backgroundColor: colors.darkblue,

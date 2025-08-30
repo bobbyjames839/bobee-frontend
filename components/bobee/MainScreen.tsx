@@ -140,7 +140,7 @@ export default function MainScreen({
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.container}>
-        <QuotaBar todayCount={todayCount} isSubscribed={!!isSubscribed} />
+        {/* <QuotaBar todayCount={todayCount} isSubscribed={!!isSubscribed} /> */}
 
         <Text style={styles.pageTitle}>Ask Bobee Anything</Text>
         <View style={styles.inputWrapper}>
