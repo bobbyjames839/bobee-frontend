@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Pressable, Animated, Modal, TouchableOpacity, Image } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Animated, Image } from 'react-native'
 import { useRouter } from 'expo-router'
-import Constants from 'expo-constants'
 import { colors } from '~/constants/Colors'
+import Svg, { Circle } from 'react-native-svg'
+import { MessageCircle } from 'lucide-react-native'
 
 export interface NextMessageCountdownProps {
   lastMessageAt?: number | null
@@ -15,9 +16,7 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
   const [now, setNow] = useState(Date.now())
   const intervalRef = useRef<number | null>(null)
   const progressAnim = useRef(new Animated.Value(0)).current
-  const [infoVisible, setInfoVisible] = useState(false)
   const router = useRouter()
-  const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
   const COOLDOWN_MS = 60 * 60 * 1000 * 24
 
   // compute remaining & progress
@@ -56,8 +55,7 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
     inputRange: [0, 1],
     outputRange: ['0%', '100%']
   })
-  const barComputedWidth: any = progress >= 0.999 ? '100%' : barWidth
-  const content = canRequest ? 'Your message is ready' : `Ready in ${formatRemaining(remaining)}`
+  const content = canRequest ? 'Ready now' : formatRemaining(remaining)
   const Container: React.ComponentType<any> = canRequest ? Pressable : View
 
   async function handlePress() {
@@ -66,85 +64,85 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
   router.push('/bobee/personal-message')
   }
 
+  // Circular progress metrics
+  // Keep image at 50x50; draw ring outside it using the wrapper size
+  const SIZE = 84
+  const R = 33
+  const CIRC = 2 * Math.PI * R
+  const dashOffset = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [CIRC, 0]
+  })
+
   return (
     <View style={styles.containerOuter}>
-      <View style={styles.titleRow}>
-        <Text style={styles.sectionTitle}>Personal message</Text>
-        <TouchableOpacity accessibilityLabel="What is this?" onPress={() => setInfoVisible(true)} style={styles.infoBadge}>
-          <Text style={styles.infoText}>i</Text>
-        </TouchableOpacity>
-      </View>
       <Container
         accessibilityRole={canRequest ? 'button' : undefined}
         onPress={canRequest ? handlePress : undefined}
-        style={styles.card}
       >
-        <View style={styles.cardRow}>
-          <Image source={require('~/assets/images/happy.png')} style={styles.cardIcon} accessibilityLabel="Personal message icon" />
-          <View style={styles.cardContent}>
-            <Text style={styles.statusText}>{content}</Text>
-            <View style={styles.barTrack}>
-              <Animated.View style={[styles.barFill, { width: barComputedWidth }]} />
-            </View>
-            {canRequest && <Text style={styles.tapHint}>Tap to open</Text>}
+        <View style={styles.pill}>
+          <View style={styles.leftIconWrap}>
+            <Svg width={SIZE} height={SIZE}>
+              <Circle cx={SIZE/2} cy={SIZE/2} r={R} stroke={colors.lighter} strokeWidth={7} fill="none" />
+              <AnimatedCircle cx={SIZE/2} cy={SIZE/2} r={R} stroke={colors.blue} strokeWidth={7} fill="none"
+                strokeDasharray={CIRC}
+                strokeDashoffset={dashOffset as any}
+                strokeLinecap="round"
+              />
+            </Svg>
+            <Image source={require('~/assets/images/happy.png')} style={styles.botIcon} accessibilityLabel="Personal message icon" />
           </View>
+          <View style={styles.rightText}>
+            <Text style={styles.smallTitle}>Next personal message in</Text>
+            <Text style={styles.bigTime}>{content}</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Open chat"
+            onPress={() => router.push('/bobee/chat')}
+            style={styles.chatFab}
+            hitSlop={8}
+          >
+            <MessageCircle color="#fff" size={26} strokeWidth={2.5} />
+          </Pressable>
         </View>
       </Container>
-      <Modal
-        visible={infoVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setInfoVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Personal message</Text>
-            <Text style={styles.modalBody}>
-              Every 24 hours you can request a personalised reflection summarising key themes and gentle encouragement based on your recent journaling. This countdown shows when the next one is available.
-            </Text>
-            <Pressable style={styles.closeButton} onPress={() => setInfoVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </View>
   )
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+
 const styles = StyleSheet.create({
   containerOuter: { marginTop: 10 },
-  titleRow: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', color: '#222', marginBottom: 10, marginTop: 0 },
-  infoBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.lighter, alignItems: 'center', justifyContent: 'center', marginBottom: 10, marginLeft: 8 },
-  infoText: { color: colors.dark, fontWeight: '600', fontSize: 13, fontFamily: 'SpaceMono' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-  paddingRight: 18,
-  paddingLeft: 8,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 2,
+  pill: {
+  borderRadius: 18,
+  paddingTop: 10,
+  paddingBottom: 25,
+  paddingHorizontal: 12,
+  paddingRight: 56,
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fff',
+  borderWidth: 1,
+  borderColor: colors.lighter,
+  position: 'relative',
   },
-  cardRow: { flexDirection: 'row', alignItems: 'center' },
-  cardIcon: { width: 52, height: 52, resizeMode: 'contain', marginRight: 10 },
-  cardContent: { flex: 1 },
-  statusText: { fontSize: 16, fontWeight: '500', color: colors.dark, fontFamily: 'SpaceMono' },
-  barTrack: { height: 10, backgroundColor: colors.lightest, borderRadius: 8, overflow: 'hidden', marginTop: 10 },
-  barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.blue, borderRadius: 8 },
-  tapHint: { marginTop: 10, fontSize: 12, textAlign: 'left', color: colors.blue, fontFamily: 'SpaceMono', opacity: 0.9 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 30 },
-  modalCard: { backgroundColor: '#fff', borderRadius: 18, padding: 20, width: '100%', borderWidth: 1, borderColor: colors.lighter, shadowColor: '#000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 4 },
-  modalTitle: { fontSize: 20, fontWeight: '600', fontFamily: 'SpaceMono', color: '#111', marginBottom: 10 },
-  modalBody: { fontSize: 14, lineHeight: 20, color: '#333', fontFamily: 'SpaceMono', marginBottom: 16 },
-  closeButton: { backgroundColor: colors.blue, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
-  closeButtonText: { color: '#fff', fontSize: 16, fontWeight: '600', fontFamily: 'SpaceMono' }
+  leftIconWrap: { width: 74, height: 74, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  botIcon: { position: 'absolute', width: 50, height: 50, resizeMode: 'contain', borderRadius: 50 },
+  rightText: { flex: 1 },
+  smallTitle: { color: colors.dark, fontFamily: 'SpaceMono', fontSize: 15, marginBottom: 2 },
+  bigTime: { color: colors.darkest, fontFamily: 'SpaceMono', fontSize: 22, fontWeight: '700' },
+  chatFab: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 46,
+    height: 46,
+    borderRadius: 48,
+    backgroundColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })
 
 export default NextMessageCountdown

@@ -160,14 +160,14 @@ export default function HabitCards({ stats }: Props) {
 
 const styles = StyleSheet.create({
   sectionTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', color: '#222', marginTop: 34, marginBottom: 10 },
-  largeCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8, minHeight: 120, justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 3 }, shadowRadius: 8, elevation: 2, borderColor: colors.lighter, borderWidth: 1 },
+  largeCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8, minHeight: 120, justifyContent: 'space-between', borderColor: colors.lighter, borderWidth: 1 },
   largeCardBottom: { marginBottom: 24 },  
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  faceCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, width: (Dimensions.get('window').width - 40) / 2.5, height: 200, justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 1, borderColor: colors.lighter, borderWidth: 1 },
+  faceCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, width: (Dimensions.get('window').width - 40) / 2.5, height: 200, justifyContent: 'space-between', borderColor: colors.lighter, borderWidth: 1 },
   faceContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   faceImage: { width: 100, height: 100, resizeMode: 'contain' },
   rightColumn: { flex: 1, marginLeft: 8, gap: 8, justifyContent: 'space-between' },
-  smallCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, flex: 1, justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 1, borderColor: colors.lighter, borderWidth: 1 },
+  smallCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, flex: 1, justifyContent: 'space-between', borderColor: colors.lighter, borderWidth: 1 },
   cardTitle: { fontSize: 16, fontWeight: '500', color: '#222', fontFamily: 'SpaceMono' },
   cardValue: { fontSize: 34, fontWeight: '600', color: colors.blue, fontFamily: 'SpaceMono', textAlign: 'right' },
   barChartRow: { flexDirection: 'row', alignItems: 'flex-end', height: 80, gap: 2, marginTop: 6 },
