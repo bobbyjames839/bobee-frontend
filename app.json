@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "backendUrl": "https://bobee-backend.onrender.com"
+      "backendUrl": "http://localhost:4000"
     },
     "ios": {
       "supportsTablet": true,

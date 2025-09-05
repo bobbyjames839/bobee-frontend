@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
+import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView } from "react-native";
 import { Lightbulb, Target, CheckCircle2, ListTodo, Heart, Compass, Sun } from 'lucide-react-native'
 import Header from "~/components/other/Header";
+import SpinningLoader from "~/components/other/SpinningLoader";
 import { colors } from "~/constants/Colors";
 import { useFocusEffect } from "expo-router";
 import { getAuth } from "@firebase/auth";
@@ -11,7 +12,6 @@ import Constants from 'expo-constants'
 export default function BobeeMainPage() {
   const [lastMessageAt, setLastMessageAt] = useState<number | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
   const [suggestions, setSuggestions] = useState<string[] | null>(null)
   const [microChallenge, setMicroChallenge] = useState<string | null>(null)
   const [insightsError, setInsightsError] = useState<string | null>(null)
@@ -51,14 +51,7 @@ export default function BobeeMainPage() {
     }
   }, [API_BASE])
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true)
-    try {
-      await Promise.all([refetchMeta(), fetchInsights()])
-    } finally {
-      setRefreshing(false)
-    }
-  }, [refetchMeta, fetchInsights])
+  // Pull-to-refresh disabled per product request
 
   useEffect(() => {
     let cancelled = false;
@@ -91,16 +84,17 @@ export default function BobeeMainPage() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
       <Header title="Bobee" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.blue} />}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <NextMessageCountdown
           lastMessageAt={lastMessageAt}
         />
         <Text style={styles.sectionHeading}>Daily suggestions</Text>
         <View style={styles.insightsBlock}>
-          {insightsLoading && <ActivityIndicator color={colors.blue} style={{ marginTop: 8 }} />}
+          {insightsLoading && (
+            <View style={styles.loaderWrap}>
+              <SpinningLoader size={28} thickness={4} />
+            </View>
+          )}
           {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
           {!insightsLoading && !insightsError && suggestions && suggestions.length > 0 && (
             <View>
@@ -158,4 +152,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lighter,
     marginVertical: 15,
   },
+  loaderWrap: { marginTop: 8, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
 });

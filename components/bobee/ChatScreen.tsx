@@ -61,17 +61,10 @@ export default function ChatScreen({
   isSaving?: boolean
   onSaveAndBack?: () => void
 }) {
-  // const { isSubscribed } = useContext(SubscriptionContext)
   const router = useRouter()
-  // Paywall removed
   const busy = isLoading || isSaving
-  const isFocused = useIsFocused()
-
-  // Keyboard + safe-area handling
   const insets = useSafeAreaInsets()
   const [kbVisible, setKbVisible] = useState(false)
-
-  // Only track keyboard visibility for bottom padding
   const [kbHeight, setKbHeight] = useState(0)
 
   useEffect(() => {
@@ -117,13 +110,6 @@ export default function ChatScreen({
     }
   }, [])
 
-  // Close paywall whenever saving starts
-  // useEffect(() => { if (isSaving) setShowPaywall(false) }, [isSaving])
-
-  // Toggle no longer needed – reasoning always shown inline
-  const handleToggleReasoning = (_idx: number) => {}
-
-  // Two-tap delete (bin -> check -> spinner), same UX as MainScreen
   const [pendingDelete, setPendingDelete] = useState(false)
   useFocusEffect(
     useCallback(() => {
@@ -295,7 +281,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightest },
   container: { padding: 20, paddingBottom: 10 },
   emptyWrap:{ alignItems:'center', marginTop:150, paddingHorizontal:10 },
-  emptyImage:{ width:120, height:120 },
+  emptyImage:{ width:120, height:120, borderRadius: 100 },
   emptyTitle:{ fontFamily:'SpaceMono', fontSize:18, color:colors.darkest, marginTop:10 },
   emptyText:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, marginTop:5, textAlign:'center', lineHeight:20 },
   bubbleWrapper: { marginBottom: 8 },

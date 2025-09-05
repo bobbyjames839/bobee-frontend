@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import { SubscriptionContext } from '~/context/SubscriptionContext';
-import Svg, { G, Path } from 'react-native-svg';
+import Svg, { G, Path, Circle } from 'react-native-svg';
 
 type Topic = { topic: string; count: number };
 
@@ -31,7 +31,10 @@ export default function TopicsSection({ topics }: Props) {
   // Pie chart geometry
   const size = 220; // diameter
   const radius = size / 2;
-  const strokeGap = 0; // no gap
+
+  // Border styling for slices and outer ring
+  const sliceStroke = '#d5d5d5ff' as const; // subtle dark gray
+  const strokeWidth = 1;
 
   const slices = useMemo(() => {
     let cumulative = 0;
@@ -41,16 +44,19 @@ export default function TopicsSection({ topics }: Props) {
       const startAngle = cumulative * 2 * Math.PI;
       cumulative += fraction;
       const endAngle = cumulative * 2 * Math.PI;
-      // Large-arc-flag for SVG
       const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+
       const x1 = radius + radius * Math.sin(startAngle);
       const y1 = radius - radius * Math.cos(startAngle);
       const x2 = radius + radius * Math.sin(endAngle);
       const y2 = radius - radius * Math.cos(endAngle);
+
       const path = `M ${radius} ${radius} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-      // Color scale (cooler hues) mixing base blue lightness
+
+      // Color scale
       const lightness = 45 + (idx / Math.max(1, listToRender.length - 1)) * 30;
       const fill = `hsl(220, 85%, ${lightness}%)`;
+
       return { topic: t.topic, value, fraction, path, fill };
     });
   }, [listToRender, totalCount, radius]);
@@ -65,11 +71,28 @@ export default function TopicsSection({ topics }: Props) {
           <Svg width={size} height={size}>
             <G>
               {slices.map(s => (
-                <Path key={s.topic} d={s.path} fill={s.fill} />
+                <Path
+                  key={s.topic}
+                  d={s.path}
+                  fill={s.fill}
+                  stroke={sliceStroke}
+                  strokeWidth={strokeWidth}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
               ))}
+
+              {/* Outer ring */}
+              <Circle
+                cx={radius}
+                cy={radius}
+                r={radius - strokeWidth / 2}
+                fill="none"
+              />
             </G>
           </Svg>
         </View>
+
         <View style={styles.legend}>
           {legend.map(s => (
             <View key={s.topic} style={styles.legendRow}>
@@ -82,6 +105,7 @@ export default function TopicsSection({ topics }: Props) {
           )}
         </View>
 
+        {/* Overlays unchanged */}
         {!isSubscribed && (
           <BlurView intensity={12} tint="light" style={styles.overlay}>
             <View
