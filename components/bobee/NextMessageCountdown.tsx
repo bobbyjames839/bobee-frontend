@@ -1,20 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, Pressable, Animated, Modal, TouchableOpacity, Image } from 'react-native'
 import { useRouter } from 'expo-router'
-import { getAuth } from 'firebase/auth'
 import Constants from 'expo-constants'
 import { colors } from '~/constants/Colors'
 
 export interface NextMessageCountdownProps {
   lastMessageAt?: number | null
-  cooldownMs?: number
 }
 
-const DEFAULT_COOLDOWN = 60 * 1000 
 
 export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
   lastMessageAt,
-  cooldownMs = DEFAULT_COOLDOWN
 }) => {
   const [now, setNow] = useState(Date.now())
   const intervalRef = useRef<number | null>(null)
@@ -22,13 +18,14 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
   const [infoVisible, setInfoVisible] = useState(false)
   const router = useRouter()
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
+  const COOLDOWN_MS = 60 * 60 * 1000 * 24
 
   // compute remaining & progress
   const last = typeof lastMessageAt === 'number' ? lastMessageAt : 0
   const elapsed = now - last
-  const remaining = Math.max(cooldownMs - elapsed, 0)
+  const remaining = Math.max(COOLDOWN_MS - elapsed, 0)
   const canRequest = remaining === 0
-  const progress = Math.min(elapsed / cooldownMs, 1) // 0..1
+  const progress = Math.min(elapsed / COOLDOWN_MS, 1) // 0..1
 
   useEffect(() => {
     intervalRef.current = setInterval(() => setNow(Date.now()), 1000) as unknown as number
@@ -65,7 +62,8 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
 
   async function handlePress() {
     if (!canRequest) return
-    router.push('/insights/personal-message')
+  // Navigate to the bobee personal-message route (single source of truth)
+  router.push('/bobee/personal-message')
   }
 
   return (
@@ -115,7 +113,7 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
 }
 
 const styles = StyleSheet.create({
-  containerOuter: { marginTop: 30 },
+  containerOuter: { marginTop: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', color: '#222', marginBottom: 10, marginTop: 0 },
   infoBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.lighter, alignItems: 'center', justifyContent: 'center', marginBottom: 10, marginLeft: 8 },

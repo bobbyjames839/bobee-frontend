@@ -6,8 +6,6 @@ import Constants from 'expo-constants';
 type HistoryItem = {
   question: string
   answer?: string
-  reasoning?: string
-  followup?: string
 }
 
 function usePrevious<T>(value: T): T | undefined {
@@ -226,11 +224,11 @@ export default function useBobee() {
         throw new Error(payload.error || `Request failed with status ${res.status}`)
       }
 
-      const { answer, reasoning, followup, conversationId: newId } = payload
+  const { answer, conversationId: newId } = payload
 
       setHistory(h => {
         const copy = [...h]
-        copy[copy.length - 1] = { question, answer, reasoning, followup }
+  copy[copy.length - 1] = { question, answer }
         return copy
       })
 

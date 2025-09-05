@@ -16,6 +16,7 @@ import {
   Keyboard,
   Platform,
   EmitterSubscription,
+  Image,
 } from 'react-native'
 import SpinningLoader from '~/components/other/SpinningLoader'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -29,8 +30,6 @@ import { colors } from '~/constants/Colors'
 type ChatHistoryItem = {
   question: string
   answer?: string
-  reasoning?: string
-  followup?: string
 }
 
 export default function ChatScreen({
@@ -145,6 +144,15 @@ export default function ChatScreen({
         automaticallyAdjustKeyboardInsets={false} // Disable automatic adjustment as we're manually handling it
         keyboardDismissMode="interactive" // Better dismiss behavior when dragging
       >
+        {history.length === 0 && !isLoading && (
+          <View style={styles.emptyWrap}>
+            <Image source={require('~/assets/images/happy.png')} style={styles.emptyImage} resizeMode="contain" />
+            <Text style={styles.emptyTitle}>Start a fresh chat</Text>
+            <Text style={styles.emptyText}>
+              Ask anything about your day, mood, habits or goals. I'll give you a thoughtful, structured reply—no fluff.
+            </Text>
+          </View>
+        )}
         {history.map((item, idx) => (
           <View key={idx} style={styles.bubbleWrapper}>
             <View style={[styles.bubble, styles.userBubble]}>
@@ -152,23 +160,8 @@ export default function ChatScreen({
             </View>
 
             {item.answer ? (
-              <View
-                style={[
-                  styles.bubble,
-                  styles.aiBubble,
-                ]}
-              >
-                {(() => {
-                  const parts: string[] = []
-                  if (item.answer) parts.push(item.answer.trim())
-                  if (item.followup) parts.push(item.followup.trim())
-                  if (item.reasoning) parts.push(item.reasoning.trim())
-                  return (
-                    <Text style={styles.aiText}>
-                      {parts.join('\n\n')}
-                    </Text>
-                  )
-                })()}
+              <View style={[styles.bubble, styles.aiBubble]}>
+                {renderStructuredAnswer(item.answer)}
               </View>
             ) : (
               isLoading &&
@@ -253,9 +246,58 @@ export default function ChatScreen({
   )
 }
 
+// Helper to structure AI answer: supports multi-paragraph and simple bullet lists.
+function renderStructuredAnswer(raw: string) {
+  const clean = raw.trim()
+  if (!clean) return null
+  // Split paragraphs by 2+ newlines OR a blank line
+  const paragraphs = clean
+    .split(/\n{2,}/)
+    .map(p => p.trim())
+    .filter(Boolean)
+
+  return (
+    <View>
+      {paragraphs.map((para, i) => {
+        // Detect if paragraph is primarily a bullet list (≥2 bullet lines)
+        const lines = para.split(/\n+/).map(l => l.trim()).filter(Boolean)
+        const bulletLines = lines.filter(l => /^[•\-]\s+/.test(l))
+        const isBulletBlock = bulletLines.length >= 2 && bulletLines.length === lines.length
+
+        if (isBulletBlock) {
+          return (
+            <View key={i} style={i > 0 ? styles.paragraphGap : undefined}>
+              {lines.map((line, li) => {
+                const text = line.replace(/^[•\-]\s+/, '')
+                return (
+                  <View key={li} style={styles.bulletRow}>
+                    <Text style={styles.bulletSymbol}>•</Text>
+                    <Text style={styles.bulletText}>{text}</Text>
+                  </View>
+                )
+              })}
+            </View>
+          )
+        }
+
+        // Otherwise treat as normal paragraph (preserve single newlines within)
+        return (
+          <Text key={i} style={[styles.aiText, i > 0 && styles.paragraphGap]}>
+            {lines.join('\n')}
+          </Text>
+        )
+      })}
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightest },
   container: { padding: 20, paddingBottom: 10 },
+  emptyWrap:{ alignItems:'center', marginTop:150, paddingHorizontal:10 },
+  emptyImage:{ width:120, height:120 },
+  emptyTitle:{ fontFamily:'SpaceMono', fontSize:18, color:colors.darkest, marginTop:10 },
+  emptyText:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, marginTop:5, textAlign:'center', lineHeight:20 },
   bubbleWrapper: { marginBottom: 8 },
   bubble: { borderRadius: 16, padding: 14, maxWidth: '85%' },
   userBubble: {
@@ -289,6 +331,28 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   aiText: {
+    color: '#fff',
+    fontFamily: 'SpaceMono',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  paragraphGap: {
+    marginTop: 10,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  bulletSymbol: {
+    color: '#fff',
+    fontFamily: 'SpaceMono',
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 0,
+  },
+  bulletText: {
+    flex: 1,
     color: '#fff',
     fontFamily: 'SpaceMono',
     fontSize: 15,
