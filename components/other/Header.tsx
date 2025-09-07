@@ -1,11 +1,5 @@
 import React from 'react'
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-} from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { colors } from '~/constants/Colors'
@@ -46,7 +40,6 @@ export default function Header({
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.blue,
-    height: 110,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'flex-end',
@@ -55,7 +48,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center', 
-    marginBottom: 17,
+    marginBottom: 10,
   },
   iconButton: {
     position: 'absolute',

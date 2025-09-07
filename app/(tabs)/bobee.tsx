@@ -192,6 +192,5 @@ const styles = StyleSheet.create({
   reflectionCompletedNote: { marginTop: 10, fontSize: 12, color: colors.dark, fontFamily: 'SpaceMono', fontStyle: 'italic' },
   reflectionBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: colors.blue, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 24, flexDirection: 'row', alignItems: 'center' },
   reflectionBadgeText: { fontSize: 12, fontFamily: 'SpaceMono', color: '#fff', fontWeight: '600' },
-  globalLoaderOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' }
-  // (Removed old overlay styles after moving to dedicated reflection page)
+  globalLoaderOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' }
 });

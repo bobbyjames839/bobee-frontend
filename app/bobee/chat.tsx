@@ -192,14 +192,14 @@ function renderSidebar({ sidebarAnim, convos, convosLoading, convosError, onSele
 }
 
 const stylesSidebar = StyleSheet.create({
-  panel:{ position:'absolute', top:0, bottom:0, left:0, backgroundColor:'#fff', paddingTop:70, paddingHorizontal:16, zIndex:50, elevation:50, borderRightWidth:1, borderColor:colors.lighter },
-  headerRow:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:16 },
+  panel:{ position:'absolute', top:0, bottom:0, left:0, backgroundColor:'#fff', paddingTop:60, paddingHorizontal:16, zIndex:50, elevation:50, borderRightWidth:1, borderColor:colors.light },
+  headerRow:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', borderBottomColor: colors.lighter, borderBottomWidth: 1, paddingBottom: 6, marginBottom:16 },
   title:{ fontFamily:'SpaceMono', fontSize:18, color:colors.darkest },
   close:{ fontSize:26, color:colors.dark },
   empty:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, opacity:0.6, marginTop:20 },
-  item:{ paddingVertical:10, borderBottomWidth:1, borderColor:colors.lighter },
-  itemTitle:{ fontFamily:'SpaceMono', fontSize:15, color:colors.darkest },
-  itemDate:{ fontFamily:'SpaceMono', fontSize:11, color:colors.dark, opacity:0.7, marginTop:2 },
+  item:{ padding:10, backgroundColor: colors.lightest, borderRadius: 8, marginBottom: 8 },
+  itemTitle:{ fontFamily:'SpaceMono', fontSize:16, color:colors.darkest },
+  itemDate:{ fontFamily:'SpaceMono', fontSize:13, color:colors.dark, opacity:0.7, marginTop:2 },
   backdrop:{ position:'absolute', top:0, left:0, right:0, bottom:0, backgroundColor:'#000', zIndex:40 },
   errorBox:{ marginTop:20, padding:10, backgroundColor:'#fee', borderRadius:8 },
   errorText:{ fontFamily:'SpaceMono', fontSize:13, color:'rgb(119,10,10)' },
