@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightest },
   container: { padding: 20, paddingBottom: 10 },
   emptyWrap:{ alignItems:'center', marginTop:150, paddingHorizontal:10 },
-  emptyImage:{ width:120, height:120, borderRadius: 100 },
+  emptyImage:{ width:120, height:120, borderRadius: 40, borderWidth:1, borderColor:colors.darkestblue },
   emptyTitle:{ fontFamily:'SpaceMono', fontSize:18, color:colors.darkest, marginTop:10 },
   emptyText:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, marginTop:5, textAlign:'center', lineHeight:20 },
   bubbleWrapper: { marginBottom: 8 },

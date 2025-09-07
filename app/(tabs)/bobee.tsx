@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView } from "react-native";
-import { Lightbulb, Target, CheckCircle2, ListTodo, Heart, Compass, Sun } from 'lucide-react-native'
+import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView, Pressable } from "react-native";
+import { Lightbulb, Target, CheckCircle2, ListTodo, Heart, Compass, Sun, Mail } from 'lucide-react-native'
+import { useRouter } from 'expo-router'
 import Header from "~/components/other/Header";
 import SpinningLoader from "~/components/other/SpinningLoader";
 import { colors } from "~/constants/Colors";
@@ -15,6 +16,11 @@ export default function BobeeMainPage() {
   const [suggestions, setSuggestions] = useState<string[] | null>(null)
   const [microChallenge, setMicroChallenge] = useState<string | null>(null)
   const [insightsError, setInsightsError] = useState<string | null>(null)
+  const [reflectionQuestion, setRefelectionQuestion] = useState<string | null>(null)
+  const [reflectionOptions, setReflectionOptions] = useState<{ text: string }[] | null>(null)
+  const [selectedReflectionOption, setSelectedReflectionOption] = useState<string | null>(null)
+  const [reflectionDoneToday, setReflectionDoneToday] = useState<boolean>(false)
+  const router = useRouter()
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
 
   // Rotate a small set of icons so each suggestion has a different one
@@ -31,7 +37,7 @@ export default function BobeeMainPage() {
       setLastMessageAt(data.lastBobeeMessage ?? null)
     } catch (_) { /* silent */ }
   }, [API_BASE])
-
+  
   const fetchInsights = useCallback(async () => {
     try {
       setInsightsLoading(true)
@@ -41,78 +47,63 @@ export default function BobeeMainPage() {
       const token = await user.getIdToken()
       const r = await fetch(`${API_BASE}/api/ai-insights`, { headers: { Authorization: `Bearer ${token}` } })
       if (!r.ok) throw new Error('failed')
-      const json = await r.json() as { suggestions: string[]; microChallenge: string | null }
+      const json = await r.json() as { suggestions: string[]; microChallenge: string | null; reflectionQuestion: string | null; reflectionOptions?: { text: string }[]; reflectionCompleted?: boolean }
       setSuggestions(json.suggestions || [])
       setMicroChallenge(json.microChallenge || null)
+      setRefelectionQuestion(json.reflectionQuestion || null)
+      setReflectionOptions(Array.isArray(json.reflectionOptions) ? json.reflectionOptions : [])
+  setReflectionDoneToday(!!json.reflectionCompleted)
     } catch (_) {
       setInsightsError('Could not load insights')
     } finally {
       setInsightsLoading(false)
     }
   }, [API_BASE])
+  
+  useFocusEffect(
+    useCallback(() => {
+      refetchMeta()
+      fetchInsights()
+    }, [refetchMeta, fetchInsights])
+  )
 
-  // Pull-to-refresh disabled per product request
-
+  // Initial metadata fetch on mount (restored per product request)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const user = getAuth().currentUser;
-        if (!user) return;
-        const token = await user.getIdToken();
-        const res = await fetch(`${API_BASE}/api/bobee-message-meta`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) return;
-        const data = await res.json() as { lastBobeeMessage: number | null };
-        if (!cancelled) setLastMessageAt(data.lastBobeeMessage ?? null);
+        const user = getAuth().currentUser
+        if (!user) return
+        const token = await user.getIdToken()
+        const res = await fetch(`${API_BASE}/api/bobee-message-meta`, { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok) return
+        const data = await res.json() as { lastBobeeMessage: number | null }
+        if (!cancelled) setLastMessageAt(data.lastBobeeMessage ?? null)
       } catch { /* silent */ }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true }
   }, [API_BASE])
 
-
-  useFocusEffect(
-    useCallback(() => {
-      let active = true
-      // Kick off both fetches on focus
-      refetchMeta()
-      fetchInsights()
-      return () => { active = false }
-    }, [refetchMeta, fetchInsights])
-  )
-
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
       <Header title="Bobee" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <NextMessageCountdown
-          lastMessageAt={lastMessageAt}
-        />
+  <NextMessageCountdown lastMessageAt={lastMessageAt} />
         <Text style={styles.sectionHeading}>Daily suggestions</Text>
         <View style={styles.insightsBlock}>
-          {insightsLoading && (
-            <View style={styles.loaderWrap}>
-              <SpinningLoader size={28} thickness={4} />
-            </View>
-          )}
           {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
           {!insightsLoading && !insightsError && suggestions && suggestions.length > 0 && (
             <View>
               {suggestions.map((s, i) => (
                 <View key={i}>
                   <View style={styles.suggestionItem}>
-                    {(() => {
-                      const Icon = suggestionIcons[i % suggestionIcons.length]
-                      return <Icon color={colors.blue} size={20} strokeWidth={2.5} style={styles.suggestionIcon} />
-                    })()}
+                    {(() => { const Icon = suggestionIcons[i % suggestionIcons.length]; return <Icon color={colors.blue} size={20} strokeWidth={2.5} style={styles.suggestionIcon} /> })()}
                     <Text style={styles.suggestionText}>{s}</Text>
                   </View>
-
-                  {/* Add divider except after the last suggestion */}
                   {i < suggestions.length - 1 && <View style={styles.suggestionDivider} />}
                 </View>
               ))}
-
               {microChallenge && (
                 <View style={styles.challengeBox}>
                   <View style={styles.challengeHeader}>
@@ -125,12 +116,53 @@ export default function BobeeMainPage() {
             </View>
           )}
           {!insightsLoading && !insightsError && (!suggestions || suggestions.length === 0) && (
-            <Text style={styles.emptyInsights}>No suggestions yet.</Text>
+            <View>
+              <Text style={styles.emptyInsightsTitle}>Welcome to Bobee</Text>
+              <Text style={styles.emptyInsights}>Once you have a few journal entries, I’ll craft daily suggestions, a micro challenge, and a reflection question here. For now, you can start a chat or write a quick journal to seed more personalized insights.</Text>
+            </View>
           )}
         </View>
+
+        <Text style={styles.sectionHeading}>Today's reflection</Text>
+        <Pressable
+          style={[styles.reflectionBlock, reflectionDoneToday && { opacity: 0.55 }]}
+          disabled={reflectionDoneToday || !reflectionOptions || reflectionOptions.length === 0}
+          onPress={() => {
+            if (reflectionDoneToday) return
+            if (reflectionOptions && reflectionOptions.length > 0) {
+              const opts = encodeURIComponent(JSON.stringify(reflectionOptions.map(o => o.text)))
+              const q = encodeURIComponent(reflectionQuestion || '')
+              router.push(`/bobee/reflection?q=${q}&options=${opts}`)
+            }
+          }}
+        >
+          {reflectionDoneToday ? (
+            <View>
+              <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
+              <Text style={styles.reflectionCompletedNote}>Reflection completed for today. Come back tomorrow.</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
+              {selectedReflectionOption && <Text style={styles.reflectionAnswer}>Your answer: {selectedReflectionOption}</Text>}
+              {reflectionOptions && reflectionOptions.length > 0 && !selectedReflectionOption && (
+                <View style={styles.reflectionBadge} pointerEvents='none'>
+                  <Mail size={14} color={colors.lightest} style={{ marginRight: 4 }} />
+                  <Text style={styles.reflectionBadgeText}>Answer</Text>
+                </View>
+              )}
+            </>
+          )}
+        </Pressable>
       </ScrollView>
+      {insightsLoading && (
+        <View style={styles.globalLoaderOverlay} pointerEvents='none'>
+          <SpinningLoader size={40} thickness={5} />
+        </View>
+      )}
     </KeyboardAvoidingView>
-  );
+  )
+
 }
 
 const styles = StyleSheet.create({
@@ -146,6 +178,7 @@ const styles = StyleSheet.create({
   challengeLabel: { fontSize: 18, fontWeight: '600', color: colors.blue, fontFamily: 'SpaceMono' },
   challengeText: { fontSize: 15, lineHeight: 20, color: colors.darkest, fontFamily: 'SpaceMono' },
   emptyInsights: { marginTop: 10, fontSize: 13, fontFamily: 'SpaceMono', color: colors.dark },
+  emptyInsightsTitle: { marginTop: 4, fontSize: 16, fontFamily: 'SpaceMono', color: colors.darkest, fontWeight: '600', marginBottom: 6 },
   errorText: { marginTop: 10, fontSize: 13, fontFamily: 'SpaceMono', color: 'crimson' },
   suggestionDivider: {
     height: 1,
@@ -153,4 +186,12 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   loaderWrap: { marginTop: 8, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
+  reflectionBlock: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.lighter, minHeight: 80, position: 'relative' },
+  reflectionText: { fontSize: 15, lineHeight: 21, color: colors.darkest, fontFamily: 'SpaceMono', paddingRight: 70 },
+  reflectionAnswer: { marginTop: 10, fontSize: 13, color: colors.dark, fontFamily: 'SpaceMono', fontStyle: 'italic' },
+  reflectionCompletedNote: { marginTop: 10, fontSize: 12, color: colors.dark, fontFamily: 'SpaceMono', fontStyle: 'italic' },
+  reflectionBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: colors.blue, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 24, flexDirection: 'row', alignItems: 'center' },
+  reflectionBadgeText: { fontSize: 12, fontFamily: 'SpaceMono', color: '#fff', fontWeight: '600' },
+  globalLoaderOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' }
+  // (Removed old overlay styles after moving to dedicated reflection page)
 });

@@ -46,22 +46,24 @@ export default function Header({
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.blue,
+    height: 110,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
   },
   headerContainer: {
-    height: 46,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center', 
+    marginBottom: 17,
   },
   iconButton: {
     position: 'absolute',
-    left: 0,
-    padding: 8,
-    paddingBottom: 20
+    left: 15, 
   },
   headerText: {
     color: '#fff',
     fontSize: 20,
-    paddingBottom: 20,
     fontWeight: '600',
     fontFamily: 'SpaceMono',
   },

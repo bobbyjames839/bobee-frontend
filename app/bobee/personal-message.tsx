@@ -294,8 +294,8 @@ export default function PersonalMessageScreen() {
             <Animated.View style={[styles.finishSectionCentered, { opacity: finishOpacity }]}>
               <Text style={styles.finishHeading}>Reflection complete</Text>
               <Text style={styles.finishNote}>Come back tomorrow for a fresh personal reflection.</Text>
-              <Pressable style={styles.finishBtn} onPress={() => router.replace("/(tabs)/insights")}>
-                <Text style={styles.finishBtnText}>Back to insights</Text>
+              <Pressable style={styles.finishBtn} onPress={() => router.replace("/(tabs)/bobee")}>
+                <Text style={styles.finishBtnText}>Back to main page</Text>
               </Pressable>
             </Animated.View>
           )}

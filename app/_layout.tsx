@@ -99,7 +99,7 @@ export default function RootLayout() {
     () => async () => {
       const root = (segments?.[0] ?? '') as string;
       const inAuth = root === '(auth)';
-      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'insights']);
+      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');

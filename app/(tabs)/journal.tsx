@@ -13,15 +13,12 @@ import SuccessBanner from '~/components/banners/SuccessBanner';
 import WelcomeBanner from '~/components/banners/Welcome';
 import { useJournalContext } from '~/context/JournalContext';
 import { colors } from '~/constants/Colors';
+import Header from '~/components/other/Header';
 
 export default function Journal() {
-  const router = useRouter();
   const journal = useJournalContext();
-
   const [welcomeVisible, setWelcomeVisible] = useState(false);
-  const navigatedRef = useRef(false);
 
-  // check one-shot flags whenever the tab gains focus (covers return from modal)
   useFocusEffect(
     React.useCallback(() => {
       let isActive = true;
@@ -68,15 +65,7 @@ export default function Journal() {
       )}
 
       <View style={styles.containerBase}>
-        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
-          <LinearGradient
-            colors={['rgba(188, 198, 255, 1)', colors.lightest]}
-            locations={[0, 0.5]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
+        <Header title="Journal" />
 
         <View style={styles.containerPadding}>
           <JournalPrompt prompt={journal.prompt} loading={journal.loading} />
@@ -109,7 +98,8 @@ const styles = StyleSheet.create({
   containerPadding: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
   centerContent: {
     position: 'absolute',
-    top: 300,
+    top: '50%',
+    transform: [{ translateY: '-50%' }],
     left: 0,
     right: 0,
     justifyContent: 'center',
