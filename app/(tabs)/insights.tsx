@@ -10,6 +10,8 @@ import { colors } from '~/constants/Colors'
 import SpinningLoader from '~/components/other/SpinningLoader'
 import Constants from 'expo-constants'
 import { getAuth } from 'firebase/auth'
+import TutorialOverlay from '~/components/other/TutorialOverlay';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
 
@@ -42,6 +44,13 @@ export default function InsightsPage() {
   })
   const [personality, setPersonality] = useState<PersonalityStats | null>(null)
   const [topics, setTopics] = useState<Topic[] | null>(null)
+  const router = useRouter();
+  const { tour } = useLocalSearchParams<{ tour?: string }>();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    setShowTutorial(tour === '3');
+  }, [tour]);
 
   useEffect(() => {
     let mounted = true
@@ -114,6 +123,19 @@ export default function InsightsPage() {
           </ScrollView>
         )}
       </View>
+      {showTutorial && (
+        <TutorialOverlay
+          step={3}
+          total={4}
+          title="Track your progress"
+          description="View habits, mood trends, topics and personality signals emerging from your journaling."
+          onNext={() => {
+            setShowTutorial(false);
+            router.push('/bobee?tour=4');
+          }}
+          onSkip={() => setShowTutorial(false)}
+        />
+      )}
     </>
   )
 }

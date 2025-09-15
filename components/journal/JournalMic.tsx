@@ -40,7 +40,6 @@ export default function JournalMic({
 
   const micScale = transAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.83] });
   const micTranslateY = transAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
-  const micOpacity = transAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1] });
 
   return (
     <>
@@ -48,13 +47,11 @@ export default function JournalMic({
         <Animated.View
           style={[
             styles.micShadowWrapper,
-            !isRecording && loading && { opacity: 0.4 },
             {
               transform: [
                 { translateY: micTranslateY },
                 { scale: micScale },
               ],
-              opacity: micOpacity,
             },
           ]}
         >

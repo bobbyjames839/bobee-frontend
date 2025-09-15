@@ -78,7 +78,7 @@ export default function SignUpScreen() {
 
       await signInWithEmailAndPassword(auth, trimmedEmail, password)
       await AsyncStorage.setItem('showWelcomeOnce', '1')
-      router.replace('/journal')
+      // Removed automatic tutorial start to avoid immediate popup
     } catch (err: any) {
       let message = 'An unexpected error occurred.'
       const txt = String(err?.message || '')

@@ -125,7 +125,7 @@ export default function SignIn() {
           {loading ? (
             <SpinningLoader size={20} thickness={3} color='white'/>
           ) : (
-            <Text style={styles.buttonText}>Log in</Text>
+            <Text style={styles.buttonText}>Login</Text>
           )}
         </TouchableOpacity>
 

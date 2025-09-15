@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
 import JournalList from '~/components/files/JournalList';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
+import TutorialOverlay from '~/components/other/TutorialOverlay';
 
 export default function FilesTabIndex() {
   const router = useRouter();
   const { journals, loading, recentThree } = useJournals();
+  const { tour } = useLocalSearchParams<{ tour?: string }>();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    setShowTutorial(tour === '2');
+  }, [tour]);
 
   const handleOpenEntry = (j: JournalEntry) => {
     router.push({ pathname: '/files/[id]', params: { id: j.id } });
@@ -36,6 +43,19 @@ export default function FilesTabIndex() {
           <JournalList journals={recentThree} onSelect={handleOpenEntry} />
 
         </ScrollView>
+      )}
+      {showTutorial && (
+        <TutorialOverlay
+          step={2}
+          total={4}
+          title="Browse past entries"
+          description="All your transcribed journals live here. Tap a date or a recent entry to revisit what you said."
+          onNext={() => {
+            setShowTutorial(false);
+            router.push('/insights?tour=3');
+          }}
+          onSkip={() => setShowTutorial(false)}
+        />
       )}
     </View>
   );

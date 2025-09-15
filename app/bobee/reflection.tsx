@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Keyboard, Platform, EmitterSubscription } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Keyboard, Platform, EmitterSubscription, KeyboardEvent } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import Header from '~/components/other/Header'
 import { colors } from '~/constants/Colors'
@@ -47,10 +47,15 @@ export default function ReflectionFlowPage() {
 
   // Keyboard handling to mimic ChatScreen footer behavior
   useEffect(() => {
+    // Use precise keyboard height so footer can sit just above it
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
-    const onShow = (e: any) => { setKbVisible(true); setKbHeight(30) }
-    const onHide = (e: any) => { setKbVisible(false); setKbHeight(0) }
+    const onShow = (e: KeyboardEvent) => {
+      setKbVisible(true)
+      const height = e.endCoordinates?.height ?? 0
+      setKbHeight(height)
+    }
+    const onHide = () => { setKbVisible(false); setKbHeight(0) }
     const showSub: EmitterSubscription = Keyboard.addListener(showEvt, onShow)
     const hideSub: EmitterSubscription = Keyboard.addListener(hideEvt, onHide)
     return () => { showSub.remove(); hideSub.remove() }
@@ -103,12 +108,15 @@ export default function ReflectionFlowPage() {
     }
   }
 
+  // Offset we actually use so we don't double-count safe area inset
+  const keyboardOffset = kbVisible ? Math.max(0, kbHeight - insets.bottom) : 0
+
   return (
     <View style={styles.container}>
       <Header title="Reflection" leftIcon="chevron-back" onLeftPress={close} />
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.chatScroll, { paddingBottom: 120 + kbHeight }]}
+        contentContainerStyle={[styles.chatScroll, { paddingBottom: 120 + keyboardOffset }]} // ensure scrollable area above the footer + keyboard
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -204,7 +212,7 @@ export default function ReflectionFlowPage() {
 
       {/* Input footer appears only after first AI answer and before final answer */}
       {selected && firstAiAnswer && !finalAiAnswer && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, { bottom: keyboardOffset }]}> 
           <View style={styles.inputContainer}>
             <AutoExpandingInput
               value={input}

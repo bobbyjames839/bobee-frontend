@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView, Pressable } from "react-native";
 import { Lightbulb, Target, CheckCircle2, ListTodo, Heart, Compass, Sun, Mail } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
@@ -9,6 +9,8 @@ import { useFocusEffect } from "expo-router";
 import { getAuth } from "@firebase/auth";
 import { NextMessageCountdown } from "~/components/bobee/NextMessageCountdown";
 import Constants from 'expo-constants'
+import TutorialOverlay from '~/components/other/TutorialOverlay';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function BobeeMainPage() {
   const [lastMessageAt, setLastMessageAt] = useState<number | null>(null)
@@ -21,10 +23,20 @@ export default function BobeeMainPage() {
   const [selectedReflectionOption, setSelectedReflectionOption] = useState<string | null>(null)
   const [reflectionDoneToday, setReflectionDoneToday] = useState<boolean>(false)
   const router = useRouter()
+  const { tour } = useLocalSearchParams<{ tour?: string }>();
+  const [showTutorial, setShowTutorial] = useState(false);
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
 
   // Rotate a small set of icons so each suggestion has a different one
   const suggestionIcons = [Lightbulb, CheckCircle2, ListTodo, Heart, Compass, Sun]
+
+  // Caching refs (persist across focuses while component mounted)
+  const hasFetchedRef = useRef(false);
+  const lastFetchTsRef = useRef<number | null>(null);
+  const lastDayKeyRef = useRef<string | null>(null);
+  const STALE_MS = 1000 * 60 * 10; // 10 minutes (adjust as desired)
+
+  const todayKey = new Date().toISOString().slice(0,10); // YYYY-MM-DD
 
   const refetchMeta = useCallback(async () => {
     try {
@@ -60,107 +72,142 @@ export default function BobeeMainPage() {
     }
   }, [API_BASE])
   
+  // Only fetch when: first focus, different day, or stale timeout elapsed.
   useFocusEffect(
     useCallback(() => {
-      refetchMeta()
-      fetchInsights()
-    }, [refetchMeta, fetchInsights])
+      const now = Date.now();
+      const stale = !lastFetchTsRef.current || (now - lastFetchTsRef.current) > STALE_MS;
+      const newDay = lastDayKeyRef.current !== todayKey;
+      if (!hasFetchedRef.current || stale || newDay) {
+        refetchMeta();
+        fetchInsights();
+        hasFetchedRef.current = true;
+        lastFetchTsRef.current = now;
+        lastDayKeyRef.current = todayKey;
+      }
+    }, [refetchMeta, fetchInsights, todayKey])
   )
 
   // Initial metadata fetch on mount (restored per product request)
+  // Initial fetch on mount (will set refs so focus effect won't immediately refetch again)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const user = getAuth().currentUser
-        if (!user) return
-        const token = await user.getIdToken()
-        const res = await fetch(`${API_BASE}/api/bobee-message-meta`, { headers: { Authorization: `Bearer ${token}` } })
-        if (!res.ok) return
-        const data = await res.json() as { lastBobeeMessage: number | null }
-        if (!cancelled) setLastMessageAt(data.lastBobeeMessage ?? null)
+        if (user) {
+          const token = await user.getIdToken()
+          const res = await fetch(`${API_BASE}/api/bobee-message-meta`, { headers: { Authorization: `Bearer ${token}` } })
+          if (res.ok) {
+            const data = await res.json() as { lastBobeeMessage: number | null }
+            if (!cancelled) {
+              setLastMessageAt(data.lastBobeeMessage ?? null)
+              hasFetchedRef.current = true;
+              lastFetchTsRef.current = Date.now();
+              lastDayKeyRef.current = todayKey;
+            }
+          }
+        }
       } catch { /* silent */ }
+      setShowTutorial(tour === '4');
     })();
     return () => { cancelled = true }
-  }, [API_BASE])
+  }, [API_BASE, todayKey, router, tour])
 
   return (
+    <>
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
       <Header title="Bobee" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-  <NextMessageCountdown lastMessageAt={lastMessageAt} />
-        <Text style={styles.sectionHeading}>Daily suggestions</Text>
-        <View style={styles.insightsBlock}>
-          {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
-          {!insightsLoading && !insightsError && suggestions && suggestions.length > 0 && (
-            <View>
-              {suggestions.map((s, i) => (
-                <View key={i}>
-                  <View style={styles.suggestionItem}>
-                    {(() => { const Icon = suggestionIcons[i % suggestionIcons.length]; return <Icon color={colors.blue} size={20} strokeWidth={2.5} style={styles.suggestionIcon} /> })()}
-                    <Text style={styles.suggestionText}>{s}</Text>
-                  </View>
-                  {i < suggestions.length - 1 && <View style={styles.suggestionDivider} />}
-                </View>
-              ))}
-              {microChallenge && (
-                <View style={styles.challengeBox}>
-                  <View style={styles.challengeHeader}>
-                    <Target color={colors.blue} size={20} strokeWidth={2.5} style={{ marginRight: 6 }} />
-                    <Text style={styles.challengeLabel}>Micro challenge</Text>
-                  </View>
-                  <Text style={styles.challengeText}>{microChallenge}</Text>
-                </View>
-              )}
-            </View>
-          )}
-          {!insightsLoading && !insightsError && (!suggestions || suggestions.length === 0) && (
-            <View>
-              <Text style={styles.emptyInsightsTitle}>Welcome to Bobee</Text>
-              <Text style={styles.emptyInsights}>Once you have a few journal entries, I’ll craft daily suggestions, a micro challenge, and a reflection question here. For now, you can start a chat or write a quick journal to seed more personalized insights.</Text>
-            </View>
-          )}
+      {insightsLoading ? (
+        <View style={styles.globalLoaderOverlay}>
+          <SpinningLoader size={46} thickness={5} />
         </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <NextMessageCountdown lastMessageAt={lastMessageAt} />
+          <Text style={styles.sectionHeading}>Daily suggestions</Text>
+          <View style={styles.insightsBlock}>
+            {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
+            {!insightsError && suggestions && suggestions.length > 0 && (
+              <View>
+                {suggestions.map((s, i) => (
+                  <View key={i}>
+                    <View style={styles.suggestionItem}>
+                      {(() => { const Icon = suggestionIcons[i % suggestionIcons.length]; return <Icon color={colors.blue} size={20} strokeWidth={2.5} style={styles.suggestionIcon} /> })()}
+                      <Text style={styles.suggestionText}>{s}</Text>
+                    </View>
+                    {i < suggestions.length - 1 && <View style={styles.suggestionDivider} />}
+                  </View>
+                ))}
+                {microChallenge && (
+                  <View style={styles.challengeBox}>
+                    <View style={styles.challengeHeader}>
+                      <Target color={colors.blue} size={20} strokeWidth={2.5} style={{ marginRight: 6 }} />
+                      <Text style={styles.challengeLabel}>Micro challenge</Text>
+                    </View>
+                    <Text style={styles.challengeText}>{microChallenge}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+            {!insightsError && (!suggestions || suggestions.length === 0) && (
+              <View>
+                <Text style={styles.emptyInsightsTitle}>Welcome to Bobee</Text>
+                <Text style={styles.emptyInsights}>Once you have a few journal entries, I’ll craft daily suggestions, a micro challenge, and a reflection question here. For now, you can start a chat or write a quick journal to seed more personalized insights.</Text>
+              </View>
+            )}
+          </View>
 
-        <Text style={styles.sectionHeading}>Today's reflection</Text>
-        <Pressable
-          style={[styles.reflectionBlock, reflectionDoneToday && { opacity: 0.55 }]}
-          disabled={reflectionDoneToday || !reflectionOptions || reflectionOptions.length === 0}
-          onPress={() => {
-            if (reflectionDoneToday) return
-            if (reflectionOptions && reflectionOptions.length > 0) {
-              const opts = encodeURIComponent(JSON.stringify(reflectionOptions.map(o => o.text)))
-              const q = encodeURIComponent(reflectionQuestion || '')
-              router.push(`/bobee/reflection?q=${q}&options=${opts}`)
-            }
-          }}
-        >
-          {reflectionDoneToday ? (
-            <View>
-              <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
-              <Text style={styles.reflectionCompletedNote}>Reflection completed for today. Come back tomorrow.</Text>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
-              {selectedReflectionOption && <Text style={styles.reflectionAnswer}>Your answer: {selectedReflectionOption}</Text>}
-              {reflectionOptions && reflectionOptions.length > 0 && !selectedReflectionOption && (
-                <View style={styles.reflectionBadge} pointerEvents='none'>
-                  <Mail size={14} color={colors.lightest} style={{ marginRight: 4 }} />
-                  <Text style={styles.reflectionBadgeText}>Answer</Text>
-                </View>
-              )}
-            </>
-          )}
-        </Pressable>
-      </ScrollView>
-      {insightsLoading && (
-        <View style={styles.globalLoaderOverlay} pointerEvents='none'>
-          <SpinningLoader size={40} thickness={5} />
-        </View>
+          <Text style={styles.sectionHeading}>Today's reflection</Text>
+          <Pressable
+            style={[styles.reflectionBlock, reflectionDoneToday && { opacity: 0.55 }]}
+            disabled={reflectionDoneToday || !reflectionOptions || reflectionOptions.length === 0}
+            onPress={() => {
+              if (reflectionDoneToday) return
+              if (reflectionOptions && reflectionOptions.length > 0) {
+                const opts = encodeURIComponent(JSON.stringify(reflectionOptions.map(o => o.text)))
+                const q = encodeURIComponent(reflectionQuestion || '')
+                router.push(`/bobee/reflection?q=${q}&options=${opts}`)
+              }
+            }}
+          >
+            {reflectionDoneToday ? (
+              <View>
+                <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
+                <Text style={styles.reflectionCompletedNote}>Reflection completed for today. Come back tomorrow.</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
+                {selectedReflectionOption && <Text style={styles.reflectionAnswer}>Your answer: {selectedReflectionOption}</Text>}
+                {reflectionOptions && reflectionOptions.length > 0 && !selectedReflectionOption && (
+                  <View style={styles.reflectionBadge} pointerEvents='none'>
+                    <Mail size={14} color={colors.lightest} style={{ marginRight: 4 }} />
+                    <Text style={styles.reflectionBadgeText}>Answer</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </Pressable>
+        </ScrollView>
       )}
     </KeyboardAvoidingView>
+    {showTutorial && (
+      <TutorialOverlay
+        step={4}
+        total={4}
+        title="Your daily AI hub"
+        description="See suggestions, a micro challenge and reflection. You're all set!"
+        nextLabel="Finish"
+        onNext={() => {
+          setShowTutorial(false);
+          router.push('/journal');
+        }}
+        onSkip={() => setShowTutorial(false)}
+      />
+    )}
+    </>
   )
 
 }

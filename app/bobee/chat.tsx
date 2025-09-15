@@ -164,7 +164,7 @@ function renderSidebar({ sidebarAnim, convos, convosLoading, convosError, onSele
         <ScrollView refreshControl={undefined}>
           {convosLoading && (
             <View style={stylesSidebar.loadingWrap}>
-              <SpinningLoader size={38} thickness={4} />
+              <SpinningLoader size={34} thickness={4} />
             </View>
           )}
           {!convosLoading && convosError && (

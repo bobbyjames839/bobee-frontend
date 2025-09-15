@@ -18,7 +18,7 @@ type Props = {
 export default function MoodChart({ series }: Props) {
   const router = useRouter();
 
-  const [range, setRange] = useState<RangeKey>('7d');
+  const [range, setRange] = useState<RangeKey>('28d');
 
   const cardWidth = Dimensions.get('window').width - 60;
 

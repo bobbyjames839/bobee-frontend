@@ -1,9 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import JournalMic from '~/components/journal/JournalMic';
 import JournalPrompt from '~/components/journal/JournalPrompt';
@@ -11,6 +8,7 @@ import JournalLoading from '~/components/journal/JournalLoading';
 import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import WelcomeBanner from '~/components/banners/Welcome';
+import TutorialOverlay from '~/components/other/TutorialOverlay';
 import { useJournalContext } from '~/context/JournalContext';
 import { colors } from '~/constants/Colors';
 import Header from '~/components/other/Header';
@@ -18,33 +16,14 @@ import Header from '~/components/other/Header';
 export default function Journal() {
   const journal = useJournalContext();
   const [welcomeVisible, setWelcomeVisible] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const { tour } = useLocalSearchParams<{ tour?: string }>();
+  const router = useRouter();
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true;
-
-      const checkFlags = async () => {
-        try {
-          const welcome = await AsyncStorage.getItem('showWelcomeOnce');
-
-          if (!isActive) return;
-
-          if (welcome === '1') {
-            setWelcomeVisible(true);
-            await AsyncStorage.removeItem('showWelcomeOnce');
-          }
-        } catch {
-          // ignore
-        }
-      };
-
-      checkFlags();
-
-      return () => {
-        isActive = false;
-      };
-    }, [])
-  );
+  useEffect(() => {
+    // show tutorial overlay only if ?tour=1 is present in URL
+    setShowTutorial(tour === '1');
+  }, [tour]);
 
   return (
     <>
@@ -89,6 +68,21 @@ export default function Journal() {
           </View>
         </View>
       </View>
+      {showTutorial && (
+        <TutorialOverlay
+          step={1}
+          total={4}
+          title="Journal your thoughts"
+          description="Tap the mic to start speaking. This daily habit powers your insights and Bobee's suggestions."
+          onNext={() => {
+            setShowTutorial(false);
+            router.push('/files?tour=2');
+          }}
+          onSkip={() => {
+            setShowTutorial(false);
+          }}
+        />
+      )}
     </>
   );
 }
@@ -98,11 +92,11 @@ const styles = StyleSheet.create({
   containerPadding: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
   centerContent: {
     position: 'absolute',
-    top: '50%',
+    top: 0,
+    marginTop: '50%',
     transform: [{ translateY: '-50%' }],
     left: 0,
     right: 0,
-    justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },

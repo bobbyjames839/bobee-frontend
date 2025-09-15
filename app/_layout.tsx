@@ -99,7 +99,8 @@ export default function RootLayout() {
     () => async () => {
       const root = (segments?.[0] ?? '') as string;
       const inAuth = root === '(auth)';
-      const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal']);
+  // Include tutorial so user can view intro page without immediate redirect
+  const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');

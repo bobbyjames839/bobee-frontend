@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getAuth, signOut } from 'firebase/auth';
 import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Item = {
   label: string;
@@ -50,6 +51,12 @@ export default function SettingsIndex() {
     { label: 'Privacy Statement',  icon: 'shield-checkmark-outline',   path: '/settings/priv' },
     { label: 'Terms & Conditions', icon: 'document-text-outline',      path: '/settings/terms' },
     { label: 'Contact',            icon: 'mail-outline',               path: '/settings/contact' }, // New contact link
+    { label: 'Replay tutorial',    icon: 'refresh-outline', onPress: async () => {
+        try {
+          await AsyncStorage.removeItem('tutorialComplete');
+          router.push('/tutorial');
+        } catch (e) { console.warn('Failed to reset tutorial', e); }
+      }},
   ];
 
   const renderSection = (title: string, items: Item[]) => (

@@ -9,7 +9,7 @@ const loadingMessages = [
   'Calculating word and streak count.',
   'Getting personality metrics.',
   'Getting AI response.',
-  'Finalising...',
+  'Finalising...'
 ];
 
 const AnimatedLoadingRow = ({ msg, isCompleted, isActive }: { msg: string; isCompleted: boolean; isActive: boolean }) => {
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   // Set a maxHeight so once rows exceed this area, they become scrollable.
   // Adjust (e.g., 220–320) to fit your design.
   scroll: {
-    maxHeight: 200,
+    height: 200,
   },
   scrollContent: {
     paddingBottom: 8,
