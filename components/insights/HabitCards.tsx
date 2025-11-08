@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, Dimensions, Image } from 'react-native'
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg'
 import { colors } from '~/constants/Colors'
 
-// define the type locally to avoid circular imports
 type Stats = {
   totalWords: number
   totalEntries: number
   currentStreak: number
   avgMoodLast3Days: number | null
-  hourlyHistogram?: number[] // length 24, counts by UTC hour
+  hourlyHistogram?: number[]
 }
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png')
@@ -159,7 +158,7 @@ export default function HabitCards({ stats }: Props) {
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono', color: '#222', marginTop: 34, marginBottom: 10 },
+  sectionTitle: { fontSize: 20, fontWeight: '600', fontFamily: 'SpaceMonoSemibold', color: '#222', marginTop: 34, marginBottom: 10 },
   largeCard: { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8, minHeight: 120, justifyContent: 'space-between', borderColor: colors.lighter, borderWidth: 1 },
   largeCardBottom: { marginBottom: 24 },  
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },

@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   finishBtnText: { color: '#fff', fontFamily: 'SpaceMono', fontSize: 18, fontWeight: '600', letterSpacing: 0.8 },
   finishSection: { marginTop: 34, alignItems: 'center', paddingHorizontal: 16 },
   finishSectionCentered: { position: 'absolute', top: '50%', left: '50%', width: 300, marginLeft: -150, marginTop: -120, alignItems: 'center', paddingHorizontal: 16 },
-  finishHeading: { fontSize: 22, fontWeight: '600', color: colors.dark, fontFamily: 'SpaceMono', marginBottom: 10 },
+  finishHeading: { fontSize: 22, fontWeight: '600', color: colors.dark, fontFamily: 'SpaceMonoBold', marginBottom: 10 },
   finishNote: { fontSize: 13, color: colors.dark, opacity: 0.75, fontFamily: 'SpaceMono', textAlign: 'center', lineHeight: 18, maxWidth: 260 },
 
   meta: { fontSize: 14, color: colors.dark, fontFamily: 'SpaceMono', marginBottom: 12 },

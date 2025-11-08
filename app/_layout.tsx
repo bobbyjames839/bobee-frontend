@@ -1,10 +1,7 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
-// Polyfills for Node globals needed by streaming audio code
 import { Buffer } from 'buffer';
-// @ts-ignore
 if (!(global as any).Buffer) (global as any).Buffer = Buffer;
-
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -27,7 +24,6 @@ import { auth } from '../utils/firebase';
 import { JournalRefreshProvider } from '../context/JournalRefreshContext';
 import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { JournalProvider } from '~/context/JournalContext';
-import { JournalsProvider } from '~/context/JournalsContext';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -37,7 +33,10 @@ const API_URL: string | undefined =
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    SpaceMono: require('../assets/fonts/Lora-VariableFont_wght.ttf'),
+    SpaceMono: require('../assets/fonts/Poppins-Regular.ttf'),
+    SpaceMonoBold: require('../assets/fonts/Poppins-SemiBold.ttf'),
+    SpaceMonoSemibold: require('../assets/fonts/Poppins-Medium.ttf'),
+    Lora: require('../assets/fonts/Lora-VariableFont_wght.ttf'),
   });
 
   const [authReady, setAuthReady] = useState(false);
@@ -100,7 +99,7 @@ export default function RootLayout() {
       const root = (segments?.[0] ?? '') as string;
       const inAuth = root === '(auth)';
   // Include tutorial so user can view intro page without immediate redirect
-  const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial']);
+  const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial', 'insights']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');
@@ -157,7 +156,6 @@ export default function RootLayout() {
       {/* App content (always mounted, visible) */}
       <SubscriptionProvider>
         <JournalRefreshProvider>
-          <JournalsProvider>
           <JournalProvider>
             <Stack
               screenOptions={{
@@ -223,7 +221,6 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'auto'} />
           </JournalProvider>
-          </JournalsProvider>
         </JournalRefreshProvider>
       </SubscriptionProvider>
 

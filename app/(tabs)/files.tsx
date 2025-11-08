@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, Text } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Header from '~/components/other/Header';
@@ -11,9 +11,14 @@ import TutorialOverlay from '~/components/other/TutorialOverlay';
 
 export default function FilesTabIndex() {
   const router = useRouter();
-  const { journals, loading, recentThree } = useJournals();
+  const { journals, loading, recentThree, dailyMoods, fetchJournals } = useJournals();
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const [showTutorial, setShowTutorial] = useState(false);
+
+  // Fetch journals when files page loads
+  useEffect(() => {
+    fetchJournals();
+  }, [fetchJournals]);
 
   useEffect(() => {
     setShowTutorial(tour === '2');
@@ -37,7 +42,11 @@ export default function FilesTabIndex() {
           </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <JournalCalendar journals={journals} onSelectDate={handleSelectDate} />
+          <JournalCalendar 
+            dailyMoods={dailyMoods} 
+            recentJournals={recentThree}
+            onSelectDate={handleSelectDate} 
+          />
 
           <Text style={styles.sectionTitle}>Recent entries</Text>
           <JournalList journals={recentThree} onSelect={handleOpenEntry} />
@@ -47,7 +56,7 @@ export default function FilesTabIndex() {
       {showTutorial && (
         <TutorialOverlay
           step={2}
-          total={4}
+          total={5}
           title="Browse past entries"
           description="All your transcribed journals live here. Tap a date or a recent entry to revisit what you said."
           onNext={() => {
@@ -66,10 +75,9 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 16, paddingHorizontal: 20 },
   sectionTitle: {
     marginTop: 34,
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     marginBottom: 8,
     fontSize: 20,
-    fontWeight: '600',
     color: '#222',
   },
 });

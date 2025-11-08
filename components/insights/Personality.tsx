@@ -89,9 +89,9 @@ export default function PersonalitySection({ personalityStats }: Props) {
 /* styles left exactly as you had them */
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     color: '#222',
     marginTop: 10,
     marginBottom: 3,
@@ -116,15 +116,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
+    padding: 12,
     flex: 1,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 4, height: 4 }, // Change this
     shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    height: 150,
+    elevation: 3,
     justifyContent: 'space-between',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },

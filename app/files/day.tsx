@@ -31,23 +31,31 @@ function formatDateDisplay(dateStr: string) {
 function DayEntriesScreenInner() {
   const router = useRouter();
   const { date } = useLocalSearchParams<{ date: string }>();
-  const { journals, loading } = useJournals();
+  const { fetchJournalsByDate } = useJournals();
   const insets = useSafeAreaInsets();
+  const [entriesForDay, setEntriesForDay] = React.useState<JournalEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  // Helper: local YYYY-MM-DD (no UTC conversion)
-  function ymdLocal(d: Date) {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  }
+  React.useEffect(() => {
+    if (!date) {
+      setEntriesForDay([]);
+      setLoading(false);
+      return;
+    }
 
-  const entriesForDay = useMemo(() => {
-    if (!date) return [];
-    return journals.filter(
-      (e) => ymdLocal(e.createdAt.toDate()) === date
-    );
-  }, [journals, date]);
+    setLoading(true);
+    fetchJournalsByDate(date)
+      .then((entries) => {
+        setEntriesForDay(entries);
+      })
+      .catch((error) => {
+        console.error('Error fetching journals by date:', error);
+        setEntriesForDay([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [date, fetchJournalsByDate]);
 
   const handleOpen = (j: JournalEntry) => {
     router.push({ pathname: '/files/[id]', params: { id: j.id } });
@@ -56,7 +64,7 @@ function DayEntriesScreenInner() {
   return (
     <View style={styles.container}>
     <Header
-        title={date ? `Entries on ${formatDateDisplay(date)}` : 'Entries'}
+        title={date ? `${formatDateDisplay(date)}` : 'Entries'}
         leftIcon="chevron-back"
         onLeftPress={() => (router.back())}/>
 

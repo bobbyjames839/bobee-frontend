@@ -126,7 +126,7 @@ export default function InsightsPage() {
       {showTutorial && (
         <TutorialOverlay
           step={3}
-          total={4}
+          total={5}
           title="Track your progress"
           description="View habits, mood trends, topics and personality signals emerging from your journaling."
           onNext={() => {

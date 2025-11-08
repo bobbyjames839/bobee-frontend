@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Text, StyleSheet, Dimensions } from 'react-native'
+import { Animated, Text, StyleSheet, Dimensions, View } from 'react-native'
+import { CheckCircle } from 'lucide-react-native'
 
 interface Props {
   message: string
@@ -36,7 +37,10 @@ export default function SuccessBanner({ message, onHide }: Props) {
         { transform: [{ translateY: slideY }], width },
       ]}
     >
-      <Text style={styles.text}>{message}</Text>
+      <View style={styles.content}>
+        <CheckCircle size={24} color="#ffffff" style={styles.icon} />
+        <Text style={styles.text}>{message}</Text>
+      </View>
     </Animated.View>
   )
 }
@@ -45,18 +49,27 @@ const styles = StyleSheet.create({
   banner: {
     position: 'absolute',
     top: 0,
-    backgroundColor: '#2ECC71',
+    backgroundColor: '#10b981',
     paddingBottom: 15,
     paddingTop: 60,
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    marginRight: 12,
+  },
   text: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'SpaceMono',
     textAlign: 'center',
+    fontWeight: '500',
   },
 })

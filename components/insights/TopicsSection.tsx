@@ -35,9 +35,16 @@ export default function TopicsSection({ topics }: Props) {
   // Border styling for slices and outer ring
   const sliceStroke = '#d5d5d5ff' as const; // subtle dark gray
   const strokeWidth = 1;
-
+  
   const slices = useMemo(() => {
     let cumulative = 0;
+
+    // Define a nice categorical palette
+    const palette = [
+      "#757ef8ff", "#2b2ef2ff", "#575ee1ff", "#be93f7ff",
+      "#9062f3ff"
+    ];
+
     return listToRender.map((t, idx) => {
       const value = t.count;
       const fraction = value / totalCount;
@@ -53,13 +60,13 @@ export default function TopicsSection({ topics }: Props) {
 
       const path = `M ${radius} ${radius} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
-      // Color scale
-      const lightness = 45 + (idx / Math.max(1, listToRender.length - 1)) * 30;
-      const fill = `hsl(220, 85%, ${lightness}%)`;
+      // Pick color from palette (wrap around if more slices than colors)
+      const fill = palette[idx % palette.length];
 
       return { topic: t.topic, value, fraction, path, fill };
     });
   }, [listToRender, totalCount, radius]);
+
 
   const legend = slices.slice(0, 6); // show up to 6 legend rows
 
@@ -135,9 +142,9 @@ export default function TopicsSection({ topics }: Props) {
 /* styles unchanged */
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     color: '#222',
     marginBottom: 10,
     marginTop: 34,

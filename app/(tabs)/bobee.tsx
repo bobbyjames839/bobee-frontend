@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView, Pressable } from "react-native";
-import { Lightbulb, Target, CheckCircle2, ListTodo, Heart, Compass, Sun, Mail } from 'lucide-react-native'
+import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, ScrollView, Pressable, TouchableOpacity, Image } from "react-native";
+import { Lightbulb, Target, CheckCircle2, ListTodo, Heart, Compass, Sun, Mail, MessageCircle } from 'lucide-react-native'
+import Svg, { Defs, LinearGradient, Stop, Polygon } from 'react-native-svg';
 import { useRouter } from 'expo-router'
 import Header from "~/components/other/Header";
 import SpinningLoader from "~/components/other/SpinningLoader";
@@ -126,30 +127,75 @@ export default function BobeeMainPage() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <NextMessageCountdown lastMessageAt={lastMessageAt} />
-          <Text style={styles.sectionHeading}>Daily suggestions</Text>
+
+          <Pressable
+            style={[styles.reflectionPill, reflectionDoneToday && { opacity: 0.55 }]}
+            disabled={reflectionDoneToday || !reflectionOptions || reflectionOptions.length === 0}
+            onPress={() => {
+              if (reflectionDoneToday) return;
+              if (reflectionOptions && reflectionOptions.length > 0) {
+                const opts = encodeURIComponent(JSON.stringify(reflectionOptions.map(o => o.text)));
+                const q = encodeURIComponent(reflectionQuestion || '');
+                router.push(`/bobee/reflection?q=${q}&options=${opts}`);
+              }
+            }}
+          >
+            {/* Decorative right-side span with slanted left edge */}
+            <Svg
+              pointerEvents="none"
+              style={styles.reflectionSpan}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              <Defs>
+                <LinearGradient id="reflectGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="#ffffff" stopOpacity={0.18} />
+                  <Stop offset="1" stopColor="#ffffff" stopOpacity={0.04} />
+                </LinearGradient>
+              </Defs>
+              <Polygon points="15,0 100,0 100,100 0,100" fill="url(#reflectGrad)" />
+            </Svg>
+            <View style={{ alignItems: 'flex-end', marginRight: 20, display: 'flex', flexDirection: 'column' }}>
+              <View style={styles.readyContentTop}>
+                <Text style={styles.reflectionArrow}>←</Text>
+                <Text style={styles.readyTitle}>DAILY REFLECTION</Text>
+              </View>
+              <Text style={styles.readyNote}>Tap to complete your daily reflection</Text>
+            </View>
+            <View style={styles.reflectionIconCircle}>
+              <Mail size={32} color={'#fff'} />
+            </View>
+          </Pressable>
+
           <View style={styles.insightsBlock}>
             {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
             {!insightsError && suggestions && suggestions.length > 0 && (
-              <View>
+              <>
+              <View style={styles.insightsBlockRight}>
+                {/* Vertical connecting line */}
+                <View style={styles.timelineSpine} />
+                
                 {suggestions.map((s, i) => (
                   <View key={i}>
                     <View style={styles.suggestionItem}>
-                      {(() => { const Icon = suggestionIcons[i % suggestionIcons.length]; return <Icon color={colors.blue} size={20} strokeWidth={2.5} style={styles.suggestionIcon} /> })()}
+                      {/* Icon positioned absolutely to the left */}
+                      <View style={styles.suggestionIconContainer}>
+                        {(() => { 
+                          const Icon = suggestionIcons[i % suggestionIcons.length]; 
+                          return <Icon color={colors.blue} size={20} strokeWidth={2.5} />
+                        })()}
+                      </View>
                       <Text style={styles.suggestionText}>{s}</Text>
                     </View>
                     {i < suggestions.length - 1 && <View style={styles.suggestionDivider} />}
                   </View>
                 ))}
-                {microChallenge && (
-                  <View style={styles.challengeBox}>
-                    <View style={styles.challengeHeader}>
-                      <Target color={colors.blue} size={20} strokeWidth={2.5} style={{ marginRight: 6 }} />
-                      <Text style={styles.challengeLabel}>Micro challenge</Text>
-                    </View>
-                    <Text style={styles.challengeText}>{microChallenge}</Text>
-                  </View>
-                )}
+                <Image 
+                  source={require('../../assets/images/happy.png')} 
+                  style={styles.insightsBackgroundImage}
+                />
               </View>
+              </>
             )}
             {!insightsError && (!suggestions || suggestions.length === 0) && (
               <View>
@@ -158,51 +204,38 @@ export default function BobeeMainPage() {
               </View>
             )}
           </View>
-
-          <Text style={styles.sectionHeading}>Today's reflection</Text>
-          <Pressable
-            style={[styles.reflectionBlock, reflectionDoneToday && { opacity: 0.55 }]}
-            disabled={reflectionDoneToday || !reflectionOptions || reflectionOptions.length === 0}
-            onPress={() => {
-              if (reflectionDoneToday) return
-              if (reflectionOptions && reflectionOptions.length > 0) {
-                const opts = encodeURIComponent(JSON.stringify(reflectionOptions.map(o => o.text)))
-                const q = encodeURIComponent(reflectionQuestion || '')
-                router.push(`/bobee/reflection?q=${q}&options=${opts}`)
-              }
-            }}
-          >
-            {reflectionDoneToday ? (
-              <View>
-                <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
-                <Text style={styles.reflectionCompletedNote}>Reflection completed for today. Come back tomorrow.</Text>
+          {microChallenge && (
+            <View style={styles.challengeBox}>
+              <Target color={colors.blue} size={74} strokeWidth={2} style={{ marginRight: 10 }} />
+              <View style={styles.challengeRight}>
+                <Text style={styles.challengeLabel}>Micro Challenge</Text>
+                <Text style={styles.challengeText}>{microChallenge}</Text>
               </View>
-            ) : (
-              <>
-                <Text style={styles.reflectionText}>{reflectionQuestion}</Text>
-                {selectedReflectionOption && <Text style={styles.reflectionAnswer}>Your answer: {selectedReflectionOption}</Text>}
-                {reflectionOptions && reflectionOptions.length > 0 && !selectedReflectionOption && (
-                  <View style={styles.reflectionBadge} pointerEvents='none'>
-                    <Mail size={14} color={colors.lightest} style={{ marginRight: 4 }} />
-                    <Text style={styles.reflectionBadgeText}>Answer</Text>
-                  </View>
-                )}
-              </>
-            )}
-          </Pressable>
+            </View>
+          )}
         </ScrollView>
       )}
+      {/* Floating chat FAB */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.chatCta}
+        accessibilityRole="button"
+        accessibilityLabel="Open chat with Bobee"
+        onPress={() => router.push('/bobee/chat')}
+      >
+        <MessageCircle color={colors.blue} size={32} strokeWidth={2.5} />
+      </TouchableOpacity>
     </KeyboardAvoidingView>
     {showTutorial && (
       <TutorialOverlay
         step={4}
-        total={4}
+        total={5}
         title="Your daily AI hub"
-        description="See suggestions, a micro challenge and reflection. You're all set!"
-        nextLabel="Finish"
+        description={"See suggestions, a micro challenge and a reflection question to guide you."}
+        nextLabel="Chat with Bobee"
         onNext={() => {
           setShowTutorial(false);
-          router.push('/journal');
+          router.push('/bobee/chat?tour=5');
         }}
         onSkip={() => setShowTutorial(false)}
       />
@@ -213,31 +246,225 @@ export default function BobeeMainPage() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.lightest },
-  scrollContent: { padding: 20 },
-  insightsBlock: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.lighter },
-  sectionHeading: { fontSize: 22, fontFamily: 'SpaceMono', color: colors.darkest, marginTop: 20, marginBottom: 10 },
-  suggestionItem: { flexDirection: 'row', alignItems: 'flex-start'},
-  suggestionIcon: { marginTop: 4, marginRight: 10 },
-  suggestionText: { flex: 1, fontSize: 15, lineHeight: 21, color: colors.darkest, fontFamily: 'SpaceMono' },
-  challengeBox: { marginTop: 28, padding: 14, backgroundColor: '#f5f7ff', borderRadius: 14, borderWidth: 1, borderColor: colors.lighter },
-  challengeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  challengeLabel: { fontSize: 18, fontWeight: '600', color: colors.blue, fontFamily: 'SpaceMono' },
-  challengeText: { fontSize: 15, lineHeight: 20, color: colors.darkest, fontFamily: 'SpaceMono' },
-  emptyInsights: { marginTop: 10, fontSize: 13, fontFamily: 'SpaceMono', color: colors.dark },
-  emptyInsightsTitle: { marginTop: 4, fontSize: 16, fontFamily: 'SpaceMono', color: colors.darkest, fontWeight: '600', marginBottom: 6 },
-  errorText: { marginTop: 10, fontSize: 13, fontFamily: 'SpaceMono', color: 'crimson' },
+  flex: {
+    flex: 1,
+    backgroundColor: colors.lightest,
+  },
+  scrollContent: {
+    paddingVertical: 30,
+  },
+  insightsBlock: {
+    display: 'flex',
+    marginTop: 20,
+  },
+  insightsBlockRight: {
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 20,
+    borderTopLeftRadius: 20,
+    width: '80%', // made wider
+    alignSelf: 'flex-end',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    position: 'relative', // needed for absolute positioning of spine and icons
+  },
+  insightsBackgroundImage: {
+    position: 'absolute',
+    bottom: -20,
+    right: -50,
+    width: 180,
+    height: 180,
+    opacity: 0.1,
+    transform: [{ rotate: '-25deg' }],
+  },
+  timelineSpine: {
+    position: 'absolute',
+    left: -45,
+    top: 22, 
+    height: 150, 
+    width: 2,
+    backgroundColor: colors.lighter,
+    borderRadius: 2,
+  },
+  suggestionIconContainer: {
+    position: 'absolute',
+    left: -80, // moved further left
+    top: 2, // center vertically with text
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  suggestionIcon: {
+    marginTop: 4,
+    marginRight: 10,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.darkest,
+    fontFamily: 'SpaceMono',
+  },
+  challengeBox: {
+    marginTop: 20,
+    padding: 12,
+    width: '100%',
+    boxSizing: 'border-box',
+    backgroundColor: '#f5f7ff',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: colors.lighter,
+  },
+  challengeRight: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  challengeLabel: {
+    fontSize: 18,
+    color: colors.darkest,
+    fontFamily: 'SpaceMonoSemibold',
+  },
+  challengeText: {
+    fontSize: 15,
+    lineHeight: 20,
+    marginTop: 5,
+    color: colors.darker,
+    fontFamily: 'SpaceMono',
+  },
+  emptyInsights: {
+    marginTop: 10,
+    fontSize: 13,
+    fontFamily: 'SpaceMono',
+    color: colors.dark,
+  },
+  emptyInsightsTitle: {
+    marginTop: 4,
+    fontSize: 16,
+    fontFamily: 'SpaceMono',
+    color: colors.darkest,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 13,
+    fontFamily: 'SpaceMono',
+    color: 'crimson',
+  },
   suggestionDivider: {
     height: 1,
     backgroundColor: colors.lighter,
     marginVertical: 15,
   },
-  loaderWrap: { marginTop: 8, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
-  reflectionBlock: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.lighter, minHeight: 80, position: 'relative' },
-  reflectionText: { fontSize: 15, lineHeight: 21, color: colors.darkest, fontFamily: 'SpaceMono', paddingRight: 70 },
-  reflectionAnswer: { marginTop: 10, fontSize: 13, color: colors.dark, fontFamily: 'SpaceMono', fontStyle: 'italic' },
-  reflectionCompletedNote: { marginTop: 10, fontSize: 12, color: colors.dark, fontFamily: 'SpaceMono', fontStyle: 'italic' },
-  reflectionBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: colors.blue, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 24, flexDirection: 'row', alignItems: 'center' },
-  reflectionBadgeText: { fontSize: 12, fontFamily: 'SpaceMono', color: '#fff', fontWeight: '600' },
-  globalLoaderOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' }
+  loaderWrap: {
+    marginTop: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reflectionPill: {
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: colors.blue,
+    width: '85%',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderTopRightRadius: 50,
+    borderBottomRightRadius: 50,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
+    elevation: 6,
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  reflectionSpan: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%', zIndex: 0 },
+  reflectionIconCircle: {
+    width: 74,
+    height: 74,
+    borderRadius: 44,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1
+  },
+  reflectionArrow: {
+    fontSize: 24,
+    color: 'rgba(255,255,255,0.85)',
+    marginRight: 14,
+    fontFamily: 'SpaceMono',
+    zIndex: 1
+  },
+  readyContent: {
+    flex: 1,
+    justifyContent: 'center',
+    textAlign: 'right',
+    zIndex: 1,
+  },
+  readyContentTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  readyTitle: {
+    color: colors.lightest,
+    fontFamily: 'SpaceMonoSemibold',
+    fontSize: 18,
+  },
+  readyNote: {
+    marginTop: 5,
+    color: colors.lighter,
+    fontFamily: 'SpaceMono',
+    fontSize: 15,
+    alignItems: 'flex-end',
+    zIndex: 1
+  },
+
+  globalLoaderOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatCta: {
+    position: 'absolute',
+    bottom: 14,
+    right: 14,
+    width: 66,
+    height: 66,
+    borderRadius: 38,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  // removed chatCtaText & bottomSpacer as we shifted to FAB style
 });

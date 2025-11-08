@@ -8,6 +8,7 @@ import SpinningLoader from "~/components/other/SpinningLoader";
 import { colors } from "~/constants/Colors";
 import { getAuth } from 'firebase/auth';
 import Constants from 'expo-constants';
+import TutorialOverlay from '~/components/other/TutorialOverlay';
 
 export default function BobeeChatPage() {
   const [isSaving, setIsSaving] = useState(false);
@@ -95,6 +96,13 @@ export default function BobeeChatPage() {
     }
   }, [input, pendingInitial, handleSubmit]);
 
+  const { tour } = useLocalSearchParams<{ tour?: string }>();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    setShowTutorial(tour === '5');
+  }, [tour]);
+
   return (
     <KeyboardAvoidingView 
       style={styles.flex} 
@@ -137,6 +145,20 @@ export default function BobeeChatPage() {
         }}
       />
       {/* Sidebar overlay */}
+      {showTutorial && (
+        <TutorialOverlay
+          step={5}
+          total={5}
+          title="Chat with Bobee"
+          description="Ask questions, get coaching, or brainstorm. Bobee learns from your journaling to tailor responses."
+          nextLabel="Finish"
+          onNext={() => {
+            setShowTutorial(false);
+            router.push('/journal');
+          }}
+          onSkip={() => setShowTutorial(false)}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -194,7 +216,7 @@ function renderSidebar({ sidebarAnim, convos, convosLoading, convosError, onSele
 const stylesSidebar = StyleSheet.create({
   panel:{ position:'absolute', top:0, bottom:0, left:0, backgroundColor:'#fff', paddingTop:60, paddingHorizontal:16, zIndex:50, elevation:50, borderRightWidth:1, borderColor:colors.light },
   headerRow:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', borderBottomColor: colors.lighter, borderBottomWidth: 1, paddingBottom: 6, marginBottom:16 },
-  title:{ fontFamily:'SpaceMono', fontSize:18, color:colors.darkest },
+  title:{ fontFamily:'SpaceMonoSemibold', fontSize:18, color:colors.darkest },
   close:{ fontSize:26, color:colors.dark },
   empty:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, opacity:0.6, marginTop:20 },
   item:{ padding:10, backgroundColor: colors.lightest, borderRadius: 8, marginBottom: 8 },

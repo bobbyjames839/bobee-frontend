@@ -169,7 +169,7 @@ const buildLine = (vals: Array<number | null>) => {
 const styles = StyleSheet.create({
   container: { marginTop: 12 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  title: { fontSize: 22, fontWeight: '600', fontFamily: 'SpaceMono' },
+  title: { fontSize: 20, fontWeight: '600', fontFamily: 'SpaceMonoSemibold' },
   toggleRow: { flexDirection: 'row' },
 
   card: {

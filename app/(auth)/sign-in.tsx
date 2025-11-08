@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Keyboard } from 'react-native';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Keyboard, Animated } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
 import { BlurView } from 'expo-blur';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -7,6 +7,7 @@ import { auth } from '~/utils/firebase';
 import { useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import ErrorBanner from '~/components/banners/ErrorBanner';
+import SuccessBanner from '~/components/banners/SuccessBanner';
 import ResetPassword from '~/components/reset/ResetPassword';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -15,9 +16,28 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
   const [loading, setLoading] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Check if user just signed out
+    const checkSignOut = async () => {
+      try {
+        const shouldShow = await AsyncStorage.getItem('showSignOutMessage');
+        if (shouldShow === '1') {
+          setSuccessMessage('Successfully signed out');
+          await AsyncStorage.removeItem('showSignOutMessage');
+        }
+      } catch (error) {
+        console.error('Error checking sign out message:', error);
+      }
+    };
+
+    checkSignOut();
+  }, []);
 
   const isDisabled = useMemo(() => {
     return loading || !email.trim() || !password;
@@ -44,7 +64,15 @@ export default function SignIn() {
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
       await AsyncStorage.setItem('showWelcomeOnce', '1');
-      router.replace('/journal');
+      
+      // Fade out before navigation
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        router.replace('/journal');
+      });
     } catch (err: any) {
       let message = 'An unexpected error occurred.';
       switch (err?.code) {
@@ -103,8 +131,11 @@ export default function SignIn() {
   );
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <ErrorBanner message={error} onHide={() => setError('')} />
+      {successMessage && (
+        <SuccessBanner message={successMessage} onHide={() => setSuccessMessage('')} />
+      )}
 
       <View style={styles.topRightCircle} />
       <View style={styles.topLeftCircle} />
@@ -141,7 +172,7 @@ export default function SignIn() {
       <Modal visible={showReset} animationType="slide" transparent>
         <ResetPassword onClose={() => setShowReset(false)} />
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -149,7 +180,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    backgroundColor: 'white',
+    backgroundColor: colors.lightest,
     justifyContent: 'space-between',
     paddingBottom: 24,
     position: 'relative',
@@ -163,7 +194,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 22,
     textAlign: 'center',
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
   },
   blurInput: {
     marginBottom: 10,

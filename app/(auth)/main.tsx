@@ -1,16 +1,45 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
+import SuccessBanner from '~/components/banners/SuccessBanner';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    // Check if user just signed out
+    const checkSignOut = async () => {
+      try {
+        const shouldShow = await AsyncStorage.getItem('showSignOutMessage');
+        if (shouldShow === '1') {
+          setSuccessMessage('Successfully signed out');
+          await AsyncStorage.removeItem('showSignOutMessage');
+        }
+      } catch (error) {
+        console.error('Error checking sign out message:', error);
+      }
+    };
+
+    checkSignOut();
+  }, []);
 
   return (
     <View style={styles.container}>
+      {successMessage && (
+        <SuccessBanner message={successMessage} onHide={() => setSuccessMessage('')} />
+      )}
+      
       <View style={styles.topRightCircle} />
       <View style={styles.topLeftCircle} />
-      <View style={styles.bottomLeftCircle} />
+      <View style={styles.bottomRightCircle} />
+      <Image
+        source={require('~/assets/images/home.png')} // update path if different
+        style={styles.homeImage}
+        resizeMode="contain"
+      />
 
       <Text style={styles.title}>Bobee</Text>
       <Text style={styles.subtitle}>Your AI journaling assistant</Text>
@@ -35,22 +64,21 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    backgroundColor: 'white',
+    backgroundColor: colors.lightest,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '600',
-    fontFamily: 'SpaceMono',
-    marginBottom: 8,
+    marginTop: 300,
+    fontSize: 46,
+    fontFamily: 'SpaceMonoSemibold',
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 18,
     color: '#333',
     fontFamily: 'SpaceMono',
-    marginBottom: 40,
+    marginBottom: 30,
     textAlign: 'center',
   },
   commonButton: {
@@ -69,7 +97,6 @@ const styles = StyleSheet.create({
     borderColor: colors.blue,
     backgroundColor: 'transparent',
   },
-
   primaryButtonText: {
     color: 'white',
     fontSize: 18,
@@ -101,13 +128,20 @@ const styles = StyleSheet.create({
     top: -160,
     left: -60,
   },
-  bottomLeftCircle: {
+  bottomRightCircle: {
     position: 'absolute',
     width: 200,
     height: 200,
     borderRadius: 100,
     backgroundColor: colors.lightestblue,
     bottom: -100,
-    left: -100,
+    left: -100, // moved from left → right
+  },
+  homeImage: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 300,
+    height: 300,
   },
 });

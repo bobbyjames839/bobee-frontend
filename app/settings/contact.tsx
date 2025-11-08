@@ -17,7 +17,6 @@ export default function Contact() {
         onLeftPress={() => (router.back())}/>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
-        <Text style={styles.boxTitle}>Contact Bobee</Text>
         <Text style={styles.boxText}>
           <Text style={styles.sectionTitle}>Overview</Text>{"\n"}
           We’re here to help with any questions, feedback, or requests you have about Bobee. 
@@ -55,15 +54,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     width: '100%',
-  },
-  boxTitle: {
-    fontFamily: 'SpaceMono',
-    fontSize: 22,
-    paddingBottom: 6,
-    borderBottomColor: colors.lighter,
-    borderBottomWidth: 1,
-    color: colors.darkest,
-    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: 'SpaceMono',

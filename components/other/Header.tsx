@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center', 
-    marginBottom: 10,
+    marginBottom: 15,
   },
   iconButton: {
     position: 'absolute',
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   headerText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '600',
-    fontFamily: 'SpaceMono',
+    letterSpacing: .5,
+    fontFamily: 'SpaceMonoSemibold',
   },
 })

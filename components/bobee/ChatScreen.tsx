@@ -1,6 +1,5 @@
 // ChatScreen.tsx
 import React, {
-  useContext,
   useRef,
   useEffect,
   useState,
@@ -21,7 +20,6 @@ import {
 import SpinningLoader from '~/components/other/SpinningLoader'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useRouter, useFocusEffect } from 'expo-router'
-import { useIsFocused } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AutoExpandingInput from './AutoExpandingInput'
 import { colors } from '~/constants/Colors'
@@ -282,7 +280,7 @@ const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 10 },
   emptyWrap:{ alignItems:'center', marginTop:150, paddingHorizontal:10 },
   emptyImage:{ width:120, height:120, borderRadius: 40, borderWidth:1, borderColor:colors.darkestblue },
-  emptyTitle:{ fontFamily:'SpaceMono', fontSize:18, color:colors.darkest, marginTop:10 },
+  emptyTitle:{ fontFamily:'SpaceMonoSemibold', fontSize:18, color:colors.darkest, marginTop:10 },
   emptyText:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, marginTop:5, textAlign:'center', lineHeight:20 },
   bubbleWrapper: { marginBottom: 8 },
   bubble: { borderRadius: 16, padding: 14, maxWidth: '85%' },
@@ -413,7 +411,7 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-    fontFamily: 'SpaceMono',
+    fontFamily: 'Lora',
     fontSize: 15,
     letterSpacing: 0.3,
     lineHeight: 22,

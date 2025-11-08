@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Text, StyleSheet, Dimensions } from 'react-native';
+import { Animated, Text, StyleSheet, Dimensions, View } from 'react-native';
+import { XCircle } from 'lucide-react-native';
 
 interface Props {
   message: string;
@@ -75,7 +76,10 @@ export default function ErrorBanner({ message, onHide }: Props) {
         { top: slideTop, width },
       ]}
     >
-      <Text style={styles.text}>{sanitizedMessage}</Text>
+      <View style={styles.content}>
+        <XCircle size={24} color="#ffffff" style={styles.icon} />
+        <Text style={styles.text}>{sanitizedMessage}</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -83,22 +87,32 @@ export default function ErrorBanner({ message, onHide }: Props) {
 const styles = StyleSheet.create({
   banner: {
     position: 'absolute',
-    left:     0,
-    height:   105,
-    backgroundColor: '#E74C3C',
-    zIndex:   1000,
+    left: 0,
+    height: 105,
+    backgroundColor: '#ef4444',
+    zIndex: 1000,
     justifyContent: 'center',
-    alignItems:     'center',
-    paddingHorizontal: 12,
+    alignItems: 'center',
+    paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 15
   },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  icon: {
+    marginRight: 12,
+  },
   text: {
-    color:    '#fff',
-    fontSize: 14,
+    color: '#fff',
+    fontSize: 16,
     fontFamily: 'SpaceMono',
     textAlign: 'center',
-    flexWrap: 'wrap',  
-    width: '100%',
+    flexWrap: 'wrap',
+    flex: 1,
+    fontWeight: '500',
   },
 });

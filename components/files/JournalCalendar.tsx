@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
-import { JournalEntry } from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
+import { JournalEntry } from '~/hooks/useFiles';
 
 interface Props {
-  journals: JournalEntry[];
+  dailyMoods: Record<string, number>;
+  recentJournals: JournalEntry[];
   onSelectDate: (date: string) => void;
 }
 
@@ -32,23 +33,28 @@ function pickFace(score: number) {
   return FACE_VERY_HAPPY;
 }
 
-const JournalCalendar: React.FC<Props> = ({ journals, onSelectDate }) => {
-  // Aggregate by local day for average mood
+const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelectDate }) => {
+  // Convert dailyMoods to dayData format, but also compute today's mood from recent journals
   const dayData = useMemo(() => {
-    const buckets: Record<string, { sum: number; count: number } & { hasEntry: boolean }> = {};
-    journals.forEach(({ createdAt, aiResponse }) => {
-      const day = ymdLocal(createdAt.toDate());
-      if (!buckets[day]) buckets[day] = { sum: 0, count: 0, hasEntry: false };
-      buckets[day].sum += aiResponse.moodScore;
-      buckets[day].count += 1;
-      buckets[day].hasEntry = true;
-    });
     const result: Record<string, { avg: number; hasEntry: boolean }> = {};
-    Object.entries(buckets).forEach(([d, { sum, count, hasEntry }]) => {
-      result[d] = { avg: Math.round(sum / count), hasEntry };
+    
+    // Add pre-computed daily moods
+    Object.entries(dailyMoods).forEach(([date, moodScore]) => {
+      result[date] = { avg: moodScore, hasEntry: true };
     });
+
+    // Compute today's mood from recent journals (in case cron hasn't run yet)
+    const today = ymdLocal(new Date());
+    const todayJournals = recentJournals.filter(j => ymdLocal(j.createdAt.toDate()) === today);
+    
+    if (todayJournals.length > 0) {
+      const sum = todayJournals.reduce((acc, j) => acc + j.aiResponse.moodScore, 0);
+      const avg = Math.round(sum / todayJournals.length);
+      result[today] = { avg, hasEntry: true };
+    }
+
     return result;
-  }, [journals]);
+  }, [dailyMoods, recentJournals]);
 
   const today = ymdLocal(new Date());
 
@@ -71,8 +77,8 @@ const JournalCalendar: React.FC<Props> = ({ journals, onSelectDate }) => {
         moodBackground = '#f38d8dff';
         moodBorder = '#ee5353ff';
       } else if (avg <= 6) {
-        moodBackground = '#e7eaecff';
-        moodBorder = '#a4a8aaff';
+        moodBackground = '#ffe99bff';
+        moodBorder = '#f3c139ff';
       } else if (avg <= 8) {
         moodBackground = '#a2eaa7ff';
         moodBorder = '#7bc67f';

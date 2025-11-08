@@ -27,8 +27,9 @@ export default function SettingsIndex() {
 
   const handleLogout = async () => {
     try {
+      await AsyncStorage.setItem('showSignOutMessage', '1');
       await signOut(getAuth());
-      router.replace('/(auth)/sign-in');
+      router.replace('/(auth)/main');
     } catch (e: any) {
       console.error(e);
       Alert.alert('Logout Failed', e.message);

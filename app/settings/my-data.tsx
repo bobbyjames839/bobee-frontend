@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
@@ -7,7 +7,7 @@ import { getAuth } from 'firebase/auth';
 
 interface DataResponse {
   facts?: string[];
-  personality?: string; // long paragraph
+  personality?: string;
   [key: string]: any;
 }
 
@@ -29,7 +29,7 @@ export default function MyDataScreen() {
       }
       const idToken = await user.getIdToken(false);
       const resp = await fetch(`${API_BASE}/api/settings/get-personality-data`, {
-        headers: { 'Authorization': `Bearer ${idToken}` }
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const json = await resp.json();
       if (!resp.ok) throw new Error(json?.error || 'Failed to load data');
@@ -51,40 +51,72 @@ export default function MyDataScreen() {
     fetchData();
   };
 
+  const hasProfile =
+    !!data && ((Array.isArray(data.facts) && data.facts.length > 0) || !!data.personality);
+
+  // Precompute banner UI (shown above everything)
+  const banner = useMemo(() => {
+    if (loading) {
+      return (
+        <View style={[styles.banner, styles.rowCenter]}>
+          <ActivityIndicator size="small" color={colors.blue} />
+          <Text style={[styles.text, styles.bannerText, { marginLeft: 8 }]}>
+            Loading your profile...
+          </Text>
+        </View>
+      );
+    }
+    if (error) {
+      return (
+        <View style={[styles.banner, styles.errorBanner]}>
+          <Text style={[styles.text, styles.bannerText]}>{error}</Text>
+        </View>
+      );
+    }
+    return null;
+  }, [loading, error]);
+
   return (
     <>
-      <Header title="My Data" leftIcon="chevron-back" onLeftPress={() => { /* router.back handled natively */ }} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>      
-        <View style={styles.box}>
-          <Text style={styles.boxTitle}>Your Stored Data</Text>
-          <Text style={styles.boxText}>
-            <Text style={styles.sectionTitle}>Overview</Text>{"\n"}
-            This section shows the persistent facts and personality paragraph generated from your usage. We store only a minimal profile: a list of durable facts and a reflective paragraph. Contact us to amend or delete this data.{"\n\n"}
+      <Header
+        title="My Data"
+        leftIcon="chevron-back"
+        onLeftPress={() => {}}
+      />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {banner}
+
+        <View style={styles.card}>
+          <Text style={[styles.text, { marginBottom: 12 }]}>
+            <Text style={styles.title}>Overview{'\n'}</Text>
+            This section shows the persistent facts and personality paragraph generated from your usage.
+            We store only a minimal profile: a list of durable facts and a reflective paragraph. Contact
+            us to amend or delete this data.
           </Text>
-          {loading && <ActivityIndicator style={{ marginTop: 20 }} color={colors.blue} size="large" />}
-          {error && !loading && <Text style={styles.error}>{error}</Text>}
-          {!loading && !error && data && (
-            <View>
-              {Array.isArray(data.facts) && data.facts.length > 0 && (
-                <View style={styles.dataBlock}>
-                  <Text style={styles.sectionTitle}>Facts</Text>
-                  {data.facts.map((f, i) => (
-                    <Text key={i} style={styles.factLine}>{`• ${f}`}</Text>
+
+          {!loading && !error && (
+            <>
+              {Array.isArray(data?.facts) && data!.facts.length > 0 && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={styles.title}>Facts</Text>
+                  {data!.facts.map((f, i) => (
+                    <Text key={i} style={styles.text}>{`• ${f}`}</Text>
                   ))}
                 </View>
               )}
-              {data.personality && (
-                <View style={styles.dataBlock}>
-                  <Text style={styles.sectionTitle}>Personality Summary</Text>
-                  <Text style={styles.personalityText}>{data.personality}</Text>
+
+              {!!data?.personality && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={styles.title}>Personality Summary</Text>
+                  <Text style={styles.text}>{data!.personality}</Text>
                 </View>
               )}
-              {(!data.facts || data.facts.length === 0) && !data.personality && (
-                <Text style={styles.empty}>No stored profile data found.</Text>
-              )}
-            </View>
+            </>
           )}
-          <Text style={styles.manageNote}>Need changes or deletion? Contact us via the Contact page.</Text>
         </View>
       </ScrollView>
     </>
@@ -92,78 +124,49 @@ export default function MyDataScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.lightest,
-  },
-  content: {
-    padding: 20,
-    alignItems: 'center',
-    paddingBottom: 90,
-  },
-  box: {
+  container: { flex: 1, backgroundColor: colors.lightest },
+  content: { padding: 20, paddingBottom: 90 },
+  card: {
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: colors.lighter,
     borderRadius: 10,
     padding: 20,
-    width: '100%',
   },
-  boxTitle: {
-    fontFamily: 'SpaceMono',
-    fontSize: 22,
-    paddingBottom: 6,
-    borderBottomColor: colors.lighter,
-    borderBottomWidth: 1,
-    color: colors.darkest,
-    marginBottom: 12,
-  },
-  boxText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.darkest,
-    marginBottom: 12,
-  },
-  sectionTitle: {
+  title: {
     fontFamily: 'SpaceMono',
     fontSize: 16,
     color: colors.blue,
     fontWeight: 'bold',
     marginBottom: 4,
+    marginTop: 8,
   },
-  dataBlock: {
-    marginBottom: 22,
-  },
-  factLine: {
+  text: {
     fontFamily: 'SpaceMono',
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.darkest,
     marginBottom: 4,
   },
-  personalityText: {
+  banner: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    backgroundColor: 'white',
+    marginBottom: 12,
+  },
+  errorBanner: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fff1f2',
+  },
+  bannerText: {
     fontFamily: 'SpaceMono',
     fontSize: 14,
-    color: colors.darkest,
-    lineHeight: 20,
   },
-  manageNote: {
-    fontFamily: 'SpaceMono',
-    fontSize: 12,
-    color: colors.dark,
-    marginTop: 6,
-    opacity: 0.7,
-  },
-  empty: {
-    fontFamily: 'SpaceMono',
-    fontSize: 14,
-    color: colors.dark,
-    marginTop: 12,
-  },
-  error: {
-    fontFamily: 'SpaceMono',
-    fontSize: 14,
-    color: '#b91c1c',
-    marginTop: 24,
+  rowCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

@@ -13,7 +13,6 @@ export default function Privacy() {
         onLeftPress={() => (router.back())}/>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
-        <Text style={styles.boxTitle}>Bobee Privacy Statement</Text>
         <Text style={styles.boxText}>
           <Text style={styles.sectionTitle}>Last Updated:</Text> 10 August 2025
           {"\n\n"}
@@ -66,15 +65,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     width: '100%',
-  },
-  boxTitle: {
-    fontFamily: 'SpaceMono',
-    fontSize: 22,
-    paddingBottom: 6,
-    borderBottomColor: colors.lighter,
-    borderBottomWidth: 1,
-    color: colors.darkest,
-    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: 'SpaceMono',

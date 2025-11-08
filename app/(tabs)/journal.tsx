@@ -1,24 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, View, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import JournalMic from '~/components/journal/JournalMic';
 import JournalPrompt from '~/components/journal/JournalPrompt';
 import JournalLoading from '~/components/journal/JournalLoading';
 import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
-import WelcomeBanner from '~/components/banners/Welcome';
 import TutorialOverlay from '~/components/other/TutorialOverlay';
 import { useJournalContext } from '~/context/JournalContext';
 import { colors } from '~/constants/Colors';
 import Header from '~/components/other/Header';
+import { auth } from '~/utils/firebase';
 
 export default function Journal() {
   const journal = useJournalContext();
-  const [welcomeVisible, setWelcomeVisible] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
   const [showTutorial, setShowTutorial] = useState(false);
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const router = useRouter();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Fade in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+
+    // Check if we should show welcome banner
+    const checkWelcome = async () => {
+      try {
+        const shouldShow = await AsyncStorage.getItem('showWelcomeOnce');
+        if (shouldShow === '1') {
+          const displayName = auth.currentUser?.displayName || auth.currentUser?.email || 'User';
+          setWelcomeMessage(`Signed in as ${displayName}`);
+          await AsyncStorage.removeItem('showWelcomeOnce');
+        }
+      } catch (error) {
+        console.error('Error checking welcome banner:', error);
+      }
+    };
+
+    checkWelcome();
+  }, []);
 
   useEffect(() => {
     // show tutorial overlay only if ?tour=1 is present in URL
@@ -26,15 +53,17 @@ export default function Journal() {
   }, [tour]);
 
   return (
-    <>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
       {journal.error && (
         <ErrorBanner message={journal.error} onHide={journal.clearError} />
       )}
 
-      <WelcomeBanner
-        visible={welcomeVisible}
-        onClose={() => setWelcomeVisible(false)}
-      />
+      {welcomeMessage && (
+        <SuccessBanner
+          message={welcomeMessage}
+          onHide={() => setWelcomeMessage('')}
+        />
+      )}
 
       {journal.successBannerVisible && (
         <SuccessBanner
@@ -71,7 +100,7 @@ export default function Journal() {
       {showTutorial && (
         <TutorialOverlay
           step={1}
-          total={4}
+          total={5}
           title="Journal your thoughts"
           description="Tap the mic to start speaking. This daily habit powers your insights and Bobee's suggestions."
           onNext={() => {
@@ -83,7 +112,7 @@ export default function Journal() {
           }}
         />
       )}
-    </>
+    </Animated.View>
   );
 }
 

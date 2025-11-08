@@ -6,6 +6,7 @@ import { colors } from '~/constants/Colors';
 import { getAuth, signOut } from 'firebase/auth';
 import Constants from 'expo-constants';
 import Header from '~/components/other/Header';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 
 
@@ -44,8 +45,9 @@ export default function AccountSettings() {
         throw new Error(msg);
       }
 
+      await AsyncStorage.setItem('showSignOutMessage', '1');
       await signOut(auth).catch(() => {});
-      router.replace('/(auth)/sign-in');
+      router.replace('/(auth)/main');
     } catch (e: any) {
       console.error(e);
       Alert.alert('Delete Failed', e?.message ?? 'Unknown error');
