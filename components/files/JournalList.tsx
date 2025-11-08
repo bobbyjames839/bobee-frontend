@@ -8,9 +8,10 @@ import { colors } from '~/constants/Colors';
 interface Props {
   journals: JournalEntry[];
   onSelect: (j: JournalEntry) => void;
+  onDeleteSuccess?: () => void;
 }
 
-const JournalList: React.FC<Props> = ({ journals, onSelect }) => {
+const JournalList: React.FC<Props> = ({ journals, onSelect, onDeleteSuccess }) => {
   const router = useRouter();
 
   if (!journals || journals.length === 0) {
@@ -34,6 +35,7 @@ const JournalList: React.FC<Props> = ({ journals, onSelect }) => {
           key={entry.id}
           entry={entry}
           onPress={() => onSelect(entry)}
+          onDeleteSuccess={onDeleteSuccess}
         />
       ))}
     </View>

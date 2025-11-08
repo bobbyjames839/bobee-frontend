@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { colors } from '~/constants/Colors';
-import { JournalEntry } from '~/hooks/useFiles';
+import { JournalEntry } from '~/context/JournalsContext';
 
 interface Props {
   dailyMoods: Record<string, number>;

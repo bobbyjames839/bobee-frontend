@@ -40,20 +40,27 @@ function pickFace(score: number) {
 export default function JournalScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { journals, loading } = useJournals();
+  const { getJournalById } = useJournals();
   const { isSubscribed } = useContext(SubscriptionContext);
   const insets = useSafeAreaInsets();
 
-  const journal: JournalEntry | undefined = useMemo(
-    () => journals.find(j => j.id === id),
-    [journals, id]
-  );
-
+  const [journal, setJournal] = useState<JournalEntry | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   useEffect(() => {
     setUpgradeLoading(false);
-  }, [id]);
+    
+    // Try to get journal from cache
+    const cachedJournal = getJournalById(id);
+    if (cachedJournal) {
+      setJournal(cachedJournal);
+      setLoading(false);
+    } else {
+      // If not in cache, it means we need to wait or the journal doesn't exist
+      setLoading(false);
+    }
+  }, [id, getJournalById]);
 
   const navigateToUpgrade = () => {
     router.dismissAll();

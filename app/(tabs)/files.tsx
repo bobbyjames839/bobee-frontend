@@ -8,12 +8,14 @@ import JournalCalendar from '~/components/files/JournalCalendar';
 import JournalList from '~/components/files/JournalList';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import TutorialOverlay from '~/components/other/TutorialOverlay';
+import SuccessBanner from '~/components/banners/SuccessBanner';
 
 export default function FilesTabIndex() {
   const router = useRouter();
-  const { journals, loading, recentThree, dailyMoods, fetchJournals } = useJournals();
+  const { loading, recentThree, dailyMoods, fetchJournals } = useJournals();
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const [showTutorial, setShowTutorial] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Fetch journals when files page loads
   useEffect(() => {
@@ -32,8 +34,16 @@ export default function FilesTabIndex() {
     router.push({ pathname: '/files/day', params: { date: dateStr } });
   };
 
+  const handleDeleteSuccess = () => {
+    setSuccessMessage('Journal deleted successfully');
+  };
+
   return (
     <View style={styles.container}>
+      <SuccessBanner 
+        message={successMessage} 
+        onHide={() => setSuccessMessage('')} 
+      />
       <Header title="Entries" />
 
       {loading ? (
@@ -49,7 +59,11 @@ export default function FilesTabIndex() {
           />
 
           <Text style={styles.sectionTitle}>Recent entries</Text>
-          <JournalList journals={recentThree} onSelect={handleOpenEntry} />
+          <JournalList 
+            journals={recentThree} 
+            onSelect={handleOpenEntry}
+            onDeleteSuccess={handleDeleteSuccess}
+          />
 
         </ScrollView>
       )}

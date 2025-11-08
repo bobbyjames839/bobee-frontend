@@ -125,14 +125,14 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
           {canRequest ? (
             <View style={styles.readyContent}>
               <View style={styles.readyContentTop}>
-                <Text style={styles.readyTitle}>Personal Message</Text>
+                <Text style={styles.readyTitle}>PERSONAL MESSAGE</Text>
                 <Text style={styles.personalArrow}>→</Text>
               </View>
               <Text style={styles.readyNote}>Tap to open your new message</Text>
             </View>
           ) : (
             <View style={styles.rightText}>
-              <Text style={styles.smallTitle}>Next personal message</Text>
+              <Text style={styles.smallTitle}>NEXT PERSONAL MESSAGE</Text>
               <Text style={styles.bigTime}>{content}</Text>
             </View>
           )}

@@ -6,10 +6,12 @@ import { useFocusEffect } from '@react-navigation/native'; // if this import err
 import { JournalEntry } from '~/hooks/useFiles';
 import useJournals from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
+import Svg, { Polygon, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 interface Props {
   entry: JournalEntry;
   onPress: () => void;
+  onDeleteSuccess?: () => void;
 }
 
 const formatDate = (ts: Date | { toDate: () => Date }) =>
@@ -33,7 +35,7 @@ function pickFace(score: number) {
   return FACE_VERY_HAPPY;
 }
 
-const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
+const JournalCard: React.FC<Props> = ({ entry, onPress, onDeleteSuccess }) => {
   const faceSource = pickFace(entry.aiResponse.moodScore);
   const { deleteJournal } = useJournals();
 
@@ -60,6 +62,7 @@ const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
     try {
       setDeleteLoading(true);
       await deleteJournal(entry.id);
+      onDeleteSuccess?.();
     } finally {
       setDeleteLoading(false);
       setConfirmDelete(false);
@@ -69,6 +72,23 @@ const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
       <View style={styles.card}>
+        {/* Decorative left background "span" with a slanted right edge */}
+        <Svg
+          pointerEvents="none"
+          style={styles.bgSpan}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
+          <Defs>
+            <LinearGradient id={`bgGrad-${entry.id}`} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={colors.blue} stopOpacity={0.07} />
+              <Stop offset="1" stopColor={colors.blue} stopOpacity={0.03} />
+            </LinearGradient>
+          </Defs>
+          {/* shape: full height, right edge slanted */}
+          <Polygon points="0,0 100,0 85,100 0,100" fill={`url(#bgGrad-${entry.id})`} />
+        </Svg>
+
         <Image
           source={faceSource}
           style={[styles.moodIcon, styles.moodIconImage]}
@@ -103,6 +123,8 @@ const JournalCard: React.FC<Props> = ({ entry, onPress }) => {
 
 const styles = StyleSheet.create({
   card: {
+    position: 'relative',
+    overflow: 'hidden', // clip bg to rounded corners
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 12,
@@ -116,12 +138,22 @@ const styles = StyleSheet.create({
     elevation: 2,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+  },
+  // background "span" on the left with slanted right edge
+  bgSpan: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '55%',
+    zIndex: 0,
   },
   moodIcon: {
     position: 'absolute',
     top: 3,
     right: 3,
+    zIndex: 1,
   },
   moodIconImage: {
     width: 50,
@@ -134,6 +166,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
     marginBottom: 8,
     fontFamily: 'SpaceMono',
+    zIndex: 1,
   },
   text: {
     fontSize: 16,
@@ -141,6 +174,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontFamily: 'SpaceMono',
     paddingRight: 56,
+    zIndex: 1,
   },
   deleteButton: {
     position: 'absolute',
@@ -152,6 +186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
+    zIndex: 1,
   },
 });
 

@@ -8,7 +8,7 @@ export default function TabLayout() {
   const baseTabBarStyle = {
     elevation: 0,
     backgroundColor: 'white',
-    height: 75,
+    height: 80,
     borderTopWidth: 1,
     borderColor: colors.lighter,
   } as const;
@@ -25,31 +25,31 @@ export default function TabLayout() {
       <Tabs.Screen
         name="journal"
         options={{
-          tabBarIcon: ({ color }) => <PenLine color={color} size={26} strokeWidth={2} style={{ marginTop: 15 }} />,
+          tabBarIcon: ({ color }) => <PenLine color={color} size={26} strokeWidth={2} style={{ marginTop: 30 }} />,
         }}
       />
       <Tabs.Screen
         name="files"
         options={{
-          tabBarIcon: ({ color }) => <FileText color={color} size={26} strokeWidth={2} style={{ marginTop: 15 }} />,
+          tabBarIcon: ({ color }) => <FileText color={color} size={26} strokeWidth={2} style={{ marginTop: 30 }} />,
         }}
       />
       <Tabs.Screen
         name="insights"
         options={{
-          tabBarIcon: ({ color }) => <Sparkles color={color} size={26} strokeWidth={2} style={{ marginTop: 15 }} />,
+          tabBarIcon: ({ color }) => <Sparkles color={color} size={26} strokeWidth={2} style={{ marginTop: 30 }} />,
         }}
       />
       <Tabs.Screen
         name="bobee"
         options={{
-          tabBarIcon: ({ color }) => <User color={color} size={26} strokeWidth={2} style={{ marginTop: 15 }} />,
+          tabBarIcon: ({ color }) => <User color={color} size={26} strokeWidth={2} style={{ marginTop: 30 }} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          tabBarIcon: ({ color }) => <Settings color={color} size={26} strokeWidth={2} style={{ marginTop: 15 }} />,
+          tabBarIcon: ({ color }) => <Settings color={color} size={26} strokeWidth={2} style={{ marginTop: 30 }} />,
         }}
       />
     </Tabs>

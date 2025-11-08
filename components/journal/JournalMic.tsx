@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { TouchableOpacity, Animated, Text, View, StyleSheet, Dimensions, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MicrophoneStage, X } from 'phosphor-react-native';
+import { MicrophoneStage, X, StarFour } from 'phosphor-react-native';
 import { colors } from '~/constants/Colors';
 
 interface JournalMicProps {
@@ -56,11 +56,11 @@ export default function JournalMic({
           ]}
         >
           <LinearGradient
-            colors={['#ded0ffff', '#f1f1f1ff']}
+            colors={['#ded0ff', '#f1f1f1']}
             locations={[0, 0.6]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            style={[styles.gradientCircle]}
+            style={styles.micCircle}
           >
             <MicrophoneStage size={72} color={colors.blue} />
           </LinearGradient>
@@ -75,15 +75,35 @@ export default function JournalMic({
         <View style={styles.promptControlsRow}>
           <TouchableOpacity
             onPress={onGenerate}
-            style={[styles.promptButton, prompt.length > 0 && styles.promptButtonActive]}
+            style={prompt ? styles.promptButtonWrapper : styles.promptButtonWrapperEmpty}
           >
-            <Text style={styles.promptButtonText}>
-              {prompt ? 'Regenerate Prompt' : 'Generate Prompt'}
-            </Text>
+            <LinearGradient
+              colors={[colors.blue, '#737befff']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[
+                styles.promptButton,
+                prompt.length > 0 && { paddingHorizontal: 45 }
+              ]}
+            >
+              <View style={styles.promptContent}>
+                <StarFour size={20} weight="fill" color={colors.lightest} />
+                <Text style={styles.promptButtonText}>
+                  {prompt ? 'Regenerate Prompt' : 'Generate Prompt'}
+                </Text>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
           {prompt.length > 0 && (
-            <TouchableOpacity onPress={onClearPrompt} style={styles.clearPromptButton}>
-              <X size={20} color={colors.lightest} />
+            <TouchableOpacity onPress={onClearPrompt} style={styles.clearPromptButtonWrapper}>
+              <LinearGradient
+                colors={['#737befff', colors.blue]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.clearPromptButton}
+              >
+                <X size={24} color={colors.lightest} weight="bold" />
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -94,7 +114,6 @@ export default function JournalMic({
 
 // Full-width uniform bar waveform
 function VoiceWave() {
-  // Reverted: independent looping scale for each bar (uniform base height) with slight duration variance.
   const screenWidth = Dimensions.get('window').width;
   const horizontalPadding = 40;
   const barWidth = 5;
@@ -119,7 +138,7 @@ function VoiceWave() {
   }, [anims]);
 
   return (
-    <View style={[styles.waveLineContainer, { paddingHorizontal: horizontalPadding / 2 }]}> 
+    <View style={[styles.waveLineContainer, { paddingHorizontal: horizontalPadding / 2 }]}>
       {anims.map((v, i) => {
         const scaleY = v.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] });
         const t = i / (barCount - 1);
@@ -151,18 +170,17 @@ const styles = StyleSheet.create({
   micShadowWrapper: {
     borderRadius: 999,
     shadowColor: colors.blue,
-    shadowOpacity: 0.6,
-    shadowRadius: 15,
-
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: { width: 4, height: 4 },
   },
-  gradientCircle: {
+  micCircle: {
     borderRadius: 999,
     padding: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  gradientCircleRecording: {},
-  micRecordingPosition: {},
   timer: {
     marginTop: 32,
     letterSpacing: 3.5,
@@ -188,31 +206,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
+  promptButtonWrapper: {
+    marginTop: 46,
+    borderRadius: 45,
+    borderBottomRightRadius: 5,
+    borderTopRightRadius: 5,
+    overflow: 'hidden',
+  },
+  promptButtonWrapperEmpty: {
+    marginTop: 46,
+    borderRadius: 45,
+    overflow: 'hidden',
+  },
   promptButton: {
-    backgroundColor: colors.blue,
-    paddingHorizontal: 80,
-    height: 50,
+    paddingHorizontal: 60,
+    height: 60,
     display: 'flex',
     justifyContent: 'center',
-    borderRadius: 18,
-    marginTop: 26,
+    alignItems: 'center',
+  },
+  promptContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   promptButtonText: {
     color: colors.lightest,
-    fontSize: 16,
-    fontFamily: 'SpaceMono',
+    fontSize: 18,
+    fontFamily: 'SpaceMonoSemibold',
+  },
+  clearPromptButtonWrapper: {
+    marginTop: 46,
+    borderRadius: 45,
+    borderBottomLeftRadius: 5,
+    borderTopLeftRadius: 5,
+    overflow: 'hidden',
   },
   clearPromptButton: {
-    backgroundColor: colors.blue,
-    paddingHorizontal: 14,
-    height: 50,
+    paddingHorizontal: 18,
+    height: 60,
     display: 'flex',
     justifyContent: 'center',
-    borderRadius: 18,
-    marginTop: 26,
-  },
-  promptButtonActive: {
-    paddingHorizontal: 45,
+    alignItems: 'center',
   },
   waveLineContainer: {
     flexDirection: 'row',

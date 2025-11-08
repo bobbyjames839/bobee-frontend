@@ -24,6 +24,7 @@ import { auth } from '../utils/firebase';
 import { JournalRefreshProvider } from '../context/JournalRefreshContext';
 import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { JournalProvider } from '~/context/JournalContext';
+import { JournalsProvider } from '~/context/JournalsContext';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -99,7 +100,7 @@ export default function RootLayout() {
       const root = (segments?.[0] ?? '') as string;
       const inAuth = root === '(auth)';
   // Include tutorial so user can view intro page without immediate redirect
-  const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial', 'insights']);
+  const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');
@@ -156,15 +157,16 @@ export default function RootLayout() {
       {/* App content (always mounted, visible) */}
       <SubscriptionProvider>
         <JournalRefreshProvider>
-          <JournalProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                presentation: 'card',
-                animation: 'none',          
-                gestureEnabled: false,       
-              }}
-            >
+          <JournalsProvider>
+            <JournalProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  presentation: 'card',
+                  animation: 'none',          
+                  gestureEnabled: false,       
+                }}
+              >
               <Stack.Screen
                 name="files"
                 options={{
@@ -173,15 +175,6 @@ export default function RootLayout() {
                   gestureEnabled: true,
                   fullScreenGestureEnabled: true,
                   headerShown: false,
-                }}
-              />
-
-              <Stack.Screen
-                name="insights"
-                options={{
-                  presentation: 'card',
-                  gestureEnabled: true,
-                  animation: 'slide_from_right',
                 }}
               />
 
@@ -221,6 +214,7 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'auto'} />
           </JournalProvider>
+          </JournalsProvider>
         </JournalRefreshProvider>
       </SubscriptionProvider>
 
