@@ -162,10 +162,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   date: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.dark,
     marginBottom: 8,
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     zIndex: 1,
   },
   text: {

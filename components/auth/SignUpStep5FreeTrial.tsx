@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
 import { colors } from '~/constants/Colors'
 import SpinningLoader from '~/components/other/SpinningLoader'
@@ -6,6 +6,7 @@ import ErrorBanner from '~/components/banners/ErrorBanner'
 import { CheckCircle } from 'phosphor-react-native'
 import TermsModal from './TermsModal'
 import PrivacyModal from './PrivacyModal'
+import Purchases, { PurchasesPackage } from 'react-native-purchases'
 
 interface SignUpStep5FreeTrialProps {
   onStartTrial: () => Promise<void>
@@ -17,17 +18,67 @@ export default function SignUpStep5FreeTrial({ onStartTrial, onBack }: SignUpSte
   const [error, setError] = useState('')
   const [showTerms, setShowTerms] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
+  const [priceString, setPriceString] = useState('$9.99/month')
+
+  // Fetch RevenueCat offerings
+  useEffect(() => {
+    const fetchOfferings = async () => {
+      try {
+        const offerings = await Purchases.getOfferings()
+        if (offerings.current && offerings.current.availablePackages.length > 0) {
+          // Get the first package (or filter for monthly subscription)
+          const monthlyPackage = offerings.current.availablePackages.find(
+            pkg => pkg.identifier === '$rc_monthly' || pkg.packageType === 'MONTHLY'
+          ) || offerings.current.availablePackages[0]
+          
+          setSelectedPackage(monthlyPackage)
+          setPriceString(monthlyPackage.product.priceString + '/month')
+        }
+      } catch (error) {
+        console.error('Error fetching offerings:', error)
+      }
+    }
+    
+    fetchOfferings()
+  }, [])
 
   const handleStart = async () => {
     setError('')
     setLoading(true)
-    try { await onStartTrial() }
+    try { 
+      // First purchase the subscription
+      if (!selectedPackage) {
+        throw new Error('No subscription package available')
+      }
+
+      const purchaseResult = await Purchases.purchasePackage(selectedPackage)
+      
+      // Check if the purchase was successful
+      if (Object.keys(purchaseResult.customerInfo.entitlements.active).length === 0) {
+        throw new Error('Subscription purchase was not activated')
+      }
+
+      // Then create the account
+      await onStartTrial() 
+    }
     catch (err: any) {
       let message = 'An unexpected error occurred.'
       const txt = String(err?.message || '')
-      if (txt.includes('email-already-in-use')) message = 'That email is already in use.'
-      else if (txt.includes('invalid-email')) message = 'Invalid email address.'
-      else if (txt.includes('weak-password')) message = 'Password is too weak.'
+      
+      // Handle RevenueCat specific errors
+      if (err.userCancelled) {
+        message = 'Purchase was cancelled.'
+      } else if (txt.includes('email-already-in-use')) {
+        message = 'That email is already in use.'
+      } else if (txt.includes('invalid-email')) {
+        message = 'Invalid email address.'
+      } else if (txt.includes('weak-password')) {
+        message = 'Password is too weak.'
+      } else if (txt.includes('subscription')) {
+        message = 'Failed to complete subscription. Please try again.'
+      }
+      
       setError(message)
     } finally { setLoading(false) }
   }
@@ -78,13 +129,13 @@ export default function SignUpStep5FreeTrial({ onStartTrial, onBack }: SignUpSte
 
       {/* Bottom curved section (blue) */}
       <View style={styles.bottom}>
-        <Text style={styles.afterTrial}>Try 7 days free, then $9.99/month</Text>
+        <Text style={styles.afterTrial}>Try 7 days free, then {priceString}</Text>
 
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={handleStart}
-          disabled={loading}
-          style={[styles.cta, loading && styles.ctaDisabled]}
+          disabled={loading || !selectedPackage}
+          style={[styles.cta, (loading || !selectedPackage) && styles.ctaDisabled]}
         >
           {loading
             ? <SpinningLoader size={22} thickness={3} color={colors.blue} />

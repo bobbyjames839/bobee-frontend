@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import { Asset } from 'expo-asset';
+import Purchases from 'react-native-purchases';
 
 import { auth } from '../utils/firebase';
 import { JournalRefreshProvider } from '../context/JournalRefreshContext';
@@ -51,6 +52,22 @@ export default function RootLayout() {
 
   const router = useRouter();
   const segments = useSegments();
+
+  // Initialize RevenueCat (iOS only)
+  useEffect(() => {
+    const initRevenueCat = async () => {
+      try {
+        if (Platform.OS === 'ios') {
+          await Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || 'appl_QihuoqKcECZZOGVJZGUIIJIlDcB' });
+          console.log('RevenueCat configured successfully');
+        }
+      } catch (error) {
+        console.error('Error configuring RevenueCat:', error);
+      }
+    };
+    
+    initRevenueCat();
+  }, []);
 
   // preload bee image asap
   useEffect(() => {

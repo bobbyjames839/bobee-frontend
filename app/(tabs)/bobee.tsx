@@ -40,7 +40,6 @@ export default function BobeeMainPage() {
   const [insightsError, setInsightsError] = useState<string | null>(null);
   const [reflectionQuestion, setRefelectionQuestion] = useState<string | null>(null);
   const [reflectionOptions, setReflectionOptions] = useState<{ text: string }[] | null>(null);
-  const [selectedReflectionOption, setSelectedReflectionOption] = useState<string | null>(null);
   const [reflectionDoneToday, setReflectionDoneToday] = useState<boolean>(false);
 
   const router = useRouter();
@@ -152,6 +151,17 @@ export default function BobeeMainPage() {
     };
   }, [API_BASE, todayKey, router, tour]);
 
+  // Fixed layout constants for daily tips
+  const ROW_HEIGHT = 90;        // a bit taller than before
+  const ICON_SIZE = 40;         // circular icon size
+  const ICON_LEFT_OFFSET = 80;  // distance left of the white card
+  const DIVIDER_HEIGHT = 1;
+  const SPINE_THICKNESS = 2;
+
+  const tips = (suggestions || []).slice(0, 3);
+  const spineTop = 16 + ROW_HEIGHT / 2 - SPINE_THICKNESS / 2; // card padding (16) + half row height
+  const spineHeight = Math.max(0, (tips.length - 1) * (ROW_HEIGHT + DIVIDER_HEIGHT));
+
   return (
     <>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -159,13 +169,14 @@ export default function BobeeMainPage() {
         <Header title="Bobee" />
 
         {insightsLoading ? (
-          <View style={styles.globalLoaderOverlay}>
-            <SpinningLoader size={46} thickness={5} />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <SpinningLoader size={40} />
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <NextMessageCountdown lastMessageAt={lastMessageAt} />
 
+            {/* Reflection CTA */}
             <Pressable
               style={[styles.reflectionPill, reflectionDoneToday && { opacity: 0.55 }]}
               disabled={reflectionDoneToday || !reflectionOptions || reflectionOptions.length === 0}
@@ -189,13 +200,15 @@ export default function BobeeMainPage() {
                 <Polygon points="15,0 100,0 100,100 0,100" fill="url(#reflectGrad)" />
               </Svg>
 
-              {/* TEXT COLUMN — fixed to wrap instead of overflowing left */}
+              {/* TEXT COLUMN */}
               <View style={styles.reflectionTextCol}>
                 <View style={styles.readyContentTop}>
                   <Text style={styles.reflectionArrow}>←</Text>
                   <Text style={styles.readyTitle}>DAILY REFLECTION</Text>
                 </View>
-                <Text style={styles.readyNote}>Tap to complete your daily reflection</Text>
+                <Text style={styles.readyNote}>
+                  {reflectionDoneToday ? "Come back tomorrow" : "Tap to complete your daily reflection"}
+                </Text>
               </View>
 
               {/* ICON */}
@@ -204,34 +217,60 @@ export default function BobeeMainPage() {
               </View>
             </Pressable>
 
+            {/* Insights / Daily Tips */}
             <View style={styles.insightsBlock}>
               {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
-              {!insightsError && suggestions && suggestions.length > 0 && (
-                <>
-                  <View style={styles.insightsBlockRight}>
-                    {/* Vertical connecting line */}
-                    <View style={styles.timelineSpine} />
 
-                    {suggestions.map((s, i) => (
+              {!insightsError && tips.length > 0 && (
+                <View style={styles.insightsBlockRight}>
+                  {/* Vertical spine connects the centers of each row */}
+                  <View
+                    style={[
+                      styles.timelineSpine,
+                      { top: spineTop, height: spineHeight, width: SPINE_THICKNESS },
+                    ]}
+                  />
+
+                  {tips.map((s, i) => {
+                    const Icon = suggestionIcons[i % suggestionIcons.length];
+                    const iconTop = (ROW_HEIGHT - ICON_SIZE) / 2; // center within the row
+                    return (
                       <View key={i}>
-                        <View style={styles.suggestionItem}>
-                          {/* Icon positioned absolutely to the left */}
-                          <View style={styles.suggestionIconContainer}>
-                            {(() => {
-                              const Icon = suggestionIcons[i % suggestionIcons.length];
-                              return <Icon color={colors.blue} size={20} strokeWidth={2.5} />;
-                            })()}
+                        <View style={[styles.suggestionItem, { height: ROW_HEIGHT }]}>
+                          {/* Fixed-size circular icon centered vertically, nudged left */}
+                          <View
+                            style={[
+                              styles.suggestionIconContainer,
+                              {
+                                width: ICON_SIZE,
+                                height: ICON_SIZE,
+                                left: -ICON_LEFT_OFFSET,
+                                top: iconTop,
+                              },
+                            ]}
+                          >
+                            <Icon color={colors.blue} size={20} strokeWidth={2.5} />
                           </View>
+
                           <Text style={styles.suggestionText}>{s}</Text>
                         </View>
-                        {i < suggestions.length - 1 && <View style={styles.suggestionDivider} />}
+
+                        {i < tips.length - 1 && (
+                          <View style={[styles.suggestionDivider, { height: DIVIDER_HEIGHT }]} />
+                        )}
                       </View>
-                    ))}
-                    <Image source={require("../../assets/images/happy.png")} style={styles.insightsBackgroundImage} />
-                  </View>
-                </>
+                    );
+                  })}
+
+                  {/* watermark image */}
+                  <Image
+                    source={require("../../assets/images/happy.png")}
+                    style={styles.insightsBackgroundImage}
+                  />
+                </View>
               )}
-              {!insightsError && (!suggestions || suggestions.length === 0) && (
+
+              {!insightsError && tips.length === 0 && (
                 <View>
                   <Text style={styles.emptyInsightsTitle}>Welcome to Bobee</Text>
                   <Text style={styles.emptyInsights}>
@@ -242,9 +281,14 @@ export default function BobeeMainPage() {
               )}
             </View>
 
+            {/* Micro Challenge */}
             {microChallenge && (
               <View style={styles.challengeBox}>
-                <Target color={colors.blue} size={74} strokeWidth={2} style={{ marginRight: 10 }} />
+                <Image
+                  source={require('~/assets/images/challenge.png')}
+                  style={styles.challengeImage}
+                  accessibilityLabel="Challenge Icon"
+                />
                 <View style={styles.challengeRight}>
                   <Text style={styles.challengeLabel}>Micro Challenge</Text>
                   <Text style={styles.challengeText}>{microChallenge}</Text>
@@ -292,9 +336,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: 30,
   },
+
+  // INSIGHTS / TIPS BLOCK
   insightsBlock: {
     display: "flex",
-    marginTop: 20,
+    marginTop: 25,
   },
   insightsBlockRight: {
     backgroundColor: "#fff",
@@ -302,7 +348,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     width: "80%",
     alignSelf: "flex-end",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.lighter,
     position: "relative",
@@ -319,19 +366,18 @@ const styles = StyleSheet.create({
   timelineSpine: {
     position: "absolute",
     left: -45,
-    top: 22,
-    height: 150,
-    width: 2,
     backgroundColor: colors.lighter,
     borderRadius: 2,
   },
+  suggestionItem: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center", // centers the text vertically within the fixed-height row
+  },
   suggestionIconContainer: {
     position: "absolute",
-    left: -80,
-    top: 2,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    // width/height & left/top are set inline so we can compute vertical centering
+    borderRadius: 999,
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: colors.lighter,
@@ -343,28 +389,37 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
-  suggestionItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
   suggestionText: {
     flex: 1,
     fontSize: 15,
     lineHeight: 21,
     color: colors.darkest,
     fontFamily: "SpaceMono",
+    paddingRight: 6,
   },
+  suggestionDivider: {
+    backgroundColor: colors.lighter,
+    marginVertical: 0,
+  },
+
+  // CHALLENGE
   challengeBox: {
-    marginTop: 20,
+    marginTop: 25,
     padding: 12,
     width: "100%",
-    boxSizing: "border-box" as any,
     backgroundColor: "#f5f7ff",
     borderTopWidth: 1,
     borderBottomWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     borderColor: colors.lighter,
+  },
+  challengeImage: {
+    width: 75,
+    resizeMode: "cover",
+    height: 75,
+    marginVertical: 10,
+    marginRight: 10,
   },
   challengeRight: {
     flexDirection: "column",
@@ -378,10 +433,12 @@ const styles = StyleSheet.create({
   challengeText: {
     fontSize: 15,
     lineHeight: 20,
-    marginTop: 5,
+    marginTop: 8,
     color: colors.darker,
     fontFamily: "SpaceMono",
   },
+
+  // EMPTY / ERROR
   emptyInsights: {
     marginTop: 10,
     fontSize: 13,
@@ -402,21 +459,10 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceMono",
     color: "crimson",
   },
-  suggestionDivider: {
-    height: 1,
-    backgroundColor: colors.lighter,
-    marginVertical: 15,
-  },
-  loaderWrap: {
-    marginTop: 8,
-    paddingVertical: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 
   // REFLECTION CTA
   reflectionPill: {
-    marginTop: 20,
+    marginTop: 25,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
@@ -435,18 +481,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   reflectionSpan: { position: "absolute", top: 0, bottom: 0, right: 0, width: "65%", zIndex: 0 },
-
-  // NEW: text column that wraps properly
   reflectionTextCol: {
     flex: 1,
-    minWidth: 0, // allow shrinking so text wraps instead of overflowing
+    minWidth: 0,
     flexShrink: 1,
     marginRight: 20,
     flexDirection: "column",
     alignItems: "flex-end",
     zIndex: 1,
   },
-
   reflectionIconCircle: {
     width: 74,
     height: 74,
@@ -484,16 +527,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  globalLoaderOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  // FAB
   chatCta: {
     position: "absolute",
     bottom: 14,
@@ -507,9 +541,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lighter,
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
 });

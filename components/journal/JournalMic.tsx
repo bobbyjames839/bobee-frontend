@@ -204,23 +204,22 @@ const styles = StyleSheet.create({
   promptControlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 30,
     gap: 5,
   },
   promptButtonWrapper: {
-    marginTop: 46,
     borderRadius: 45,
     borderBottomRightRadius: 5,
     borderTopRightRadius: 5,
     overflow: 'hidden',
   },
   promptButtonWrapperEmpty: {
-    marginTop: 46,
     borderRadius: 45,
     overflow: 'hidden',
   },
   promptButton: {
-    paddingHorizontal: 60,
-    height: 60,
+    paddingHorizontal: 50,
+    height: 50,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -243,8 +242,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   clearPromptButton: {
-    paddingHorizontal: 18,
-    height: 60,
+    paddingHorizontal: 15,
+    height: 50,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',

@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightest,
   },
   title: {
-    marginTop: 300,
+    marginTop: '70%',
     fontSize: 46,
     fontFamily: 'SpaceMonoSemibold',
     marginBottom: 4,

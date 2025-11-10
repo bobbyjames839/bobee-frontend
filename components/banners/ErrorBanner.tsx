@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
   },
   icon: {
     marginRight: 12,
@@ -111,8 +110,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'SpaceMono',
     textAlign: 'center',
-    flexWrap: 'wrap',
-    flex: 1,
     fontWeight: '500',
   },
 });

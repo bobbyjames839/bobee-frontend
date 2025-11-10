@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center', 
-    marginBottom: 15,
+    marginBottom: 12,
+    marginTop: -3,
   },
   iconButton: {
     position: 'absolute',

@@ -13,22 +13,18 @@ export const SubscriptionContext = createContext<SubContextType>({
 });
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  // We now treat the entire app as "Pro" / subscribed. All subscription
-  // checks collapse to true, and no backend call is made. We still watch
-  // auth state so we can reset to true once a user object exists (or null while
-  // auth is determining). If you want to remove the transient null state,
-  // initialize to true directly and skip auth listener.
-  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(true);
+  // All logged-in users are subscribed (enforced at login/signup)
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
 
   const fetchStatus = () => {
-    // Previously fetched from backend; now forced true.
-    setIsSubscribed(true);
+    // If user is logged in, they're subscribed
+    setIsSubscribed(!!auth.currentUser);
   };
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, () => {
-      // Regardless of user / anon, mark as subscribed.
-      setIsSubscribed(true);
+    const unsub = onAuthStateChanged(auth, (user) => {
+      // User logged in = subscribed, user logged out = not subscribed
+      setIsSubscribed(!!user);
     });
     return () => unsub();
   }, []);

@@ -32,8 +32,6 @@ type ChatHistoryItem = {
 
 export default function ChatScreen({
   history,
-  expanded,
-  toggleReasoning,
   scrollRef,
   pulseAnim,
   input,
@@ -46,8 +44,6 @@ export default function ChatScreen({
   onSaveAndBack,
 }: {
   history: ChatHistoryItem[]
-  expanded: Set<number>
-  toggleReasoning: (i: number) => void
   scrollRef: React.RefObject<ScrollView | null>
   pulseAnim: Animated.Value
   input: string
@@ -391,7 +387,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'white',
     paddingHorizontal: 12,
-    paddingBottom: 30, // overridden dynamically at runtime
+    paddingBottom: 22, // overridden dynamically at runtime
     paddingTop: 12,
   },
   leftButtons: {

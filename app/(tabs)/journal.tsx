@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   centerContent: {
     position: 'absolute',
     top: 0,
-    marginTop: '50%',
+    marginTop: '53%',
     transform: [{ translateY: '-50%' }],
     left: 0,
     right: 0,

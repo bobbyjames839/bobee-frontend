@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
 
   primaryBtn: { marginTop: 24, backgroundColor: colors.blue, paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontFamily: 'SpaceMono', fontSize: 16, fontWeight: '600' },
-  finishBtn: { marginTop: 40, backgroundColor: colors.blue, paddingVertical: 18, paddingHorizontal: 42, borderRadius: 50, alignItems: 'center', shadowColor: colors.blue, shadowOpacity: 0.35, shadowOffset: { width: 0, height: 8 }, shadowRadius: 24 },
+  finishBtn: { marginTop: 40, backgroundColor: colors.blue, paddingVertical: 14, paddingHorizontal: 42, borderRadius: 50, alignItems: 'center', shadowColor: colors.blue, shadowOpacity: 0.35, shadowOffset: { width: 0, height: 8 }, shadowRadius: 24 },
   finishBtnText: { color: '#fff', fontFamily: 'SpaceMono', fontSize: 18, fontWeight: '600', letterSpacing: 0.8 },
   finishSection: { marginTop: 34, alignItems: 'center', paddingHorizontal: 16 },
   finishSectionCentered: { position: 'absolute', top: '50%', left: '50%', width: 300, marginLeft: -150, marginTop: -120, alignItems: 'center', paddingHorizontal: 16 },

@@ -1,20 +1,33 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View, Text, TouchableOpacity, Animated, Dimensions, ScrollView } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+  ScrollView,
+} from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import Header from "~/components/other/Header";
 import useBobee from "~/hooks/useBobee";
 import ChatScreen from "~/components/bobee/ChatScreen";
 import SpinningLoader from "~/components/other/SpinningLoader";
 import { colors } from "~/constants/Colors";
-import { getAuth } from 'firebase/auth';
-import Constants from 'expo-constants';
-import TutorialOverlay from '~/components/other/TutorialOverlay';
+import { getAuth } from "firebase/auth";
+import Constants from "expo-constants";
+import TutorialOverlay from "~/components/other/TutorialOverlay";
 
 export default function BobeeChatPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  const sidebarAnim = useState(new Animated.Value(0))[0]; 
-  const [convos, setConvos] = useState<{ id: string; title: string; createdAt: string; updatedAt?: string }[]>([]);
+  const sidebarAnim = useState(new Animated.Value(0))[0];
+  const [convos, setConvos] = useState<
+    { id: string; title: string; createdAt: string; updatedAt?: string }[]
+  >([]);
   const [convosLoading, setConvosLoading] = useState(false);
   const [convosError, setConvosError] = useState<string | null>(null);
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
@@ -22,22 +35,27 @@ export default function BobeeChatPage() {
   const toggleSidebar = useCallback(() => {
     const to = showSidebar ? 0 : 1;
     setShowSidebar(!showSidebar);
-    Animated.timing(sidebarAnim, { toValue: to, duration: 220, useNativeDriver: true }).start();
+    Animated.timing(sidebarAnim, {
+      toValue: to,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
   }, [showSidebar, sidebarAnim]);
 
   const fetchConvos = useCallback(async () => {
     try {
-      const user = getAuth().currentUser; if (!user) return;
+      const user = getAuth().currentUser;
+      if (!user) return;
       setConvosLoading(true);
       setConvosError(null);
       const idToken = await user.getIdToken(true);
       const res = await fetch(`${API_BASE}/api/list-conversations`, {
-        headers: { Authorization: `Bearer ${idToken}` }
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        console.warn('list-conversations failed', res.status, text);
-        throw new Error(`HTTP ${res.status} ${text || ''}`.trim());
+        const text = await res.text().catch(() => "");
+        console.warn("list-conversations failed", res.status, text);
+        throw new Error(`HTTP ${res.status} ${text || ""}`.trim());
       }
       const data = await res.json();
       if (Array.isArray(data.conversations)) {
@@ -46,14 +64,26 @@ export default function BobeeChatPage() {
         setConvos([]);
       }
     } catch (e: any) {
-      setConvosError(e?.message || 'Failed to load');
+      setConvosError(e?.message || "Failed to load");
     } finally {
       setConvosLoading(false);
     }
   }, [API_BASE]);
+
   const {
-    input, setInput, history, expanded, isLoading, isDeleting,
-    scrollRef, pulseAnim, toggleReasoning, handleSubmit, saveConversation, openConversation, deleteConversation,
+    input,
+    setInput,
+    history,
+    expanded,
+    isLoading,
+    isDeleting,
+    scrollRef,
+    pulseAnim,
+    toggleReasoning,
+    handleSubmit,
+    saveConversation,
+    openConversation,
+    deleteConversation,
   } = useBobee();
 
   const { conversationId, initialQuestion } = useLocalSearchParams<{
@@ -64,13 +94,12 @@ export default function BobeeChatPage() {
   // On first mount: either open an existing conversation or start a new one
   const [pendingInitial, setPendingInitial] = useState<string | null>(null);
   useEffect(() => {
-    // Open existing conversation
     if (conversationId && typeof conversationId === "string") {
       openConversation(conversationId);
       return;
     }
-    // Start new conversation with an initial question (if provided)
-    const q = typeof initialQuestion === "string" ? initialQuestion.trim() : "";
+    const q =
+      typeof initialQuestion === "string" ? initialQuestion.trim() : "";
     if (q) {
       setPendingInitial(q);
       setInput(q);
@@ -86,7 +115,9 @@ export default function BobeeChatPage() {
   }, [showSidebar, fetchConvos]);
 
   // Also refresh list once on mount (silent) so it is ready when user opens sidebar
-  useEffect(() => { fetchConvos(); }, [fetchConvos]);
+  useEffect(() => {
+    fetchConvos();
+  }, [fetchConvos]);
 
   // Trigger handleSubmit only after input is set
   useEffect(() => {
@@ -100,26 +131,30 @@ export default function BobeeChatPage() {
   const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
-    setShowTutorial(tour === '5');
+    setShowTutorial(tour === "5");
   }, [tour]);
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.flex} 
+    <KeyboardAvoidingView
+      style={styles.screen}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40} // Add offset for Android
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
-      <Header
-        title="Conversation"
-        leftIcon="menu"
-        onLeftPress={toggleSidebar}
-      />
-  {renderSidebar({ sidebarAnim, convos, convosLoading, convosError, onSelect: (id) => openConversation(id), close: () => toggleSidebar(), refresh: fetchConvos })}
+      <Header title="Conversation" leftIcon="menu" onLeftPress={toggleSidebar} />
+
+      {renderSidebar({
+        sidebarAnim,
+        convos,
+        convosLoading,
+        convosError,
+        onSelect: (id) => openConversation(id),
+        close: () => toggleSidebar(),
+        refresh: fetchConvos,
+      })}
+
       <ChatScreen
         history={history}
-        expanded={expanded}
-        toggleReasoning={toggleReasoning}
         scrollRef={scrollRef}
         pulseAnim={pulseAnim}
         input={input}
@@ -144,7 +179,7 @@ export default function BobeeChatPage() {
           }
         }}
       />
-      {/* Sidebar overlay */}
+
       {showTutorial && (
         <TutorialOverlay
           step={5}
@@ -154,7 +189,6 @@ export default function BobeeChatPage() {
           nextLabel="Finish"
           onNext={() => {
             setShowTutorial(false);
-            router.push('/journal');
           }}
           onSkip={() => setShowTutorial(false)}
         />
@@ -173,61 +207,183 @@ interface SidebarProps {
   refresh: () => void;
 }
 
-function renderSidebar({ sidebarAnim, convos, convosLoading, convosError, onSelect, close, refresh }: SidebarProps) {
-  const width = Math.min(Dimensions.get('window').width * 0.75, 320);
-  const translateX = sidebarAnim.interpolate({ inputRange: [0,1], outputRange: [-width,0]});
+function renderSidebar({
+  sidebarAnim,
+  convos,
+  convosLoading,
+  convosError,
+  onSelect,
+  close,
+  refresh,
+}: SidebarProps) {
+  const width = Math.min(Dimensions.get("window").width * 0.75, 320);
+  const translateX = sidebarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width, 0],
+  });
+
   return (
     <>
-      <Animated.View style={[stylesSidebar.panel,{ width, transform:[{ translateX }] }]}> 
-        <View style={stylesSidebar.headerRow}>
-          <Text style={stylesSidebar.title}>Your Chats</Text>
-          <TouchableOpacity onPress={close}><Text style={stylesSidebar.close}>×</Text></TouchableOpacity>
+      <Animated.View
+        style={[styles.sidebarPanel, { width, transform: [{ translateX }] }]}
+      >
+        <View style={styles.sidebarHeaderRow}>
+          <Text style={styles.sidebarTitle}>Your Chats</Text>
+          <TouchableOpacity onPress={close}>
+            <Text style={styles.sidebarClose}>×</Text>
+          </TouchableOpacity>
         </View>
+
         <ScrollView refreshControl={undefined}>
           {convosLoading && (
-            <View style={stylesSidebar.loadingWrap}>
+            <View style={styles.sidebarLoadingWrap}>
               <SpinningLoader size={34} thickness={4} />
             </View>
           )}
+
           {!convosLoading && convosError && (
-            <TouchableOpacity onPress={refresh} style={stylesSidebar.errorBox}>
-              <Text style={stylesSidebar.errorText}>{convosError}. Tap to retry.</Text>
+            <TouchableOpacity onPress={refresh} style={styles.sidebarErrorBox}>
+              <Text style={styles.sidebarErrorText}>
+                {convosError}. Tap to retry.
+              </Text>
             </TouchableOpacity>
           )}
+
           {!convosLoading && !convosError && convos.length === 0 && (
-            <Text style={stylesSidebar.empty}>No conversations yet.</Text>
+            <Text style={styles.sidebarEmpty}>No conversations yet.</Text>
           )}
-          {!convosLoading && !convosError && convos.map(c => (
-            <TouchableOpacity key={c.id} style={stylesSidebar.item} onPress={() => { onSelect(c.id); close(); }}>
-              <Text numberOfLines={1} style={stylesSidebar.itemTitle}>{c.title || 'Untitled'}</Text>
-              <Text style={stylesSidebar.itemDate}>{new Date(c.updatedAt || c.createdAt).toLocaleDateString()}</Text>
-            </TouchableOpacity>
-          ))}
+
+          {!convosLoading &&
+            !convosError &&
+            convos.map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                style={styles.sidebarItem}
+                onPress={() => {
+                  onSelect(c.id);
+                  close();
+                }}
+              >
+                <Text numberOfLines={1} style={styles.sidebarItemTitle}>
+                  {c.title || "Untitled"}
+                </Text>
+                <Text style={styles.sidebarItemDate}>
+                  {new Date(c.updatedAt || c.createdAt).toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </ScrollView>
       </Animated.View>
-      {/* Backdrop */}
-  <Animated.View style={[stylesSidebar.backdrop, { opacity: sidebarAnim.interpolate({inputRange:[0,1],outputRange:[0,0.4]})}]} pointerEvents={'auto'}> 
-        <TouchableOpacity style={{flex:1}} onPress={close} />
+
+      <Animated.View
+        style={[
+          styles.sidebarBackdrop,
+          {
+            opacity: sidebarAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.4],
+            }),
+          },
+        ]}
+        pointerEvents={"auto"}
+      >
+        <TouchableOpacity style={styles.fill} onPress={close} />
       </Animated.View>
     </>
   );
 }
 
-const stylesSidebar = StyleSheet.create({
-  panel:{ position:'absolute', top:0, bottom:0, left:0, backgroundColor:'#fff', paddingTop:60, paddingHorizontal:16, zIndex:50, elevation:50, borderRightWidth:1, borderColor:colors.light },
-  headerRow:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', borderBottomColor: colors.lighter, borderBottomWidth: 1, paddingBottom: 6, marginBottom:16 },
-  title:{ fontFamily:'SpaceMonoSemibold', fontSize:18, color:colors.darkest },
-  close:{ fontSize:26, color:colors.dark },
-  empty:{ fontFamily:'SpaceMono', fontSize:14, color:colors.dark, opacity:0.6, marginTop:20 },
-  item:{ padding:10, backgroundColor: colors.lightest, borderRadius: 8, marginBottom: 8 },
-  itemTitle:{ fontFamily:'SpaceMono', fontSize:16, color:colors.darkest },
-  itemDate:{ fontFamily:'SpaceMono', fontSize:13, color:colors.dark, opacity:0.7, marginTop:2 },
-  backdrop:{ position:'absolute', top:0, left:0, right:0, bottom:0, backgroundColor:'#000', zIndex:40 },
-  errorBox:{ marginTop:20, padding:10, backgroundColor:'#fee', borderRadius:8 },
-  errorText:{ fontFamily:'SpaceMono', fontSize:13, color:'rgb(119,10,10)' },
-  loadingWrap:{ marginTop:30, alignItems:'center' },
-});
-
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.lightest },
+  // Screen
+  screen: {
+    flex: 1,
+    backgroundColor: colors.lightest,
+  },
+
+  // Generic helpers
+  fill: {
+    flex: 1,
+  },
+
+  // Sidebar
+  sidebarPanel: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "#fff",
+    paddingTop: 60,
+    paddingHorizontal: 16,
+    zIndex: 50,
+    elevation: 50,
+    borderRightWidth: 1,
+    borderColor: colors.light,
+  },
+  sidebarHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    borderBottomColor: colors.lighter,
+    borderBottomWidth: 1,
+    paddingBottom: 6,
+    marginBottom: 16,
+  },
+  sidebarTitle: {
+    fontFamily: "SpaceMonoSemibold",
+    fontSize: 18,
+    color: colors.darkest,
+  },
+  sidebarClose: {
+    fontSize: 30,
+    color: colors.dark,
+  },
+  sidebarEmpty: {
+    fontFamily: "SpaceMono",
+    fontSize: 14,
+    color: colors.dark,
+    opacity: 0.6,
+    marginTop: 20,
+  },
+  sidebarItem: {
+    padding: 10,
+    backgroundColor: colors.lightest,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  sidebarItemTitle: {
+    fontFamily: "SpaceMono",
+    fontSize: 16,
+    color: colors.darkest,
+  },
+  sidebarItemDate: {
+    fontFamily: "SpaceMonoSemibold",
+    fontSize: 12,
+    color: colors.dark,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  sidebarBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#000",
+    zIndex: 40,
+  },
+  sidebarErrorBox: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#fee",
+    borderRadius: 8,
+  },
+  sidebarErrorText: {
+    fontFamily: "SpaceMono",
+    fontSize: 13,
+    color: "rgb(119,10,10)",
+  },
+  sidebarLoadingWrap: {
+    marginTop: 30,
+    alignItems: "center",
+  },
 });
