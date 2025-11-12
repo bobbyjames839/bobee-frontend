@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Image, useWindowDimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import Svg, { Circle, Defs, LinearGradient, Stop, Polygon } from 'react-native-svg';
@@ -17,11 +17,8 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
   const intervalRef = useRef<number | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+
   const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-  const { width: screenWidth } = useWindowDimensions();
-  const isNarrow = screenWidth < 400;
-
   const last = typeof lastMessageAt === 'number' ? lastMessageAt : 0;
   const elapsed = now - last;
   const remaining = Math.max(COOLDOWN_MS - elapsed, 0);
@@ -56,11 +53,6 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
   const content = canRequest ? 'Ready now' : formatRemaining(remaining);
   const Container: React.ComponentType<any> = canRequest ? Pressable : View;
 
-  async function handlePress() {
-    if (!canRequest) return;
-    router.push('/bobee/personal-message');
-  }
-
   // Circular progress metrics
   const SIZE = 84;
   const R = 33;
@@ -70,115 +62,106 @@ export const NextMessageCountdown: React.FC<NextMessageCountdownProps> = ({
     outputRange: [CIRC, 0],
   });
 
+  async function handlePress() {
+    if (!canRequest) return;
+    router.push('/bobee/personal-message');
+  }
+
   return (
-    <View style={[styles.containerOuter, isNarrow && styles.containerOuterExpanded]}>
-      {/* allow the pill to grow wider than its container and be scrollable horizontally */}
-      <ScrollView
-        horizontal
-        bounces
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.hScrollContent}
+    <View style={styles.containerOuter}>
+      <Container
+        accessibilityRole={canRequest ? 'button' : undefined}
+        onPress={canRequest ? handlePress : undefined}
+        style={styles.containerPressable}
       >
-        <Container
-          accessibilityRole={canRequest ? 'button' : undefined}
-          onPress={canRequest ? handlePress : undefined}
-          style={styles.containerPressable}
-        >
-          <View style={styles.pill}>
-            {/* Decorative left background "span" */}
-            <Svg
-              pointerEvents="none"
-              style={styles.bgSpan}
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <Defs>
-                <LinearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={colors.blue} stopOpacity={0.09} />
-                  <Stop offset="1" stopColor={colors.blue} stopOpacity={0.04} />
-                </LinearGradient>
-              </Defs>
-              <Polygon points="0,0 100,0 85,100 0,100" fill="url(#bgGrad)" />
-            </Svg>
+        <View style={styles.pill}>
+          {/* Decorative left background span */}
+          <Svg
+            pointerEvents="none"
+            style={styles.bgSpan}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <Defs>
+              <LinearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={colors.blue} stopOpacity={0.09} />
+                <Stop offset="1" stopColor={colors.blue} stopOpacity={0.04} />
+              </LinearGradient>
+            </Defs>
+            <Polygon points="0,0 100,0 85,100 0,100" fill="url(#bgGrad)" />
+          </Svg>
 
-            <View style={styles.leftIconWrap}>
-              <Svg width={SIZE} height={SIZE}>
-                <Circle
-                  cx={SIZE / 2}
-                  cy={SIZE / 2}
-                  r={R}
-                  stroke={colors.lighter}
-                  strokeWidth={7}
-                  fill="none"
-                />
-                <AnimatedCircle
-                  cx={SIZE / 2}
-                  cy={SIZE / 2}
-                  r={R}
-                  stroke={colors.blue}
-                  strokeWidth={7}
-                  fill="none"
-                  strokeDasharray={CIRC}
-                  strokeDashoffset={dashOffset as unknown as number}
-                  strokeLinecap="round"
-                />
-              </Svg>
-              <Image
-                source={require('~/assets/images/happy.png')}
-                style={styles.botIcon}
-                accessibilityLabel="Personal message icon"
+          {/* Left icon + progress */}
+          <View style={styles.leftIconWrap}>
+            <Svg width={SIZE} height={SIZE}>
+              <Circle
+                cx={SIZE / 2}
+                cy={SIZE / 2}
+                r={R}
+                stroke={colors.lighter}
+                strokeWidth={7}
+                fill="none"
               />
-            </View>
-
-            {canRequest ? (
-              <View style={styles.readyContent}>
-                <View style={styles.readyContentTop}>
-                  <Text
-                    style={styles.readyTitle}
-                    numberOfLines={1}
-                    ellipsizeMode="clip"
-                  >
-                    PERSONAL MESSAGE
-                  </Text>
-                  <Text style={styles.personalArrow}>→</Text>
-                </View>
-                <Text style={styles.readyNote}>Tap to open your new message</Text>
-              </View>
-            ) : (
-              <View style={styles.rightText}>
-                <Text
-                  style={styles.readyTitle}
-                  numberOfLines={1}
-                  ellipsizeMode="clip"
-                >
-                  NEXT PERSONAL MESSAGE
-                </Text>
-                <Text style={styles.bigTime}>{content}</Text>
-              </View>
-            )}
+              <AnimatedCircle
+                cx={SIZE / 2}
+                cy={SIZE / 2}
+                r={R}
+                stroke={colors.blue}
+                strokeWidth={7}
+                fill="none"
+                strokeDasharray={CIRC}
+                strokeDashoffset={dashOffset as unknown as number}
+                strokeLinecap="round"
+              />
+            </Svg>
+            <Image
+              source={require('~/assets/images/happy.png')}
+              style={styles.botIcon}
+              accessibilityLabel="Personal message icon"
+            />
           </View>
-        </Container>
-      </ScrollView>
+
+          {/* Text column */}
+          {canRequest ? (
+            <View style={styles.readyContent}>
+              <View style={styles.readyContentTop}>
+                <Text style={styles.readyTitle} numberOfLines={1} ellipsizeMode="clip">
+                  PERSONAL MESSAGE
+                </Text>
+                <Text style={styles.personalArrow}>→</Text>
+              </View>
+              <Text
+                style={styles.readyNote}
+                numberOfLines={2}         // allow up to two lines
+                ellipsizeMode="tail"
+              >
+                Tap to open your new message
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.rightText}>
+              <Text style={styles.readyTitle} numberOfLines={1} ellipsizeMode="clip">
+                NEXT MESSAGE
+              </Text>
+              <Text style={styles.bigTime} numberOfLines={1} ellipsizeMode="tail">
+                {content}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Container>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // default width 85%; expand to 100% on narrow screens; keep right-aligned
+  // Match reflection pill width and alignment
   containerOuter: {
     width: '85%',
     alignSelf: 'flex-end',
   },
-  containerOuterExpanded: {
-    width: '100%',
-  },
-
-  // let content stick to the right but be wider than the viewport if needed
-  hScrollContent: {
-    paddingHorizontal: 0,
-  },
   containerPressable: {
-    alignSelf: 'flex-end',
+    alignSelf: 'stretch',
   },
 
   pill: {
@@ -187,15 +170,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    paddingRight: 56,
+    paddingLeft: 12,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: colors.lighter,
     borderBottomLeftRadius: 50,
     borderTopLeftRadius: 50,
-    // important: do not shrink — allow width to be driven by text
-    flexShrink: 0,
+    width: '100%',           // fill the 85% container
   },
 
   bgSpan: {
@@ -223,34 +204,35 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
 
-  // WAITING STATE
   rightText: {
-    // don't let the text column shrink; let it grow the pill
-    flexShrink: 0,
+    flex: 1,       
+    minWidth: 0,      
     zIndex: 1,
   },
   bigTime: {
     color: colors.darkest,
     fontFamily: 'SpaceMono',
-    fontSize: 22,
+    fontSize: 15,
+    marginTop: 5,
     fontWeight: '700',
   },
 
-  // READY STATE
   readyContent: {
+    flex: 1,       
+    minWidth: 0,      
     justifyContent: 'center',
     zIndex: 1,
-    flexShrink: 0,
+
   },
   readyContentTop: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'nowrap',
   },
   readyTitle: {
     color: colors.darkest,
     fontFamily: 'SpaceMonoSemibold',
     fontSize: 18,
-    flexShrink: 0,
     marginRight: 8,
   },
   readyNote: {
@@ -258,6 +240,8 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontFamily: 'SpaceMono',
     fontSize: 15,
+    lineHeight: 20,
+    alignSelf: 'stretch',
   },
   personalArrow: {
     fontSize: 24,

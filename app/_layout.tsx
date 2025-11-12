@@ -44,7 +44,6 @@ export default function RootLayout() {
   const [authReady, setAuthReady] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [bootDone, setBootDone] = useState(false);
-
   const [imageReady, setImageReady] = useState(false);
   const [loaderGone, setLoaderGone] = useState(false);
 

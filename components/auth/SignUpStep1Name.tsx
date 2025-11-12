@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { colors } from '~/constants/Colors'
 
@@ -8,23 +8,29 @@ interface SignUpStep1NameProps {
   onNameChange: (name: string) => void
   onNext: () => void
   onBack: () => void
+  onError: (message: string) => void
 }
 
-export default function SignUpStep1Name({ name, onNameChange, onNext, onBack }: SignUpStep1NameProps) {
+export default function SignUpStep1Name({ name, onNameChange, onNext, onBack, onError }: SignUpStep1NameProps) {
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
   const isDisabled = !name.trim()
 
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      onError('Please enter your name')
+      return
+    }
+    onNext()
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.stepIndicator}>1 of 5</Text>
-      </View>
-
-      <View style={styles.content}>
+      <KeyboardAvoidingView 
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <Text style={styles.title}>What's your name?</Text>
         <Text style={styles.subtitle}>We'd love to know what to call you</Text>
 
@@ -46,21 +52,11 @@ export default function SignUpStep1Name({ name, onNameChange, onNext, onBack }: 
             autoCorrect={false}
             autoFocus={true}
             returnKeyType="next"
-            onSubmitEditing={() => {
-              if (!isDisabled) onNext()
-            }}
+            onSubmitEditing={handleSubmit}
           />
         </BlurView>
 
-        <TouchableOpacity
-          style={[styles.button, isDisabled && styles.buttonDisabled]}
-          onPress={onNext}
-          disabled={isDisabled}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   )
 }
@@ -71,37 +67,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: colors.lightest,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backText: {
-    fontSize: 16,
-    color: colors.blue,
-    fontFamily: 'SpaceMono',
-  },
-  stepIndicator: {
-    fontSize: 14,
-    color: colors.dark,
-    fontFamily: 'SpaceMono',
-  },
   content: {
     flex: 1,
     justifyContent: 'center',
     paddingBottom: 100,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '600',
+    fontSize: 28,
     marginBottom: 8,
     textAlign: 'center',
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     color: colors.darkest,
   },
   subtitle: {
@@ -127,22 +102,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'SpaceMono',
     textAlign: 'center',
-  },
-  button: {
-    backgroundColor: colors.blue,
-    height: 60,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    textAlign: 'center',
-    fontWeight: '600',
-    fontFamily: 'SpaceMono',
-  },
+  }
 })

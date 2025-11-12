@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 300,
-    height: 300,
+    width: 260,
+    height: 260,
   },
 });

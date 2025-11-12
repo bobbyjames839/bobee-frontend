@@ -108,12 +108,10 @@ const styles = StyleSheet.create({
   activeBar: {
     position: 'absolute',
     top: 0,
-    right: '22.5%',
+    right: '15%',
     height: 2,
-    width: '55%',                  // not full width
+    width: '70%',                  // not full width
     backgroundColor: colors.blue,                 // centers the bar (100 - 55) / 2
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
   },
   tabLabel: {
     fontSize: 11,

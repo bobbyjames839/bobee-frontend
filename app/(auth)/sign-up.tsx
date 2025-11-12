@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native'
 import { router } from 'expo-router'
 import { signInWithEmailAndPassword } from 'firebase/auth'
@@ -8,7 +8,13 @@ import SignUpStep1Name from '~/components/auth/SignUpStep1Name'
 import SignUpStep2Email from '~/components/auth/SignUpStep2Email'
 import SignUpStep3Gender from '~/components/auth/SignUpStep3Gender'
 import SignUpStep4Password from '~/components/auth/SignUpStep4Password'
-import SignUpStep5FreeTrial from '~/components/auth/SignUpStep5FreeTrial'
+import SignUpStep5Purpose from '~/components/auth/SignUpStep5Purpose'
+import SignUpStep6Age from '~/components/auth/SignUpStep6Age'
+import SignUpStep7Personalizing from '~/components/auth/SignUpStep7Personalizing'
+import SignUpStep8JournalLevel from '~/components/auth/SignUpStep8JournalLevel'
+import SignUpStep9LearningStyle from '~/components/auth/SignUpStep9LearningStyle'
+import SignUpStep10FreeTrial from '~/components/auth/SignUpStep5FreeTrial'
+import ErrorBanner from '~/components/banners/ErrorBanner'
 import Constants from 'expo-constants'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -21,18 +27,66 @@ export default function SignUpScreen() {
   const [gender, setGender] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [accepted, setAccepted] = useState(false)
+  const [purpose, setPurpose] = useState('')
+  const [age, setAge] = useState('')
+  const [journalLevel, setJournalLevel] = useState('')
+  const [learningStyle, setLearningStyle] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const fadeAnim = useRef(new Animated.Value(1)).current
+  const progressAnim = useRef(new Animated.Value((1 / 9) * 100)).current
+  const slideAnim = useRef(new Animated.Value(0)).current
+
+  // Animate progress bar when step changes
+  useEffect(() => {
+    Animated.spring(progressAnim, {
+      toValue: (currentStep / 9) * 100,
+      useNativeDriver: false,
+      tension: 40,
+      friction: 8,
+    }).start()
+  }, [currentStep])
 
   const handleNext = () => {
-    setCurrentStep(prev => prev + 1)
+    // Slide current component out to the right
+    Animated.timing(slideAnim, {
+      toValue: -400, // Slide far enough to be off screen
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      // Change to next step
+      setCurrentStep(prev => prev + 1)
+      // Position new component off-screen to the left
+      slideAnim.setValue(400)
+      // Slide new component in from the left
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start()
+    })
   }
 
   const handleBack = () => {
     if (currentStep === 1) {
-      router.replace('/sign-in')
+      router.replace('/')
     } else {
-      setCurrentStep(prev => prev - 1)
+      // Slide current component out to the left
+      Animated.timing(slideAnim, {
+        toValue: 400, // Slide far enough to be off screen
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => {
+        // Change to previous step
+        setCurrentStep(prev => prev - 1)
+        // Position new component off-screen to the right
+        slideAnim.setValue(-400)
+        // Slide new component in from the right
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start()
+      })
     }
   }
 
@@ -74,7 +128,8 @@ export default function SignUpScreen() {
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        router.replace('/journal')
+        // Redirect new users to tutorial instead of journal
+        router.replace('/tutorial')
       });
     } catch (err: any) {
       console.error('Failed to create account:', err)
@@ -90,13 +145,14 @@ export default function SignUpScreen() {
             onNameChange={setName}
             onNext={handleNext}
             onBack={handleBack}
+            onError={setErrorMessage}
           />
         )
       case 2:
         return (
-          <SignUpStep2Email
-            email={email}
-            onEmailChange={setEmail}
+          <SignUpStep6Age
+            age={age}
+            onAgeChange={setAge}
             onNext={handleNext}
             onBack={handleBack}
           />
@@ -112,6 +168,43 @@ export default function SignUpScreen() {
         )
       case 4:
         return (
+          <SignUpStep5Purpose
+            purpose={purpose}
+            onPurposeChange={setPurpose}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )
+      case 5:
+        return (
+          <SignUpStep8JournalLevel
+            journalLevel={journalLevel}
+            onJournalLevelChange={setJournalLevel}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )
+      case 6:
+        return (
+          <SignUpStep9LearningStyle
+            learningStyle={learningStyle}
+            onLearningStyleChange={setLearningStyle}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )
+      case 7:
+        return (
+          <SignUpStep2Email
+            email={email}
+            onEmailChange={setEmail}
+            onNext={handleNext}
+            onBack={handleBack}
+            onError={setErrorMessage}
+          />
+        )
+      case 8:
+        return (
           <SignUpStep4Password
             name={name}
             email={email}
@@ -120,15 +213,20 @@ export default function SignUpScreen() {
             onPasswordChange={setPassword}
             confirmPassword={confirmPassword}
             onConfirmPasswordChange={setConfirmPassword}
-            accepted={accepted}
-            onAcceptedChange={setAccepted}
             onNext={handleNext}
             onBack={handleBack}
+            onError={setErrorMessage}
           />
         )
-      case 5:
+      case 9:
         return (
-          <SignUpStep5FreeTrial
+          <SignUpStep7Personalizing
+            onComplete={handleNext}
+          />
+        )
+      case 10:
+        return (
+          <SignUpStep10FreeTrial
             onStartTrial={handleStartTrial}
             onBack={handleBack}
           />
@@ -140,7 +238,10 @@ export default function SignUpScreen() {
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      {currentStep < 5 && (
+      {/* Error Banner - Always at the top */}
+      <ErrorBanner message={errorMessage} onHide={() => setErrorMessage('')} />
+      
+      {currentStep === 10 && (
         <>
           <View style={styles.topRightCircle} />
           <View style={styles.topLeftCircle} />
@@ -148,19 +249,90 @@ export default function SignUpScreen() {
         </>
       )}
       
-      {renderCurrentStep()}
-      
-      {currentStep === 1 && (
-        <TouchableOpacity onPress={() => router.replace('/sign-in')} style={styles.signInLink}>
-          <Text style={styles.signInText}>Already have an account? Sign in</Text>
-        </TouchableOpacity>
+      {/* Back Button */}
+      {currentStep < 10 && (
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+        </View>
       )}
+
+      {/* Animated Progress Bar */}
+      {currentStep < 10 && (
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBackground}>
+            <Animated.View 
+              style={[
+                styles.progressFill, 
+                { 
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  })
+                }
+              ]} 
+            />
+          </View>
+        </View>
+      )}
+      
+      {/* Animated Page Container */}
+      <Animated.View 
+        style={[
+          styles.pageContainer,
+          {
+            transform: [{ translateX: slideAnim }],
+          }
+        ]}
+      >
+        {renderCurrentStep()}
+      </Animated.View>
     </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: colors.lightest,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    padding: 8,
+  },
+  backText: {
+    fontSize: 16,
+    color: colors.blue,
+    fontFamily: 'SpaceMono',
+  },
+  progressBarContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 24,
+  },
+  progressBackground: {
+    height: 6,
+    backgroundColor: colors.light,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.blue,
+    borderRadius: 2,
+  },
+  pageContainer: {
     flex: 1,
     backgroundColor: colors.lightest,
   },
@@ -190,17 +362,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightestblue,
     bottom: -100,
     left: -100,
-  },
-  signInLink: {
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center',
-    padding: 8,
-  },
-  signInText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: colors.darkest,
-    fontFamily: 'SpaceMono',
   },
 })

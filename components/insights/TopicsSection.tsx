@@ -29,7 +29,7 @@ export default function TopicsSection({ topics }: Props) {
   const hasNoTopics = isSubscribed && (topicsList.length === 0 || topicsList.every(t => t.count === 0));
 
   // Pie chart geometry
-  const size = 220; // diameter
+  const size = 180; // diameter
   const radius = size / 2;
 
   // Border styling for slices and outer ring
@@ -130,7 +130,7 @@ export default function TopicsSection({ topics }: Props) {
               style={styles.subscribeButton}
               onTouchEnd={() => router.push('/journal')}
             >
-              <Text style={styles.subscribeText}>Make a journal</Text>
+              <Text style={styles.subscribeText}>Make journal</Text>
             </View>
           </BlurView>
         )}
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   pieWrapper: {
-    width: 250,
-    height: 250,
+    width: 210,
+    height: 210,
     justifyContent: 'center',
     alignItems: 'center',
   },

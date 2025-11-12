@@ -126,7 +126,7 @@ const buildLine = (vals: Array<number | null>) => {
 
             {/* Data points */}
             {definedPoints.map((p, j) => (
-              <Circle key={j} cx={p.x} cy={p.y} r={dotRadius} fill="rgba(172, 166, 255, 0.8)" />
+              <Circle key={j} cx={p.x} cy={p.y} r={dotRadius} fill={colors.blue} />
             ))}
 
             {/* X-axis labels */}
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
 
   primaryButton: {
     backgroundColor: colors.blue,
-    paddingHorizontal: 38,
+    paddingHorizontal: 50,
     paddingVertical: 10,
     borderRadius: 8,
   },

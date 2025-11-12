@@ -45,9 +45,16 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
 
     // Compute today's mood from recent journals (in case cron hasn't run yet)
     const today = ymdLocal(new Date());
-    const todayJournals = recentJournals.filter(j => ymdLocal(j.createdAt.toDate()) === today);
     
-    if (todayJournals.length > 0) {
+    // Filter journals created today from the 3 most recent
+    const todayJournals = recentJournals.filter(j => {
+      // j.createdAt is a Firestore Timestamp, convert to date string
+      const journalDate = ymdLocal(j.createdAt.toDate());
+      return journalDate === today;
+    });
+    
+    // If we have journals from today and today's mood hasn't been calculated yet (no cron run)
+    if (todayJournals.length > 0 && !result[today]) {
       const sum = todayJournals.reduce((acc, j) => acc + j.aiResponse.moodScore, 0);
       const avg = Math.round(sum / todayJournals.length);
       result[today] = { avg, hasEntry: true };

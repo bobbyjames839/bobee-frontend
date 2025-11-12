@@ -23,11 +23,10 @@ export default function JournalMic({
   onToggle,
   onGenerate,
   onClearPrompt,
-  pulseAnim, // eslint-disable-line @typescript-eslint/no-unused-vars
+  pulseAnim, 
 }: JournalMicProps) {
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  // Transition animation between idle (0) and recording (1)
   const transAnim = useRef(new Animated.Value(isRecording ? 1 : 0)).current;
   useEffect(() => {
     Animated.timing(transAnim, {
@@ -81,10 +80,7 @@ export default function JournalMic({
               colors={[colors.blue, '#737befff']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[
-                styles.promptButton,
-                prompt.length > 0 && { paddingHorizontal: 45 }
-              ]}
+              style={prompt ? styles.promptButton : styles.promptButtonEmpty}
             >
               <View style={styles.promptContent}>
                 <StarFour size={20} weight="fill" color={colors.lightest} />
@@ -213,11 +209,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 5,
     overflow: 'hidden',
   },
-  promptButtonWrapperEmpty: {
-    borderRadius: 45,
-    overflow: 'hidden',
+  promptButtonWrapperEmpty : {
+      borderRadius: 45,
+      overflow: 'hidden',
   },
   promptButton: {
+    paddingHorizontal: 20,
+    height: 50,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promptButtonEmpty: {
     paddingHorizontal: 50,
     height: 50,
     display: 'flex',
@@ -235,7 +238,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMonoSemibold',
   },
   clearPromptButtonWrapper: {
-    marginTop: 46,
     borderRadius: 45,
     borderBottomLeftRadius: 5,
     borderTopLeftRadius: 5,

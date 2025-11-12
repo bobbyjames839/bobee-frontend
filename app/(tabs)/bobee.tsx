@@ -111,12 +111,16 @@ export default function BobeeMainPage() {
       const stale = !lastFetchTsRef.current || now - (lastFetchTsRef.current ?? 0) > STALE_MS;
       const newDay = lastDayKeyRef.current !== todayKey;
 
+      // Always refetch when the screen comes into focus to catch reflection completion
       if (!hasFetchedRef.current || stale || newDay) {
         refetchMeta();
         fetchInsights();
         hasFetchedRef.current = true;
         lastFetchTsRef.current = now;
         lastDayKeyRef.current = todayKey;
+      } else {
+        // Even if not stale, still refetch insights to catch reflection status changes
+        fetchInsights();
       }
     }, [refetchMeta, fetchInsights, todayKey])
   );
@@ -160,7 +164,8 @@ export default function BobeeMainPage() {
 
   const tips = (suggestions || []).slice(0, 3);
   const spineTop = 16 + ROW_HEIGHT / 2 - SPINE_THICKNESS / 2; // card padding (16) + half row height
-  const spineHeight = Math.max(0, (tips.length - 1) * (ROW_HEIGHT + DIVIDER_HEIGHT));
+  // Always show spine for 3 rows, whether we have data or not
+  const spineHeight = 2 * (ROW_HEIGHT + DIVIDER_HEIGHT);
 
   return (
     <>
@@ -221,7 +226,7 @@ export default function BobeeMainPage() {
             <View style={styles.insightsBlock}>
               {insightsError && <Text style={styles.errorText}>{insightsError}</Text>}
 
-              {!insightsError && tips.length > 0 && (
+              {!insightsError && (
                 <View style={styles.insightsBlockRight}>
                   {/* Vertical spine connects the centers of each row */}
                   <View
@@ -231,7 +236,7 @@ export default function BobeeMainPage() {
                     ]}
                   />
 
-                  {tips.map((s, i) => {
+                  {(tips.length > 0 ? tips : ["Wait for 24 hours, these are updated every 24 hours", "Wait for 24 hours, these are updated every 24 hours", "Wait for 24 hours, these are updated every 24 hours"]).map((s, i) => {
                     const Icon = suggestionIcons[i % suggestionIcons.length];
                     const iconTop = (ROW_HEIGHT - ICON_SIZE) / 2; // center within the row
                     return (
@@ -255,7 +260,7 @@ export default function BobeeMainPage() {
                           <Text style={styles.suggestionText}>{s}</Text>
                         </View>
 
-                        {i < tips.length - 1 && (
+                        {i < 2 && (
                           <View style={[styles.suggestionDivider, { height: DIVIDER_HEIGHT }]} />
                         )}
                       </View>
@@ -269,32 +274,22 @@ export default function BobeeMainPage() {
                   />
                 </View>
               )}
-
-              {!insightsError && tips.length === 0 && (
-                <View>
-                  <Text style={styles.emptyInsightsTitle}>Welcome to Bobee</Text>
-                  <Text style={styles.emptyInsights}>
-                    Once you have a few journal entries, I’ll craft daily suggestions, a micro challenge, and a reflection
-                    question here. For now, you can start a chat or write a quick journal to seed more personalized insights.
-                  </Text>
-                </View>
-              )}
             </View>
 
             {/* Micro Challenge */}
-            {microChallenge && (
-              <View style={styles.challengeBox}>
-                <Image
-                  source={require('~/assets/images/challenge.png')}
-                  style={styles.challengeImage}
-                  accessibilityLabel="Challenge Icon"
-                />
-                <View style={styles.challengeRight}>
-                  <Text style={styles.challengeLabel}>Micro Challenge</Text>
-                  <Text style={styles.challengeText}>{microChallenge}</Text>
-                </View>
+            <View style={styles.challengeBox}>
+              <Image
+                source={require('~/assets/images/challenge.png')}
+                style={styles.challengeImage}
+                accessibilityLabel="Challenge Icon"
+              />
+              <View style={styles.challengeRight}>
+                <Text style={styles.challengeLabel}>Micro Challenge</Text>
+                <Text style={styles.challengeText}>
+                  {microChallenge || "Wait for 24 hours, these are updated every 24 hours"}
+                </Text>
               </View>
-            )}
+            </View>
           </ScrollView>
         )}
 
@@ -439,20 +434,6 @@ const styles = StyleSheet.create({
   },
 
   // EMPTY / ERROR
-  emptyInsights: {
-    marginTop: 10,
-    fontSize: 13,
-    fontFamily: "SpaceMono",
-    color: colors.dark,
-  },
-  emptyInsightsTitle: {
-    marginTop: 4,
-    fontSize: 16,
-    fontFamily: "SpaceMono",
-    color: colors.darkest,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
   errorText: {
     marginTop: 10,
     fontSize: 13,

@@ -9,9 +9,7 @@ import { colors } from '~/constants/Colors';
 import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import ResetPassword from '~/components/reset/ResetPassword';
-import SubscriptionPaywall from '~/components/auth/SubscriptionPaywall';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Purchases from 'react-native-purchases';
 
 export default function SignIn() {
   const router = useRouter();
@@ -21,7 +19,6 @@ export default function SignIn() {
   const [successMessage, setSuccessMessage] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
   const [loading, setLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -65,24 +62,7 @@ export default function SignIn() {
     Keyboard.dismiss();
 
     try {
-      // Sign in to Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      
-      // Log in to RevenueCat with the user's ID
-      await Purchases.logIn(userCredential.user.uid);
-      
-      // Check subscription status
-      const customerInfo = await Purchases.getCustomerInfo();
-      const hasActiveSubscription = Object.keys(customerInfo.entitlements.active).length > 0;
-      
-      if (!hasActiveSubscription) {
-        // Show paywall if no active subscription
-        setLoading(false);
-        setShowPaywall(true);
-        return;
-      }
-      
-      // User has active subscription, proceed to app
+      await signInWithEmailAndPassword(auth, trimmedEmail, password);
       await AsyncStorage.setItem('showWelcomeOnce', '1');
       
       // Fade out before navigation
@@ -108,22 +88,9 @@ export default function SignIn() {
           break;
       }
       setError(message);
+    } finally {
       setLoading(false);
     }
-  };
-
-  const handleSubscriptionSuccess = async () => {
-    setShowPaywall(false);
-    await AsyncStorage.setItem('showWelcomeOnce', '1');
-    
-    // Fade out before navigation
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      router.replace('/journal');
-    });
   };
 
   const renderBlurInput = (
@@ -205,16 +172,6 @@ export default function SignIn() {
       <Modal visible={showReset} animationType="slide" transparent>
         <ResetPassword onClose={() => setShowReset(false)} />
       </Modal>
-
-      <SubscriptionPaywall
-        visible={showPaywall}
-        onSuccess={handleSubscriptionSuccess}
-        onClose={() => {
-          setShowPaywall(false);
-          // Sign out user if they close the paywall
-          auth.signOut();
-        }}
-      />
     </Animated.View>
   );
 }

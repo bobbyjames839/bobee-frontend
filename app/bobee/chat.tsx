@@ -237,7 +237,7 @@ function renderSidebar({
         <ScrollView refreshControl={undefined}>
           {convosLoading && (
             <View style={styles.sidebarLoadingWrap}>
-              <SpinningLoader size={34} thickness={4} />
+              <SpinningLoader size={30} thickness={4} />
             </View>
           )}
 
@@ -264,7 +264,7 @@ function renderSidebar({
                   close();
                 }}
               >
-                <Text numberOfLines={1} style={styles.sidebarItemTitle}>
+                <Text style={styles.sidebarItemTitle}>
                   {c.title || "Untitled"}
                 </Text>
                 <Text style={styles.sidebarItemDate}>
@@ -353,13 +353,14 @@ const styles = StyleSheet.create({
   sidebarItemTitle: {
     fontFamily: "SpaceMono",
     fontSize: 16,
+    marginBottom: 5,
     color: colors.darkest,
   },
   sidebarItemDate: {
     fontFamily: "SpaceMonoSemibold",
     fontSize: 12,
-    color: colors.dark,
-    opacity: 0.7,
+    alignSelf: "flex-end",
+    color: colors.blue,
     marginTop: 2,
   },
   sidebarBackdrop: {

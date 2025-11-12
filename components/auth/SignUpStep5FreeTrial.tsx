@@ -1,133 +1,107 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native'
 import { colors } from '~/constants/Colors'
 import SpinningLoader from '~/components/other/SpinningLoader'
 import ErrorBanner from '~/components/banners/ErrorBanner'
-import { CheckCircle } from 'phosphor-react-native'
+import { CheckCircle, Brain, ChartLine, Compass, Graph, PencilLine,  } from 'phosphor-react-native'
 import TermsModal from './TermsModal'
 import PrivacyModal from './PrivacyModal'
 import Purchases, { PurchasesPackage } from 'react-native-purchases'
+import { X } from 'lucide-react-native'
+import { navigate } from 'expo-router/build/global-state/routing'
 
 interface SignUpStep5FreeTrialProps {
   onStartTrial: () => Promise<void>
   onBack: () => void
 }
 
-export default function SignUpStep5FreeTrial({ onStartTrial, onBack }: SignUpStep5FreeTrialProps) {
+export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTrialProps) {
+  const { width: screenWidth } = useWindowDimensions()
+  const bannerHeight = 250
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showTerms, setShowTerms] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
-  const [priceString, setPriceString] = useState('$9.99/month')
+  const [priceString, setPriceString] = useState('$7.99/month')
 
-  // Fetch RevenueCat offerings
   useEffect(() => {
     const fetchOfferings = async () => {
       try {
         const offerings = await Purchases.getOfferings()
         if (offerings.current && offerings.current.availablePackages.length > 0) {
-          // Get the first package (or filter for monthly subscription)
-          const monthlyPackage = offerings.current.availablePackages.find(
-            pkg => pkg.identifier === '$rc_monthly' || pkg.packageType === 'MONTHLY'
-          ) || offerings.current.availablePackages[0]
-          
-          setSelectedPackage(monthlyPackage)
-          setPriceString(monthlyPackage.product.priceString + '/month')
+          const monthly =
+            offerings.current.availablePackages.find(p => p.identifier === '$rc_monthly' || p.packageType === 'MONTHLY')
+            || offerings.current.availablePackages[0]
+          setSelectedPackage(monthly)
+          setPriceString(monthly.product.priceString + '/month')
         }
-      } catch (error) {
-        console.error('Error fetching offerings:', error)
-      }
+      } catch (e) { console.error('Error fetching offerings:', e) }
     }
-    
     fetchOfferings()
   }, [])
 
   const handleStart = async () => {
     setError('')
     setLoading(true)
-    try { 
-      // First purchase the subscription
-      if (!selectedPackage) {
-        throw new Error('No subscription package available')
-      }
-
-      const purchaseResult = await Purchases.purchasePackage(selectedPackage)
-      
-      // Check if the purchase was successful
-      if (Object.keys(purchaseResult.customerInfo.entitlements.active).length === 0) {
+    try {
+      if (!selectedPackage) throw new Error('No subscription package available')
+      const res = await Purchases.purchasePackage(selectedPackage)
+      if (Object.keys(res.customerInfo.entitlements.active).length === 0) {
         throw new Error('Subscription purchase was not activated')
       }
-
-      // Then create the account
-      await onStartTrial() 
-    }
-    catch (err: any) {
-      let message = 'An unexpected error occurred.'
+      await onStartTrial()
+    } catch (err: any) {
       const txt = String(err?.message || '')
-      
-      // Handle RevenueCat specific errors
-      if (err.userCancelled) {
-        message = 'Purchase was cancelled.'
-      } else if (txt.includes('email-already-in-use')) {
-        message = 'That email is already in use.'
-      } else if (txt.includes('invalid-email')) {
-        message = 'Invalid email address.'
-      } else if (txt.includes('weak-password')) {
-        message = 'Password is too weak.'
-      } else if (txt.includes('subscription')) {
-        message = 'Failed to complete subscription. Please try again.'
-      }
-      
-      setError(message)
+      let msg = 'An unexpected error occurred.'
+      if (err?.userCancelled) msg = 'Purchase was cancelled.'
+      else if (txt.includes('email-already-in-use')) msg = 'That email is already in use.'
+      else if (txt.includes('invalid-email')) msg = 'Invalid email address.'
+      else if (txt.includes('weak-password')) msg = 'Password is too weak.'
+      else if (txt.toLowerCase().includes('subscription')) msg = 'Failed to complete subscription. Please try again.'
+      setError(msg)
     } finally { setLoading(false) }
   }
 
   const features = [
-    'AI-Powered Insights from journal entries',
-    'Track Progress with mood & habit analytics', 
-    'AI Coach for guidance and reflection',
-    'Detailed Analytics to understand patterns',
-    'Unlimited Journaling with no daily limits'
+    { text: 'AI-Powered Insights from journal entries', icon: Brain },
+    { text: 'Track Progress with mood & habit analytics', icon: ChartLine },
+    { text: 'AI Coach for guidance and reflection', icon: Compass },
+    { text: 'Detailed Analytics to understand patterns', icon: Graph },
+    { text: 'Unlimited Journaling with no daily limits', icon: PencilLine },
   ]
 
   return (
     <View style={styles.root}>
-      {/* light blue circle with image (behind content) */}
-      <View style={styles.topRightCircle} pointerEvents="none">
-        <Image
-          // use a RELATIVE path; adjust to your project structure
-          source={require('../../assets/images/walking.png')}
-          style={styles.topRightImage}
-          resizeMode="contain"
-        />
-      </View>
+      <Image
+        source={require('../../assets/images/sub.png')}
+        style={[styles.topImage, { width: screenWidth, height: bannerHeight }]}
+        resizeMode="cover"
+      />
 
-      {/* Header with back button */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.stepIndicator}>5 of 5</Text>
-      </View>
+      <X size={28} color={colors.lightest} onPress={() => navigate('/')} style={styles.closeIcon} />
+
+      <View style={{ height: bannerHeight }} />
 
       <ErrorBanner message={error} onHide={() => setError('')} />
 
-      {/* Top content */}
       <View style={styles.content}>
-        <Text style={styles.heading}>Unlock premium experience</Text>
+        <Text style={styles.heading}>Premium journalling experience</Text>
 
         <View style={styles.list}>
-          {features.map((f, i) => (
-            <View style={styles.row} key={i}>
-              <CheckCircle size={28} color={colors.blue} weight="fill" />
-              <Text style={styles.rowText}>{f}</Text>
-            </View>
-          ))}
+          {features.map((f, i) => {
+            const Icon = f.icon
+            return (
+              <View style={styles.row} key={i}>
+                <Icon size={28} color={colors.lightest} weight="fill" />
+                <Text style={styles.rowText}>{f.text}</Text>
+              </View>
+            )
+          })}
         </View>
       </View>
 
-      {/* Bottom curved section (blue) */}
       <View style={styles.bottom}>
         <Text style={styles.afterTrial}>Try 7 days free, then {priceString}</Text>
 
@@ -163,138 +137,50 @@ export default function SignUpStep5FreeTrial({ onStartTrial, onBack }: SignUpSte
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.lightest,
+    backgroundColor: '#08308c',
+    position: 'relative',
   },
-
-  // Header with back button
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
-    zIndex: 2,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backText: {
-    fontSize: 16,
-    color: colors.blue,
-    fontFamily: 'SpaceMono',
-  },
-  stepIndicator: {
-    fontSize: 14,
-    color: colors.dark,
-    fontFamily: 'SpaceMono',
-  },
-
-  // light blue circle behind content
-  topRightCircle: {
+  topImage: {
     position: 'absolute',
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: colors.lightestblue,
-    top: -120,
-    right: -120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // zIndex left at default (0)
+    top: -10,
+    left: 0,
+    right: 0,
+    zIndex: 0,
   },
-  topRightImage: {
-    width: 170,
-    height: 170,
-    marginTop: 150,
-    marginLeft: 30,
-  },
-
-  // Top section
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 100,
-    zIndex: 1, // ensure above the circle on both iOS/Android
+    zIndex: 1,
   },
   heading: {
-    fontFamily: 'SpaceMonoSemibold',
+    fontFamily: 'SpaceMonoBold',
     lineHeight: 40,
     fontSize: 32,
     marginBottom: 6,
-    color: colors.darkest,
+    marginTop: 0,
+    color: colors.lightest,
   },
-  list: {
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    gap: 8,
-  },
-  rowText: {
-    flex: 1,
-    fontFamily: 'SpaceMono',
-    fontSize: 16,
-    color: colors.darkest,
-  },
-
-  // Bottom curved panel
+  list: { marginTop: 8, marginBottom: 24 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, gap: 8 },
+  rowText: { flex: 1, fontFamily: 'SpaceMono', fontSize: 16, color: colors.light },
   bottom: {
-    backgroundColor: colors.blue,
+    backgroundColor: colors.lightest,
     borderTopLeftRadius: 48,
     borderTopRightRadius: 48,
     paddingHorizontal: 24,
-    paddingTop: 34,
-    paddingBottom: 34,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
+    paddingVertical: 24,
   },
-  afterTrial: {
-    textAlign: 'center',
-    fontFamily: 'SpaceMono',
-    fontSize: 14,
-    marginBottom: 16,
-    color: 'rgba(255,255,255,0.9)',
+  closeIcon: {
+    position: 'absolute',
+    top: 40,
+    right: 24,
+    zIndex: 2,
   },
-  cta: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
-  },
+  afterTrial: { textAlign: 'center', fontFamily: 'SpaceMono', fontSize: 14, marginBottom: 16, color: colors.blue },
+  cta: { height: 56, borderRadius: 16, backgroundColor: colors.darkestblue, alignItems: 'center', justifyContent: 'center' },
   ctaDisabled: { opacity: 0.85 },
-  ctaText: {
-    fontFamily: 'SpaceMonoSemibold',
-    fontSize: 16,
-    color: colors.darkest,
-  },
-  linksRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-    flexWrap: 'wrap',
-  },
-  termsText: {
-    textAlign: 'center',
-    fontFamily: 'SpaceMono',
-    fontSize: 12,
-    color: colors.darkestblue,
-  },
-  link: {
-    textDecorationLine: 'underline',
-    fontWeight: '600',
-  },
+  ctaText: { fontFamily: 'SpaceMonoSemibold', fontSize: 16, color: colors.lightest },
+  linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8, flexWrap: 'wrap' },
+  termsText: { textAlign: 'center', fontFamily: 'SpaceMono', fontSize: 12, color: colors.light },
+  link: { textDecorationLine: 'underline', fontWeight: '600' },
 })

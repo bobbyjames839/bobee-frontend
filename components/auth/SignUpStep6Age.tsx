@@ -1,53 +1,53 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { colors } from '~/constants/Colors'
-import { GenderMale, GenderFemale, Question } from 'phosphor-react-native'
 
-interface SignUpStep3GenderProps {
-  gender: string
-  onGenderChange: (gender: string) => void
+interface SignUpStep6AgeProps {
+  age: string
+  onAgeChange: (age: string) => void
   onNext: () => void
   onBack: () => void
 }
 
-type Option = {
-  value: string
-  label: string
-  Icon: React.ComponentType<{ size?: number; color?: string; weight?: 'regular' | 'bold' | 'fill' | 'duotone' | 'light' | 'thin' }>
-}
+const ageRanges = [
+  { id: '18-24', label: '18-24' },
+  { id: '25-34', label: '25-34' },
+  { id: '35-44', label: '35-44' },
+  { id: '45-54', label: '45-54' },
+  { id: '55-64', label: '55-64' },
+  { id: '65+', label: '65+' },
+]
 
-export default function SignUpStep3Gender({ gender, onGenderChange, onNext, onBack }: SignUpStep3GenderProps) {
-  const isDisabled = !gender
-
-  const genderOptions: Option[] = [
-    { value: 'male', label: 'Male', Icon: GenderMale },
-    { value: 'female', label: 'Female', Icon: GenderFemale },
-    { value: 'prefer_not_to_say', label: 'Prefer not to say', Icon: Question },
-  ]
+export default function SignUpStep6Age({ age, onAgeChange, onNext, onBack }: SignUpStep6AgeProps) {
+  const isDisabled = !age
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>How do you identify?</Text>
+        <Text style={styles.title}>What's your age?</Text>
         <Text style={styles.subtitle}>This helps us personalize your experience</Text>
 
         <View style={styles.optionsContainer}>
-          {genderOptions.map(({ value, label, Icon }) => {
-            const selected = gender === value
-            return (
-              <TouchableOpacity
-                key={value}
-                style={[styles.optionButton, selected && styles.optionButtonSelected]}
-                onPress={() => onGenderChange(value)}
-                activeOpacity={0.8}
+          {ageRanges.map((option) => (
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                styles.optionButton,
+                age === option.id && styles.optionButtonSelected,
+              ]}
+              onPress={() => onAgeChange(option.id)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  age === option.id && styles.optionTextSelected,
+                ]}
               >
-                <Icon size={28} color={colors.darkest} />
-                <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <TouchableOpacity
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingBottom: 100,
+    paddingBottom: 60,
   },
   title: {
     fontSize: 28,
@@ -85,22 +85,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.dark,
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
     fontFamily: 'SpaceMono',
   },
   optionsContainer: {
-    marginBottom: 40,
+    marginBottom: 24,
   },
   optionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 20,
-    marginBottom: 12,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.light,
     backgroundColor: 'white',
-    gap: 16,
+    marginBottom: 12,
+    alignItems: 'center',
   },
   optionButtonSelected: {
     borderColor: colors.blue,
@@ -112,8 +110,8 @@ const styles = StyleSheet.create({
     color: colors.darkest,
   },
   optionTextSelected: {
-    color: colors.blue,
     fontWeight: '600',
+    color: colors.blue,
   },
   button: {
     backgroundColor: colors.blue,
@@ -121,6 +119,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
   },
   buttonDisabled: {
     opacity: 0.7,

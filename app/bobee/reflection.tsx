@@ -36,10 +36,19 @@ export default function ReflectionFlowPage() {
   const [finalAiAnswer, setFinalAiAnswer] = useState<string | null>(null)
   const [userReply, setUserReply] = useState<string | null>(null)
   const [input, setInput] = useState('')
-  const scrollRef = useRef<ScrollView | null>(null)
 
+  const scrollRef = useRef<ScrollView | null>(null)
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
   const pulseAnim = useRef(new Animated.Value(1)).current
+
+  const [kbShown, setKbShown] = useState(false)
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+    const s = Keyboard.addListener(showEvt, () => setKbShown(true))
+    const h = Keyboard.addListener(hideEvt, () => setKbShown(false))
+    return () => { s.remove(); h.remove() }
+  }, [])
 
   useEffect(() => {
     if (aiLoading) {
@@ -55,16 +64,12 @@ export default function ReflectionFlowPage() {
     pulseAnim.setValue(1)
   }, [aiLoading, pulseAnim])
 
-  // Always keep view pinned to the bottom when content grows or keyboard opens
   useEffect(() => {
-    const sub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => scrollRef.current?.scrollToEnd({ animated: true })
-    )
+    const evt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const sub = Keyboard.addListener(evt, () => scrollRef.current?.scrollToEnd({ animated: true }))
     return () => sub.remove()
   }, [])
 
-  // Also pin after relevant state changes (AI/user messages)
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true })
   }, [firstAiAnswer, userReply, finalAiAnswer])
@@ -92,7 +97,6 @@ export default function ReflectionFlowPage() {
       const j = await resp.json() as { answer: string; done?: boolean }
       setFinalAiAnswer(j.answer)
 
-      // Fire-and-forget rating
       try {
         await fetch(`${API_BASE}/api/bobee/rate-reflection`, {
           method: 'POST',
@@ -120,18 +124,20 @@ export default function ReflectionFlowPage() {
     <View style={styles.container}>
       <Header title="Reflection" leftIcon="chevron-back" onLeftPress={close} />
 
-      {/* KAV ensures footer stays above keyboard on both platforms */}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.select({
-          ios: 0,          // Header doesn't overlap content on iOS here
-          android: 0
-        })}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={0}>
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={[styles.chatScroll, { paddingBottom: 16 }]}
+          contentContainerStyle={[
+            styles.chatScroll,
+            {
+              // leave space for footer or for the full-width done bar
+              paddingBottom: finalAiAnswer
+                ? Math.max(insets.bottom, 12)     // space for action bar height
+                : kbShown
+                  ? 4
+                  : 16
+            }
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
@@ -222,17 +228,13 @@ export default function ReflectionFlowPage() {
               <View style={[styles.bubble, styles.aiBubble]}>
                 <Text style={styles.aiText}>{finalAiAnswer}</Text>
               </View>
-              <TouchableOpacity style={styles.doneButton} onPress={close} activeOpacity={0.85}>
-                <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 6 }} />
-                <Text style={styles.doneButtonText}>Finish Reflection</Text>
-              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
 
-        {/* Footer lives inside the KAV and is NOT absolute, so it rides above the keyboard */}
+        {/* Reply footer (when in conversation) */}
         {selected && firstAiAnswer && !finalAiAnswer && (
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <View style={[styles.footer, { paddingBottom: kbShown ? 4 : Math.max(insets.bottom, 12) }]}>
             <View style={styles.inputContainer}>
               <AutoExpandingInput
                 value={input}
@@ -256,6 +258,13 @@ export default function ReflectionFlowPage() {
               </TouchableOpacity>
             </View>
           </View>
+        )}
+
+        {finalAiAnswer && (
+            <TouchableOpacity style={styles.actionBarButton} onPress={close} activeOpacity={0.9}>
+              <Ionicons name="checkmark" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.actionBarText}>Finish Reflection</Text>
+            </TouchableOpacity>
         )}
       </KeyboardAvoidingView>
     </View>
@@ -289,28 +298,14 @@ const styles = StyleSheet.create({
   optionButtonSelected: { backgroundColor: colors.darkblue, borderColor: colors.darkblue },
   optionButtonTextSelected: { color: '#fff', fontWeight: '600' },
 
-  doneButton: {
-    marginTop: 28,
-    alignSelf: 'center',
-    backgroundColor: colors.blue,
-    paddingVertical: 14,
-    paddingHorizontal: 26,
-    borderRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3
-  },
-  doneButtonText: { color: '#fff', fontFamily: 'SpaceMonoSemibold', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
-
-  // Footer sits inside KAV; no absolute positioning
+  // Footer (reply input)
   footer: {
     backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: colors.lighter,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    borderBottomWidth: 0,
     paddingTop: 8,
     paddingHorizontal: 12,
   },
@@ -321,19 +316,32 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: 'SpaceMono',
+    fontFamily: 'Lora',
+    alignSelf: 'center',
     fontSize: 15,
+    marginLeft: 4,
     letterSpacing: 0.3,
     lineHeight: 22,
     color: '#333',
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    borderRadius: 12,
   },
-  sendButton: { padding: 10, backgroundColor: colors.blue, borderRadius: 999 },
+  sendButton: { padding: 10, backgroundColor: colors.blue, borderRadius: 999, alignSelf : 'flex-end' },
+
+  actionBarButton: {
+    width: '100%',
+    backgroundColor: colors.blue,
+    borderRadius: 22,
+    paddingVertical: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionBarText: {
+    color: '#fff',
+    fontFamily: 'SpaceMonoSemibold',
+    fontSize: 18,
+    letterSpacing: 0.5
+  },
 
   pulseIcon: { alignSelf: 'flex-start', marginTop: 8, marginLeft: 4 }
 })
