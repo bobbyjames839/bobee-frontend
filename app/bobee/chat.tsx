@@ -11,7 +11,7 @@ import {
   Dimensions,
   ScrollView,
 } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router, Stack } from "expo-router";
 import Header from "~/components/other/Header";
 import useBobee from "~/hooks/useBobee";
 import ChatScreen from "~/components/bobee/ChatScreen";
@@ -20,6 +20,7 @@ import { colors } from "~/constants/Colors";
 import { getAuth } from "firebase/auth";
 import Constants from "expo-constants";
 import TutorialOverlay from "~/components/other/TutorialOverlay";
+import { navigate } from "expo-router/build/global-state/routing";
 
 export default function BobeeChatPage() {
   const [isSaving, setIsSaving] = useState(false);
@@ -84,6 +85,7 @@ export default function BobeeChatPage() {
     saveConversation,
     openConversation,
     deleteConversation,
+    newConversation,
   } = useBobee();
 
   const { conversationId, initialQuestion } = useLocalSearchParams<{
@@ -134,14 +136,49 @@ export default function BobeeChatPage() {
     setShowTutorial(tour === "5");
   }, [tour]);
 
+  const handleBackWithSave = useCallback(() => {
+    // Navigate back immediately, then save in the background
+    router.back();
+    
+    // Save in the background without blocking UI
+    saveConversation().catch((e) => {
+      console.warn("saveConversation failed", e);
+    });
+  }, [saveConversation]);
+
+  const handleNewChat = useCallback(() => {
+    // Save current conversation in the background
+    saveConversation().catch((e) => {
+      console.warn("saveConversation failed", e);
+    });
+    
+    // Clear conversation to start fresh
+    newConversation();
+  }, [saveConversation, newConversation]);
+
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40}
-    >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
-      <Header title="Conversation" leftIcon="menu" onLeftPress={toggleSidebar} />
+    <>
+      <Stack.Screen
+        options={{
+          gestureEnabled: true,
+          gestureDirection: "horizontal",
+        }}
+      />
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40}
+      >
+        <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
+        <Header 
+          title="Conversation" 
+          leftIcon="menu" 
+          onLeftPress={toggleSidebar}
+          secondLeftIcon="chevron-back"
+          onSecondLeftPress={handleBackWithSave}
+          rightIcon="add"
+          onRightPress={handleNewChat}
+        />
 
       {renderSidebar({
         sidebarAnim,
@@ -151,6 +188,10 @@ export default function BobeeChatPage() {
         onSelect: (id) => openConversation(id),
         close: () => toggleSidebar(),
         refresh: fetchConvos,
+        onDelete: async (id) => {
+          await deleteConversation(id);
+          await fetchConvos();
+        },
       })}
 
       <ChatScreen
@@ -160,24 +201,7 @@ export default function BobeeChatPage() {
         input={input}
         setInput={setInput}
         isLoading={isLoading}
-        isDeleting={isDeleting}
-        onDelete={deleteConversation}
         onSubmit={handleSubmit}
-        isSaving={isSaving}
-        onSaveAndBack={async () => {
-          if (isSaving) return;
-          try {
-            setIsSaving(true);
-            await saveConversation();
-          } catch (e) {
-            console.warn("saveConversation failed", e);
-          } finally {
-            router.back();
-            setTimeout(() => {
-              setIsSaving(false);
-            }, 1000);
-          }
-        }}
       />
 
       {showTutorial && (
@@ -189,11 +213,13 @@ export default function BobeeChatPage() {
           nextLabel="Finish"
           onNext={() => {
             setShowTutorial(false);
+            navigate('/journal');
           }}
           onSkip={() => setShowTutorial(false)}
         />
       )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -205,6 +231,7 @@ interface SidebarProps {
   onSelect: (id: string) => void;
   close: () => void;
   refresh: () => void;
+  onDelete: (id: string) => Promise<void>;
 }
 
 function renderSidebar({
@@ -215,12 +242,28 @@ function renderSidebar({
   onSelect,
   close,
   refresh,
+  onDelete,
 }: SidebarProps) {
-  const width = Math.min(Dimensions.get("window").width * 0.75, 320);
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  
+  const width = Dimensions.get("window").width * 0.80;
   const translateX = sidebarAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-width, 0],
   });
+
+  const handleDelete = async (id: string) => {
+    setIsDeleting(true);
+    try {
+      await onDelete(id);
+      setDeleteConfirmId(null);
+    } catch (e) {
+      console.warn("Delete failed", e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -263,17 +306,48 @@ function renderSidebar({
                   onSelect(c.id);
                   close();
                 }}
+                onLongPress={() => setDeleteConfirmId(c.id)}
+                delayLongPress={1000}
               >
                 <Text style={styles.sidebarItemTitle}>
                   {c.title || "Untitled"}
-                </Text>
-                <Text style={styles.sidebarItemDate}>
-                  {new Date(c.updatedAt || c.createdAt).toLocaleDateString()}
                 </Text>
               </TouchableOpacity>
             ))}
         </ScrollView>
       </Animated.View>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <View style={styles.deleteModalOverlay}>
+          <View style={styles.deleteModal}>
+            <Text style={styles.deleteModalTitle}>Delete Conversation?</Text>
+            <Text style={styles.deleteModalText}>
+              This action cannot be undone.
+            </Text>
+            <View style={styles.deleteModalButtons}>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.deleteModalCancel]}
+                onPress={() => setDeleteConfirmId(null)}
+                disabled={isDeleting}
+              >
+                <Text style={styles.deleteModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.deleteModalConfirm]}
+                onPress={() => handleDelete(deleteConfirmId)}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <SpinningLoader size={16} thickness={3} color="#fff" />
+                ) : (
+                  <Text style={styles.deleteModalConfirmText}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
       <Animated.View
         style={[
@@ -344,24 +418,18 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginTop: 20,
   },
-  sidebarItem: {
-    padding: 10,
-    backgroundColor: colors.lightest,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
+sidebarItem: {
+  padding: 10,
+  borderRadius: 8,
+  marginBottom: 8,
+  borderWidth: 1,
+  borderColor: colors.lightest,
+},
+
   sidebarItemTitle: {
     fontFamily: "SpaceMono",
     fontSize: 16,
-    marginBottom: 5,
     color: colors.darkest,
-  },
-  sidebarItemDate: {
-    fontFamily: "SpaceMonoSemibold",
-    fontSize: 12,
-    alignSelf: "flex-end",
-    color: colors.blue,
-    marginTop: 2,
   },
   sidebarBackdrop: {
     position: "absolute",
@@ -386,5 +454,61 @@ const styles = StyleSheet.create({
   sidebarLoadingWrap: {
     marginTop: 30,
     alignItems: "center",
+  },
+  deleteModalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 100,
+  },
+  deleteModal: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "80%",
+    maxWidth: 320,
+  },
+  deleteModalTitle: {
+    fontFamily: "SpaceMonoSemibold",
+    fontSize: 18,
+    color: colors.darkest,
+    marginBottom: 12,
+  },
+  deleteModalText: {
+    fontFamily: "SpaceMono",
+    fontSize: 14,
+    color: colors.dark,
+    marginBottom: 20,
+  },
+  deleteModalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  deleteModalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteModalCancel: {
+    backgroundColor: colors.lighter,
+  },
+  deleteModalConfirm: {
+    backgroundColor: "rgba(233, 127, 127, 1)",
+  },
+  deleteModalCancelText: {
+    fontFamily: "SpaceMono",
+    fontSize: 14,
+    color: colors.darkest,
+  },
+  deleteModalConfirmText: {
+    fontFamily: "SpaceMono",
+    fontSize: 14,
+    color: "#fff",
   },
 });

@@ -36,9 +36,11 @@ const API_URL: string | undefined =
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/Poppins-Regular.ttf'),
+    Inter: require('../assets/fonts/Inter-VariableFont_opsz,wght.ttf'),
     SpaceMonoBold: require('../assets/fonts/Poppins-SemiBold.ttf'),
     SpaceMonoSemibold: require('../assets/fonts/Poppins-Medium.ttf'),
     Lora: require('../assets/fonts/Lora-VariableFont_wght.ttf'),
+    Nunito: require('../assets/fonts/Nunito-VariableFont_wght.ttf'),
   });
 
   const [authReady, setAuthReady] = useState(false);
@@ -220,8 +222,8 @@ export default function RootLayout() {
                 options={{
                   presentation: 'card',
                   animation: 'slide_from_right',
-                    gestureEnabled: false,
-                    fullScreenGestureEnabled: false,
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
                   gestureDirection: 'horizontal',
                 }}
               />

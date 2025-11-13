@@ -25,14 +25,16 @@ export default function useBobee() {
   const [showChat, setShowChat] = useState(false)
   // userProfile removed – no longer fetched or sent
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const deleteConversation = useCallback(async () => {
-    if (!conversationId) return;
+  const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
+  const deleteConversation = useCallback(async (idToDelete?: string) => {
+    const targetId = idToDelete || conversationId;
+    if (!targetId) return;
     setIsDeleting(true);
     try {
       const user = getAuth().currentUser;
       if (!user) throw new Error('No user');
       const idToken = await user.getIdToken(true);
-      const res = await fetch(`${API_BASE}/api/delete-conversation/${conversationId}`, {
+      const res = await fetch(`${API_BASE}/api/delete-conversation/${targetId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -40,22 +42,23 @@ export default function useBobee() {
         },
       });
       if (!res.ok) throw new Error('Failed to delete');
-      setHistory([]);
-      setExpanded(new Set());
-      setConversationId(null);
-      setShowChat(false);
+      // Only clear the UI if deleting the current conversation
+      if (targetId === conversationId) {
+        setHistory([]);
+        setExpanded(new Set());
+        setConversationId(null);
+        setShowChat(false);
+      }
     } catch (e) {
       console.warn('Delete failed:', e);
     } finally {
       setIsDeleting(false);
     }
-  }, [conversationId]);
+  }, [conversationId, API_BASE]);
 
   const scrollRef = useRef<ScrollView>(null)
   const pulseAnim = useRef(new Animated.Value(1)).current
   const prevShowChat = usePrevious(showChat)
-
-  const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
 
 
   useEffect(() => {
@@ -133,7 +136,14 @@ export default function useBobee() {
     setExpanded(new Set())
     setShowChat(true)
     setConversationId(id)
-  }, [setHistory, setExpanded, setShowChat, setConversationId])
+  }, [setHistory, setExpanded, setShowChat, setConversationId, API_BASE])
+
+  const newConversation = useCallback(() => {
+    setHistory([])
+    setExpanded(new Set())
+    setConversationId(null)
+    setInput('')
+  }, [])
 
 
 
@@ -265,5 +275,6 @@ export default function useBobee() {
     saveConversation,
     openConversation,
     deleteConversation,
+    newConversation,
   }
 }

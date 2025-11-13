@@ -11,27 +11,54 @@ interface HeaderProps {
   title?: string
   leftIcon?: IoniconName
   onLeftPress?: () => void
+  secondLeftIcon?: IoniconName
+  onSecondLeftPress?: () => void
+  rightIcon?: IoniconName
+  onRightPress?: () => void
 }
 
 export default function Header({
   title = 'Insights',
   leftIcon,
   onLeftPress,
+  secondLeftIcon,
+  onSecondLeftPress,
+  rightIcon,
+  onRightPress,
 }: HeaderProps) {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={colors.blue} />
       <View style={styles.headerContainer}>
-        {leftIcon && onLeftPress && (
-          <TouchableOpacity
-            onPress={onLeftPress}
-            style={styles.iconButton}
-          >
-            <Ionicons name={leftIcon} size={24} color="#fff" />
-          </TouchableOpacity>
-        )}
+        <View style={styles.leftIcons}>
+          {secondLeftIcon && onSecondLeftPress && (
+            <TouchableOpacity
+              onPress={onSecondLeftPress}
+              style={styles.iconButton}
+            >
+              <Ionicons name={secondLeftIcon} size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+          {leftIcon && onLeftPress && (
+            <TouchableOpacity
+              onPress={onLeftPress}
+              style={styles.iconButton}
+            >
+              <Ionicons name={leftIcon} size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
 
         <Text style={styles.headerText}>{title}</Text>
+
+        {rightIcon && onRightPress && (
+          <TouchableOpacity
+            onPress={onRightPress}
+            style={styles.rightIcon}
+          >
+            <Ionicons name={rightIcon} size={24} color={colors.blue} />
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   )
@@ -46,14 +73,29 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    paddingBottom: 9,
     justifyContent: 'center', 
-    marginBottom: 12,
+    height: 37,
     marginTop: -3,
   },
-  iconButton: {
+  leftIcons: {
     position: 'absolute',
-    left: 15, 
+    left: 10,
+    bottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    padding: 2,
+  },
+  rightIcon: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 30,
+    right: 10,
+    bottom: 8,
+    padding: 3,
   },
   headerText: {
     color: '#fff',

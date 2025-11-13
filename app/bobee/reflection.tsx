@@ -36,6 +36,7 @@ export default function ReflectionFlowPage() {
   const [finalAiAnswer, setFinalAiAnswer] = useState<string | null>(null)
   const [userReply, setUserReply] = useState<string | null>(null)
   const [input, setInput] = useState('')
+  const [inputLineCount, setInputLineCount] = useState(1)
 
   const scrollRef = useRef<ScrollView | null>(null)
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
@@ -74,7 +75,19 @@ export default function ReflectionFlowPage() {
     scrollRef.current?.scrollToEnd({ animated: true })
   }, [firstAiAnswer, userReply, finalAiAnswer])
 
-  const close = () => { router.back() }
+  const footerBottomPad = kbShown ? 10 : 25
+  const replyActive = Boolean(selected && firstAiAnswer && !finalAiAnswer)
+  const scrollBottomPadding = replyActive
+    ? 140 + (kbShown ? 30 : 0)
+    : finalAiAnswer
+      ? Math.max(insets.bottom, 24)
+      : kbShown
+        ? 30
+        : 40
+
+  const close = () => { 
+    router.replace('/(tabs)/bobee?refresh=true')
+  }
 
   const handleSend = async () => {
     if (!input.trim() || !selected || !firstAiAnswer || finalAiAnswer) return
@@ -130,12 +143,7 @@ export default function ReflectionFlowPage() {
           contentContainerStyle={[
             styles.chatScroll,
             {
-              // leave space for footer or for the full-width done bar
-              paddingBottom: finalAiAnswer
-                ? Math.max(insets.bottom, 12)     // space for action bar height
-                : kbShown
-                  ? 4
-                  : 16
+              paddingBottom: scrollBottomPadding
             }
           ]}
           showsVerticalScrollIndicator={false}
@@ -233,28 +241,29 @@ export default function ReflectionFlowPage() {
         </ScrollView>
 
         {/* Reply footer (when in conversation) */}
-        {selected && firstAiAnswer && !finalAiAnswer && (
-          <View style={[styles.footer, { paddingBottom: kbShown ? 4 : Math.max(insets.bottom, 12) }]}>
-            <View style={styles.inputContainer}>
+        {replyActive && (
+          <View style={[styles.footer, { paddingBottom: footerBottomPad }]}>
+            <View style={styles.footerBottom}>
               <AutoExpandingInput
                 value={input}
                 onChangeText={setInput}
                 placeholder="Type your reply"
                 placeholderTextColor="rgba(107, 107, 107, 1)"
-                minHeight={25}
+                minHeight={22}
                 maxHeight={120}
                 style={styles.input}
                 editable={!aiLoading}
                 returnKeyType="send"
                 onSubmitEditing={() => { if (input.trim()) handleSend() }}
                 blurOnSubmit={false}
+                onLineCountChange={setInputLineCount}
               />
               <TouchableOpacity
                 onPress={handleSend}
                 disabled={!input.trim() || aiLoading}
-                style={[styles.sendButton, (!input.trim() || aiLoading) && { opacity: 0.4 }]}
+                style={styles.sendButton}
               >
-                <Ionicons name="arrow-up" size={20} color={'white'} />
+                <Ionicons name="arrow-up" size={20} color="white" />
               </TouchableOpacity>
             </View>
           </View>
@@ -300,32 +309,48 @@ const styles = StyleSheet.create({
 
   // Footer (reply input)
   footer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    position: 'absolute',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    elevation: 10,
+  },
+  footerBottom: {
+    width: '93%',
+    paddingHorizontal: 8,
+    paddingLeft: 16,
+    borderRadius: 27,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.lighter,
-    borderBottomWidth: 0,
-    paddingTop: 8,
-    paddingHorizontal: 12,
-  },
-  inputContainer: {
+    display: 'flex',
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
+    justifyContent: 'space-between',
+    backgroundColor: 'white',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
   input: {
     flex: 1,
-    fontFamily: 'Lora',
-    alignSelf: 'center',
+    fontFamily: 'Inter',
     fontSize: 15,
-    marginLeft: 4,
     letterSpacing: 0.3,
+    color: colors.darkest,
     lineHeight: 22,
-    color: '#333',
-    backgroundColor: 'white',
+    marginBottom: 7,
   },
-  sendButton: { padding: 10, backgroundColor: colors.blue, borderRadius: 999, alignSelf : 'flex-end' },
+  sendButton: {
+    marginLeft: 3,
+    padding: 7,
+    backgroundColor: colors.blue,
+    borderRadius: 500,
+    alignSelf: 'flex-end',
+  },
 
   actionBarButton: {
     width: '100%',

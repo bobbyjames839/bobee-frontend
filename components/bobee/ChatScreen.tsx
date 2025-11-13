@@ -17,8 +17,7 @@ import {
   EmitterSubscription,
   Image,
 } from 'react-native'
-import SpinningLoader from '~/components/other/SpinningLoader'
-import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AutoExpandingInput from './AutoExpandingInput'
@@ -38,10 +37,6 @@ export default function ChatScreen({
   setInput,
   isLoading,
   onSubmit,
-  isSaving = false,
-  isDeleting,
-  onDelete,
-  onSaveAndBack,
 }: {
   history: ChatHistoryItem[]
   scrollRef: React.RefObject<ScrollView | null>
@@ -49,17 +44,14 @@ export default function ChatScreen({
   input: string
   setInput: (s: string) => void
   isLoading: boolean
-  isDeleting?: boolean
-  onDelete?: () => void
   onSubmit: () => void
-  isSaving?: boolean
-  onSaveAndBack?: () => void
 }) {
   const router = useRouter()
-  const busy = isLoading || isSaving
+  const busy = isLoading
   const insets = useSafeAreaInsets()
   const [kbVisible, setKbVisible] = useState(false)
   const [kbHeight, setKbHeight] = useState(0)
+  const [inputLineCount, setInputLineCount] = useState(1)
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
@@ -85,7 +77,7 @@ export default function ChatScreen({
   }, [insets.bottom])
 
   // Dynamic paddings (smaller when keyboard hidden)
-  const buttonsBottomPad = kbVisible ? 10 : Math.max(insets.bottom, 12)
+  const buttonsBottomPad = kbVisible ? 10 : 25
 
   // Ensure footer/input collapses when leaving this screen
   useFocusEffect(
@@ -104,13 +96,7 @@ export default function ChatScreen({
     }
   }, [])
 
-  const [pendingDelete, setPendingDelete] = useState(false)
-  useFocusEffect(
-    useCallback(() => {
-      setPendingDelete(false)
-      return () => setPendingDelete(false)
-    }, [])
-  )
+
 
   return (
     <View style={styles.flex}>
@@ -118,11 +104,11 @@ export default function ChatScreen({
         ref={scrollRef}
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: 120 + kbHeight }, // keep last bubble visible when keyboard is open
+          { paddingBottom: 120 + kbHeight }, 
         ]}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets={false} // Disable automatic adjustment as we're manually handling it
-        keyboardDismissMode="interactive" // Better dismiss behavior when dragging
+        automaticallyAdjustKeyboardInsets={false} 
+        keyboardDismissMode="interactive" 
       >
         {history.length === 0 && !isLoading && (
           <View style={styles.emptyWrap}>
@@ -158,63 +144,22 @@ export default function ChatScreen({
       </ScrollView>
 
       {/* Footer pinned to bottom: input above buttons */}
-      <View style={styles.footer}>
-        <View style={styles.inputContainer}>
+      <View style={[styles.footer, { paddingBottom: buttonsBottomPad }]}>
+        <View style={styles.footerBottom}>
           <AutoExpandingInput
             value={input}
             onChangeText={setInput}
             placeholder="Ask anything"
             placeholderTextColor="rgba(107, 107, 107, 1)"
-            minHeight={25}
+            minHeight={22}
             maxHeight={120}
             style={styles.input}
             editable={!busy}
             returnKeyType="send"
             onSubmitEditing={onSubmit}
             blurOnSubmit={false}
+            onLineCountChange={setInputLineCount}
           />
-        </View>
-
-        <View style={[styles.buttonsRow, { paddingBottom: buttonsBottomPad }]}>
-          <View style={styles.leftButtons}>
-            <TouchableOpacity
-              onPress={onSaveAndBack}
-              style={styles.saveButton}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <SpinningLoader size={20} thickness={3} color="green" />
-              ) : (
-                <MaterialIcons name="save-alt" size={20} color="green" />
-              )}
-            </TouchableOpacity>
-
-            {/* Delete: first tap arms (bin -> check). Second tap confirms and shows spinner. */}
-            <TouchableOpacity
-              onPress={async () => {
-                if (!onDelete || isDeleting) return
-                if (pendingDelete) {
-                  await onDelete()
-                  router.back()
-                } else {
-                  setPendingDelete(true)
-                }
-              }}
-              style={styles.deleteButton}
-              disabled={!!isDeleting}
-            >
-              {isDeleting ? (
-                <SpinningLoader size={20} thickness={3} color="rgba(119, 10, 10, 1)" />
-              ) : (
-                <MaterialIcons
-                  name={pendingDelete ? 'check' : 'delete-outline'}
-                  size={20}
-                  color="rgba(119, 10, 10, 1)"
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-
           <TouchableOpacity onPress={onSubmit} disabled={busy} style={styles.sendButton}>
             <Ionicons name="arrow-up" size={20} color="white" />
           </TouchableOpacity>
@@ -348,7 +293,7 @@ const styles = StyleSheet.create({
   reasoningText: {
     color: colors.lightest,
     fontSize: 15,
-        lineHeight: 22,
+    lineHeight: 22,
     fontFamily: 'SpaceMono',
   },
   divider: { height: 1, marginVertical: 8 },
@@ -363,63 +308,47 @@ const styles = StyleSheet.create({
   // Footer pinned at bottom; input above buttons
   footer: {
     position: 'absolute',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 10,
     elevation: 10,
-    backgroundColor: colors.lightest,
   },
-
-  inputContainer: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    backgroundColor: 'white',
-    paddingHorizontal: 18,
-    paddingTop: 8,
+  footerBottom: {
+    width: '93%',
+    paddingHorizontal: 8,
+    paddingLeft: 16,
+    borderRadius: 27,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.lighter,
-    borderBottomWidth: 0,
-  },
-  buttonsRow: {
+    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingBottom: 22, // overridden dynamically at runtime
-    paddingTop: 12,
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  leftButtons: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  saveButton: {
-    padding: 7,
-    backgroundColor: colors.green,
-    borderRadius: 500,
-  },
-  deleteButton: {
-    padding: 7,
-    backgroundColor: 'rgba(233, 127, 127, 1)',
-    borderRadius: 500,
-  },
-
   input: {
     flex: 1,
-    fontFamily: 'Lora',
+    fontFamily: 'Inter',
     fontSize: 15,
     letterSpacing: 0.3,
+    color: colors.darkest,
     lineHeight: 22,
-    color: '#333',
+    marginBottom: 7,
   },
   sendButton: {
-    marginLeft: 8,
+    marginLeft: 3,
     padding: 7,
     backgroundColor: colors.blue,
     borderRadius: 500,
+    alignSelf: 'flex-end',
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.25)',

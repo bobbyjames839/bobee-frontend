@@ -10,6 +10,7 @@ import {
 type Props = TextInputProps & {
   minHeight?: number
   maxHeight?: number
+  onLineCountChange?: (lineCount: number) => void
 }
 
 export default function AutoExpandingInput({
@@ -18,33 +19,52 @@ export default function AutoExpandingInput({
   minHeight = 40,
   maxHeight = 120,
   style,
+  onLineCountChange,
   ...props
 }: Props) {
   const [height, setHeight] = useState(minHeight)
   const prevLenRef = useRef((value ?? '').toString().length)
+  const [lineCount, setLineCount] = useState(1)
 
-  // If cleared externally, reset height
+  // If cleared externally, reset height and line count
   useEffect(() => {
     const len = (value ?? '').toString().length
-    if (len === 0 && height !== minHeight) setHeight(minHeight)
+    if (len === 0) {
+      if (height !== minHeight) setHeight(minHeight)
+      if (lineCount !== 1) {
+        setLineCount(1)
+        onLineCountChange?.(1)
+      }
+    }
     prevLenRef.current = len
-  }, [value, minHeight])
+  }, [value, minHeight, height, lineCount, onLineCountChange])
 
   const handleContentSizeChange = (
     e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>
   ) => {
     const h = e.nativeEvent.contentSize.height
     const clamped = Math.max(minHeight, Math.min(maxHeight, h))
-    if (clamped !== height) setHeight(clamped)
+    if (clamped !== height) {
+      setHeight(clamped)
+    }
+
+    const approxLineHeight = minHeight // assuming minHeight == per-line height
+    const estimatedLineCount = Math.max(1, Math.round(h / approxLineHeight))
+
+    if (estimatedLineCount !== lineCount) {
+      setLineCount(estimatedLineCount)
+      onLineCountChange?.(estimatedLineCount)
+    }
+    console.log({ h, estimatedLineCount, prevState: lineCount })
   }
+
 
   const handleChangeText = (next: string) => {
     const nextLen = (next ?? '').toString().length
     const prevLen = prevLenRef.current
     const isDeleting = nextLen < prevLen
 
-    // On any deletion (no matter where), snap to min first,
-    // then onContentSizeChange will grow to the exact minimal height needed.
+
     if (isDeleting && height !== minHeight) {
       setHeight(minHeight)
     }

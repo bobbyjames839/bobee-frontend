@@ -7,8 +7,9 @@ export default function BobeeLayout() {
         headerShown: false,
         presentation: 'card',
         animation: 'slide_from_right',
-        gestureEnabled: false,
-        fullScreenGestureEnabled: false,
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        gestureDirection: 'horizontal',
       }}
     />
   );

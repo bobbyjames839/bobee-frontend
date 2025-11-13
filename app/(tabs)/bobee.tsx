@@ -43,7 +43,7 @@ export default function BobeeMainPage() {
   const [reflectionDoneToday, setReflectionDoneToday] = useState<boolean>(false);
 
   const router = useRouter();
-  const { tour } = useLocalSearchParams<{ tour?: string }>();
+  const { tour, refresh } = useLocalSearchParams<{ tour?: string; refresh?: string }>();
   const [showTutorial, setShowTutorial] = useState(false);
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -110,19 +110,22 @@ export default function BobeeMainPage() {
       const now = Date.now();
       const stale = !lastFetchTsRef.current || now - (lastFetchTsRef.current ?? 0) > STALE_MS;
       const newDay = lastDayKeyRef.current !== todayKey;
+      const forceRefresh = refresh === 'true';
 
-      // Always refetch when the screen comes into focus to catch reflection completion
-      if (!hasFetchedRef.current || stale || newDay) {
+      // Refetch if it's the first time, stale, a new day, or explicitly requested
+      if (!hasFetchedRef.current || stale || newDay || forceRefresh) {
         refetchMeta();
         fetchInsights();
         hasFetchedRef.current = true;
         lastFetchTsRef.current = now;
         lastDayKeyRef.current = todayKey;
-      } else {
-        // Even if not stale, still refetch insights to catch reflection status changes
-        fetchInsights();
+        
+        // Clear the refresh parameter after using it
+        if (forceRefresh) {
+          router.replace('/(tabs)/bobee');
+        }
       }
-    }, [refetchMeta, fetchInsights, todayKey])
+    }, [refetchMeta, fetchInsights, todayKey, refresh, router])
   );
 
   useEffect(() => {
