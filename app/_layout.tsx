@@ -211,10 +211,12 @@ export default function RootLayout() {
                 name="journal"
                 options={{
                   presentation: 'card',
-                  animation: 'slide_from_right',
+                  animation: 'slide_from_bottom',
                   gestureEnabled: true,
                   fullScreenGestureEnabled: true,
+                  gestureDirection: 'vertical',
                   headerShown: false,
+                  animationDuration: 500,
                 }}
               />
               <Stack.Screen
@@ -261,7 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   image: {
-    width: '60%',
+    width: '50%',
     maxWidth: 300,
     aspectRatio: 1,
   },

@@ -1,18 +1,14 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
   Image,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { SubscriptionContext } from '~/context/SubscriptionContext';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import { colors } from '~/constants/Colors';
 import Header from '~/components/other/Header';
@@ -41,31 +37,21 @@ export default function JournalScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getJournalById } = useJournals();
-  const { isSubscribed } = useContext(SubscriptionContext);
   const insets = useSafeAreaInsets();
-
   const [journal, setJournal] = useState<JournalEntry | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
 
   useEffect(() => {
-    setUpgradeLoading(false);
-    
-    // Try to get journal from cache
     const cachedJournal = getJournalById(id);
     if (cachedJournal) {
       setJournal(cachedJournal);
       setLoading(false);
     } else {
-      // If not in cache, it means we need to wait or the journal doesn't exist
       setLoading(false);
     }
   }, [id, getJournalById]);
 
-  const navigateToUpgrade = () => {
-    router.dismissAll();
-    router.push('/settings/sub');
-  };
 
   return (
     <View style={styles.fullscreen}>
@@ -108,21 +94,8 @@ export default function JournalScreen() {
           {journal.aiResponse.selfInsight && (
             <View style={styles.blurSection}>
               <Text style={styles.section}>Insight</Text>
-              <View style={isSubscribed ? styles.insightContent : styles.insightContentPadded}>
+              <View style={styles.insightContent}>
                 <Text style={styles.text}>{journal.aiResponse.selfInsight}</Text>
-                {!isSubscribed && (
-                  <BlurView intensity={12} tint="light" style={styles.blurOverlayInner}>
-                    <TouchableOpacity onPress={navigateToUpgrade} disabled={upgradeLoading}>
-                      <View style={styles.upgradeBlurButtonContent}>
-                        {upgradeLoading ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </BlurView>
-                )}
               </View>
             </View>
           )}
@@ -187,21 +160,8 @@ export default function JournalScreen() {
           {journal.aiResponse.thoughtPattern && (
             <View style={styles.blurSection}>
               <Text style={styles.section}>Thought Pattern</Text>
-              <View style={isSubscribed ? styles.insightContent : styles.insightContentPadded}>
+              <View style={styles.insightContent}>
                 <Text style={styles.text}>{journal.aiResponse.thoughtPattern}</Text>
-                {!isSubscribed && (
-                  <BlurView intensity={12} tint="light" style={styles.blurOverlayInner}>
-                    <TouchableOpacity onPress={navigateToUpgrade} disabled={upgradeLoading}>
-                      <View style={styles.upgradeBlurButtonContent}>
-                        {upgradeLoading ? (
-                          <SpinningLoader size={20} />
-                        ) : (
-                          <Text style={styles.upgradeBlurButtonText}>Upgrade</Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </BlurView>
-                )}
               </View>
             </View>
           )}
@@ -238,38 +198,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
   },
-  blurSection: { position: 'relative' },
-  insightContentPadded: {
-    position: 'relative',
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(173, 209, 246, 0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
   insightContent: { position: 'relative', borderRadius: 8, overflow: 'hidden' },
-  blurOverlayInner: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(155, 203, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  upgradeBlurButtonContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.blue,
-    width: 160,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  upgradeBlurButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'SpaceMono',
-    fontWeight: '600',
-  },
   statsRow: { flexDirection: 'row', alignItems: 'center' },
+  blurSection: { position: 'relative' },
   moodBox: {
     paddingHorizontal: 40,
     height: 120,

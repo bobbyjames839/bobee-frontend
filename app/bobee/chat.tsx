@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useLocalSearchParams, router, Stack } from "expo-router";
-import Header from "~/components/other/Header";
+import { Ionicons } from "@expo/vector-icons";
 import useBobee from "~/hooks/useBobee";
 import ChatScreen from "~/components/bobee/ChatScreen";
 import SpinningLoader from "~/components/other/SpinningLoader";
@@ -21,9 +21,13 @@ import { getAuth } from "firebase/auth";
 import Constants from "expo-constants";
 import TutorialOverlay from "~/components/other/TutorialOverlay";
 import { navigate } from "expo-router/build/global-state/routing";
+import { ChevronLeft, FilePen } from "lucide-react-native";
+import { TextAlignStart } from "lucide-react-native";
+
+
+
 
 export default function BobeeChatPage() {
-  const [isSaving, setIsSaving] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const sidebarAnim = useState(new Animated.Value(0))[0];
   const [convos, setConvos] = useState<
@@ -86,6 +90,7 @@ export default function BobeeChatPage() {
     openConversation,
     deleteConversation,
     newConversation,
+    conversationId: currentConversationId,
   } = useBobee();
 
   const { conversationId, initialQuestion } = useLocalSearchParams<{
@@ -147,14 +152,46 @@ export default function BobeeChatPage() {
   }, [saveConversation]);
 
   const handleNewChat = useCallback(() => {
-    // Save current conversation in the background
-    saveConversation().catch((e) => {
-      console.warn("saveConversation failed", e);
-    });
+    // If conversation already has an ID, it's already saved - just clear and start new
+    if (currentConversationId) {
+      newConversation();
+      return;
+    }
+
+    // Don't save if history is empty
+    if (history.length === 0) {
+      newConversation();
+      return;
+    }
     
-    // Clear conversation to start fresh
+    // Capture current history before clearing
+    const currentHistory = [...history];
+    
+    // Clear conversation immediately for instant UI response
     newConversation();
-  }, [saveConversation, newConversation]);
+    
+    // Save previous conversation in the background (only unsaved conversations)
+    (async () => {
+      try {
+        const uid = getAuth().currentUser?.uid;
+        if (!uid) return;
+        
+        const transcript = currentHistory
+          .map((item, i) => `${i + 1}. Q: ${item.question}\n   A: ${item.answer ?? '[no answer]'}`)
+          .join('\n');
+        
+        const idToken = await getAuth().currentUser!.getIdToken(true);
+        
+        await fetch(`${API_BASE}/api/save-conversation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+          body: JSON.stringify({ conversationId: null, transcript, history: currentHistory }),
+        });
+      } catch (e) {
+        console.warn("Background save failed", e);
+      }
+    })();
+  }, [history, currentConversationId, newConversation, API_BASE]);
 
   return (
     <>
@@ -170,15 +207,21 @@ export default function BobeeChatPage() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40}
       >
         <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
-        <Header 
-          title="Conversation" 
-          leftIcon="menu" 
-          onLeftPress={toggleSidebar}
-          secondLeftIcon="chevron-back"
-          onSecondLeftPress={handleBackWithSave}
-          rightIcon="add"
-          onRightPress={handleNewChat}
-        />
+        
+        <View style={styles.customHeader}>
+          <View style={styles.leftIconsGroup}>
+            <TouchableOpacity onPress={handleBackWithSave}>
+              <ChevronLeft size={24} color={colors.blue} strokeWidth={2} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleSidebar}>
+              <TextAlignStart size={24} color={colors.blue} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity onPress={handleNewChat} style={styles.rightIconButton}>
+            <FilePen size={24} color={colors.blue} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
 
       {renderSidebar({
         sidebarAnim,
@@ -202,6 +245,10 @@ export default function BobeeChatPage() {
         setInput={setInput}
         isLoading={isLoading}
         onSubmit={handleSubmit}
+        onDirectSubmit={(text) => {
+          setInput(text);
+          setTimeout(() => handleSubmit(), 50);
+        }}
       />
 
       {showTutorial && (
@@ -510,5 +557,34 @@ sidebarItem: {
     fontFamily: "SpaceMono",
     fontSize: 14,
     color: "#fff",
+  },
+  customHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: 10,
+    paddingRight: 20,
+    paddingTop: 60,
+    paddingBottom: 10,
+    backgroundColor: colors.lightest,
+  },
+  leftIconsGroup: {
+    backgroundColor: "white",
+    display: 'flex',
+    flexDirection: "row",
+    borderRadius: 30,
+    padding: 8,
+    paddingLeft: 7,
+    paddingRight: 12,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    gap: 16,
+  },
+  rightIconButton: {
+    backgroundColor: "white",
+    borderRadius: 30,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.lighter,
   },
 });

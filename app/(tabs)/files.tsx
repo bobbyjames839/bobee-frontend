@@ -10,7 +10,6 @@ import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import TutorialOverlay from '~/components/other/TutorialOverlay';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import { useJournalRefresh } from '~/context/JournalRefreshContext';
-import { useFocusEffect } from '@react-navigation/native';
 
 export default function FilesTabIndex() {
   const router = useRouter();
@@ -20,12 +19,17 @@ export default function FilesTabIndex() {
   const [successMessage, setSuccessMessage] = useState('');
   const { refreshKey } = useJournalRefresh();
 
-  // Refetch journals when the screen comes into focus or when refreshKey changes
-  useFocusEffect(
-    React.useCallback(() => {
+  // Fetch journals on mount
+  useEffect(() => {
+    fetchJournals();
+  }, [fetchJournals]);
+
+  // Refetch only when refreshKey changes (triggered by journal submission)
+  useEffect(() => {
+    if (refreshKey > 0) {
       fetchJournals();
-    }, [fetchJournals, refreshKey])
-  );
+    }
+  }, [refreshKey, fetchJournals]);
 
   useEffect(() => {
     setShowTutorial(tour === '2');

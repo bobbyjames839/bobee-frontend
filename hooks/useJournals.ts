@@ -48,8 +48,6 @@ export function useJournalRecording() {
   const [error, setError] = useState<string | null>(null);
   const clearError = () => setError(null);
   const [submissionConfirmed, setSubmissionConfirmed] = useState(false);
-  const [subscribeLoading, setSubscribeLoading] = useState(false);
-  const [secondSubscribeLoading, setSecondSubscribeLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [successBannerVisible, setSuccessBannerVisible] = useState(false);
   const clearSuccessBanner = () => setSuccessBannerVisible(false);
@@ -103,9 +101,20 @@ export function useJournalRecording() {
   };
 
   //reset all the states when we stop recording
-  const resetState = () => {
+  const resetState = async () => {
     stopPulse();
     stopTimer();
+    
+    // Properly clean up recording if it exists
+    if (recordingRef.current) {
+      try {
+        await recordingRef.current.stopAndUnloadAsync();
+      } catch (e) {
+        console.warn('Error stopping recording during reset:', e);
+      }
+      recordingRef.current = null;
+    }
+    
     setIsRecording(false);
     setTimer(0);
     setPrompt('');
@@ -489,30 +498,6 @@ export function useJournalRecording() {
     setPrompt('')
   }
 
-  async function handleUpgrade() {
-    setSubscribeLoading(true);
-    try {
-      // reuse the submit logic
-      await doSubmitJournal();
-      router.back();
-      router.push('/settings/sub');
-    } finally {
-      setSubscribeLoading(false);
-    }
-  }
-
-  async function handleUpgradeTwo() {
-    setSecondSubscribeLoading(true);
-    try {
-      // reuse the submit logic
-      await doSubmitJournal();
-      router.back();
-      router.push('/settings/sub');
-    } finally {
-      setSecondSubscribeLoading(false);
-    }
-  }
-
   async function handleSubmitJournal() {
     setSubmitLoading(true);
     try {
@@ -544,10 +529,6 @@ export function useJournalRecording() {
     handleSubmitJournal,
     wordCount, 
     currentStreak,
-    handleUpgrade,
-    handleUpgradeTwo,
-    subscribeLoading, 
-    secondSubscribeLoading,
     submitLoading,
     clearError,
     successBannerVisible,

@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: colors.darkest,
     fontFamily: 'SpaceMonoSemibold',
     fontSize: 18,
-    marginRight: 8,
+    marginRight: 14,
   },
   readyNote: {
     marginTop: 5,
@@ -246,7 +246,6 @@ const styles = StyleSheet.create({
   personalArrow: {
     fontSize: 24,
     color: colors.dark,
-    marginLeft: 14,
     fontFamily: 'SpaceMono',
   },
 });

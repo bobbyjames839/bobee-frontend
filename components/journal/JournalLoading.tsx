@@ -6,7 +6,7 @@ import { colors } from '~/constants/Colors';
 const loadingMessages = [
   'Checking voice usage.',
   'Transcribing journal.',
-  'Calculating word and streak count.',
+  'Calculating word & streak count.',
   'Getting personality metrics.',
   'Getting AI response.',
   'Finalising...'

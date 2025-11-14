@@ -56,7 +56,7 @@ export default function Header({
             onPress={onRightPress}
             style={styles.rightIcon}
           >
-            <Ionicons name={rightIcon} size={24} color={colors.blue} />
+            <Ionicons name={rightIcon} size={24} color='white'/>
           </TouchableOpacity>
         )}
       </View>
@@ -91,11 +91,8 @@ const styles = StyleSheet.create({
   },
   rightIcon: {
     position: 'absolute',
-    backgroundColor: 'white',
-    borderRadius: 30,
     right: 10,
     bottom: 8,
-    padding: 3,
   },
   headerText: {
     color: '#fff',

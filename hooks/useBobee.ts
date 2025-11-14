@@ -276,5 +276,6 @@ export default function useBobee() {
     openConversation,
     deleteConversation,
     newConversation,
+    conversationId,
   }
 }

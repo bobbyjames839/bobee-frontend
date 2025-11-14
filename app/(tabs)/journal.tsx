@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Animated } from 'react-native';
+import { StyleSheet, View, Animated, TouchableOpacity, Text } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -21,6 +21,8 @@ export default function Journal() {
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fullscreenAnim = useRef(new Animated.Value(0)).current;
+  const isFullscreen = journal.isRecording || journal.loading;
 
   useEffect(() => {
     // Fade in animation
@@ -47,10 +49,28 @@ export default function Journal() {
     checkWelcome();
   }, []);
 
+  // Fullscreen animation when recording or loading
+  useEffect(() => {
+    Animated.timing(fullscreenAnim, {
+      toValue: isFullscreen ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isFullscreen, fullscreenAnim]);
+
+  const handleCancel = () => {
+    journal.resetState();
+  };
+
   useEffect(() => {
     // show tutorial overlay only if ?tour=1 is present in URL
     setShowTutorial(tour === '1');
   }, [tour]);
+
+  const headerOpacity = fullscreenAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
 
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
@@ -73,9 +93,25 @@ export default function Journal() {
       )}
 
       <View style={styles.containerBase}>
-        <Header title="Journal" />
+        <Animated.View style={{ opacity: headerOpacity }}>
+          <Header title="Journal" />
+        </Animated.View>
 
-        <View style={styles.containerPadding}>
+        <Animated.View
+          style={[
+            styles.containerPadding,
+            {
+              transform: [
+                {
+                  translateY: fullscreenAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -60],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <JournalPrompt prompt={journal.prompt} loading={journal.loading} />
 
           <View style={styles.centerContent}>
@@ -95,7 +131,30 @@ export default function Journal() {
               loadingStage={journal.loadingStage}
             />
           </View>
-        </View>
+        </Animated.View>
+
+        {isFullscreen && (
+          <Animated.View
+            style={[
+              styles.cancelButtonContainer,
+              {
+                opacity: fullscreenAnim,
+                transform: [
+                  {
+                    translateY: fullscreenAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
       </View>
       {showTutorial && (
         <TutorialOverlay
@@ -128,5 +187,27 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     zIndex: 1,
+  },
+  cancelButtonContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  cancelButton: {
+    backgroundColor: colors.darkestblue,
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'SpaceMonoSemibold',
+    letterSpacing: 0.5,
   },
 });

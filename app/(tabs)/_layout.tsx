@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { PenLine, FileText, Sparkles, Settings, User } from 'lucide-react-native';
 import { colors } from '~/constants/Colors';
+import { useJournalContext } from '~/context/JournalContext';
 
 type IconType = React.ComponentType<{
   color?: string;
@@ -22,6 +23,13 @@ const TABS = {
 type TabKey = keyof typeof TABS;
 
 function MyTabBar({ state, navigation }: BottomTabBarProps) {
+  const journal = useJournalContext();
+  const isFullscreen = journal.isRecording || journal.loading;
+
+  if (isFullscreen) {
+    return null;
+  }
+
   return (
     <View style={styles.tabBar}>
       {state.routes.map((route, index) => {

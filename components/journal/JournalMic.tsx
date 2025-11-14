@@ -201,17 +201,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 30,
-    gap: 5,
+    gap: 2,
   },
   promptButtonWrapper: {
     borderRadius: 45,
-    borderBottomRightRadius: 5,
-    borderTopRightRadius: 5,
+    borderBottomRightRadius: 0,
+    borderTopRightRadius: 0,
     overflow: 'hidden',
   },
   promptButtonWrapperEmpty : {
-      borderRadius: 45,
-      overflow: 'hidden',
+    borderRadius: 45,
+    overflow: 'hidden',
   },
   promptButton: {
     paddingHorizontal: 20,
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
   },
   clearPromptButtonWrapper: {
     borderRadius: 45,
-    borderBottomLeftRadius: 5,
-    borderTopLeftRadius: 5,
+    borderBottomLeftRadius: 0,
+    borderTopLeftRadius: 0,
     overflow: 'hidden',
   },
   clearPromptButton: {

@@ -306,6 +306,7 @@ export default function BobeeMainPage() {
         >
           <MessageCircle color={colors.blue} size={32} strokeWidth={2.5} />
         </TouchableOpacity>
+        
       </KeyboardAvoidingView>
 
       {showTutorial && (
@@ -515,17 +516,16 @@ const styles = StyleSheet.create({
   chatCta: {
     position: "absolute",
     bottom: 14,
-    right: 14,
-    width: 66,
-    height: 66,
-    borderRadius: 38,
-    backgroundColor: "#fff",
+    right: 0,
+    width: 70,
+    height: 60,
+    borderRadius: 30,
+    borderBottomRightRadius: 0,
+    borderTopRightRadius: 0,
+    backgroundColor: colors.lightest,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: colors.lighter,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
   },
 });
