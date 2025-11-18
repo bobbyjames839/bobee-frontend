@@ -26,6 +26,8 @@ import { JournalRefreshProvider } from '../context/JournalRefreshContext';
 import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { JournalProvider } from '~/context/JournalContext';
 import { JournalsProvider } from '~/context/JournalsContext';
+import { InsightsProvider } from '~/context/InsightsContext';
+import { BobeeProvider } from '~/context/BobeeContext';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -176,8 +178,10 @@ export default function RootLayout() {
       <SubscriptionProvider>
         <JournalRefreshProvider>
           <JournalsProvider>
-            <JournalProvider>
-              <Stack
+            <InsightsProvider>
+              <BobeeProvider>
+                <JournalProvider>
+                  <Stack
                 screenOptions={{
                   headerShown: false,
                   presentation: 'card',
@@ -212,9 +216,6 @@ export default function RootLayout() {
                 options={{
                   presentation: 'card',
                   animation: 'slide_from_bottom',
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                  gestureDirection: 'vertical',
                   headerShown: false,
                   animationDuration: 500,
                 }}
@@ -225,15 +226,15 @@ export default function RootLayout() {
                   presentation: 'card',
                   animation: 'slide_from_right',
                   gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                  gestureDirection: 'horizontal',
                 }}
               />
               <Stack.Screen name="(auth)" options={{ animation: 'none' }} />
               <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
             </Stack>
             <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'auto'} />
-          </JournalProvider>
+                </JournalProvider>
+              </BobeeProvider>
+            </InsightsProvider>
           </JournalsProvider>
         </JournalRefreshProvider>
       </SubscriptionProvider>

@@ -4,15 +4,37 @@ import { useRouter } from 'expo-router';
 import { JournalEntry } from '~/hooks/useFiles';
 import JournalCard from './JournalCard';
 import { colors } from '~/constants/Colors';
+import useJournals from '~/hooks/useFiles';
+import DeleteConfirmModal from '~/components/other/DeleteConfirmModal';
+import * as Haptics from 'expo-haptics';
+
 
 interface Props {
   journals: JournalEntry[];
   onSelect: (j: JournalEntry) => void;
-  onDeleteSuccess?: () => void;
+  onDeleteSuccess?: (deletedId: string) => void;
+  showSuccessMessage?: (message: string) => void;
 }
 
-const JournalList: React.FC<Props> = ({ journals, onSelect, onDeleteSuccess }) => {
+const JournalList: React.FC<Props> = ({ journals, onSelect, onDeleteSuccess, showSuccessMessage }) => {
   const router = useRouter();
+  const { deleteJournal } = useJournals();
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDelete = async (id: string) => {
+    setIsDeleting(true);
+    try {
+      await deleteJournal(id, !onDeleteSuccess);
+      onDeleteSuccess?.(id);
+      showSuccessMessage?.('Journal deleted successfully');
+      setDeleteConfirmId(null);
+    } catch (e) {
+      console.error('Delete failed:', e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (!journals || journals.length === 0) {
     return (
@@ -29,16 +51,29 @@ const JournalList: React.FC<Props> = ({ journals, onSelect, onDeleteSuccess }) =
   }
 
   return (
-    <View>
-      {journals.map((entry) => (
-        <JournalCard
-          key={entry.id}
-          entry={entry}
-          onPress={() => onSelect(entry)}
-          onDeleteSuccess={onDeleteSuccess}
-        />
-      ))}
-    </View>
+    <>
+      <View>
+        {journals.map((entry) => (
+          <JournalCard
+            key={entry.id}
+            entry={entry}
+            onPress={() => onSelect(entry)}
+            onLongPressDelete={() => {                      
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              setDeleteConfirmId(entry.id)
+            }}
+          />
+        ))}
+      </View>
+
+      <DeleteConfirmModal
+        visible={!!deleteConfirmId}
+        title="Delete Journal?"
+        onCancel={() => setDeleteConfirmId(null)}
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+        isDeleting={isDeleting}
+      />
+    </>
   );
 };
 

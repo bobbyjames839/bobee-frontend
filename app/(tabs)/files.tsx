@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, Animated, TouchableOpacity } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Settings } from 'lucide-react-native';
+import { getAuth } from 'firebase/auth';
 import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
@@ -10,6 +12,7 @@ import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import TutorialOverlay from '~/components/other/TutorialOverlay';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import { useJournalRefresh } from '~/context/JournalRefreshContext';
+import { useFadeInAnimation } from '~/hooks/useFadeInAnimation';
 
 export default function FilesTabIndex() {
   const router = useRouter();
@@ -18,11 +21,10 @@ export default function FilesTabIndex() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const { refreshKey } = useJournalRefresh();
-
-  // Fetch journals on mount
-  useEffect(() => {
-    fetchJournals();
-  }, [fetchJournals]);
+  const { fadeAnim, slideAnim } = useFadeInAnimation();
+  
+  const user = getAuth().currentUser;
+  const userName = user?.displayName || 'Journaler';
 
   // Refetch only when refreshKey changes (triggered by journal submission)
   useEffect(() => {
@@ -43,8 +45,8 @@ export default function FilesTabIndex() {
     router.push({ pathname: '/files/day', params: { date: dateStr } });
   };
 
-  const handleDeleteSuccess = () => {
-    setSuccessMessage('Journal deleted successfully');
+  const handleShowSuccess = (message: string) => {
+    setSuccessMessage(message);
   };
 
   return (
@@ -53,28 +55,49 @@ export default function FilesTabIndex() {
         message={successMessage} 
         onHide={() => setSuccessMessage('')} 
       />
-      <Header title="Entries" />
+      
+      {/* User info card */}
 
       {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <SpinningLoader size={40} />
           </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <JournalCalendar 
-            dailyMoods={dailyMoods} 
-            recentJournals={recentThree}
-            onSelectDate={handleSelectDate} 
-          />
+        <Animated.View 
+          style={{ 
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.userCard}>
+              <Text style={styles.fadedTitle}>Your Entries</Text>
+              <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => router.push('/settings')}
+                activeOpacity={0.7}
+              >
+                <Settings size={22} color={colors.darkest} strokeWidth={2} />
+              </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Recent entries</Text>
-          <JournalList 
-            journals={recentThree} 
-            onSelect={handleOpenEntry}
-            onDeleteSuccess={handleDeleteSuccess}
-          />
+            </View>
 
-        </ScrollView>
+            <JournalCalendar 
+              dailyMoods={dailyMoods} 
+              recentJournals={recentThree}
+              onSelectDate={handleSelectDate} 
+            />
+
+            <Text style={styles.sectionTitle}>Recent entries</Text>
+            <JournalList 
+              journals={recentThree} 
+              onSelect={handleOpenEntry}
+              showSuccessMessage={handleShowSuccess}
+            />
+
+          </ScrollView>
+        </Animated.View>
       )}
       {showTutorial && (
         <TutorialOverlay
@@ -95,12 +118,34 @@ export default function FilesTabIndex() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.lightest },
-  scrollContent: { paddingTop: 16, paddingHorizontal: 20 },
+  userCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 65,
+  },
+  fadedTitle: {
+    fontFamily: 'SpaceMonoBold',
+    fontSize: 44,
+    color: '#e1deeeff',
+    alignSelf: 'flex-end',
+    marginBottom: -15,
+    marginLeft: 10,
+    marginTop: 20,
+  },
+  settingsButton: {
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.lighter,
+    backgroundColor: '#fff',
+  },
+  scrollContent: { paddingTop: 0, paddingHorizontal: 20 },
   sectionTitle: {
     marginTop: 34,
     fontFamily: 'SpaceMonoSemibold',
     marginBottom: 8,
     fontSize: 20,
-    color: '#222',
+    color: colors.darkest,
   },
 });

@@ -15,7 +15,7 @@ import { colors } from '~/constants/Colors';
 import { useJournalContext } from '~/context/JournalContext'; 
 import Header from '~/components/other/Header';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { Brain, CheckCircle, Heart, AlertCircle, Lightbulb, ShieldCheck, ArrowUp, ArrowDown } from 'lucide-react-native';
+import { Brain, CheckCircle, Heart, AlertCircle, Lightbulb, ShieldCheck, ArrowUp, ArrowDown, Check } from 'lucide-react-native';
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
@@ -198,7 +198,10 @@ export default function ResponseScreen() {
           style={styles.submitButton}
           onPress={onSubmit}
         >
-          <Text style={styles.submitButtonText}>Submit Journal</Text>
+          <View style={styles.submitButtonContent}>
+            <Check size={22} color='white' />
+            <Text style={styles.submitButtonText}>Submit Journal</Text>
+          </View>
         </TouchableOpacity>
 
       {journal.submitLoading && (
@@ -351,9 +354,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: colors.blue,
     height: 72,
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%'
+  },
+  submitButtonContent: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   submitButtonText: {
     color: '#fff',

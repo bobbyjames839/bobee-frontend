@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useCallback, useMemo, useState } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { Timestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '~/utils/firebase';
 import Constants from 'expo-constants';
 
@@ -24,7 +25,8 @@ interface JournalsContextValue {
   journals: JournalEntry[];
   loading: boolean;
   fetchJournals: () => Promise<void>;
-  deleteJournal: (id: string) => Promise<void>;
+  fetchMoods: () => Promise<void>;
+  deleteJournal: (id: string, shouldRefetch?: boolean) => Promise<void>;
   recentThree: JournalEntry[];
   dailyMoods: Record<string, number>;
   fetchJournalsByDate: (date: string) => Promise<JournalEntry[]>;
@@ -67,22 +69,29 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
         const updated = new Map(prev);
         entries.forEach(entry => updated.set(entry.id, entry));
         return updated;
-      });
-
-      // Fetch daily moods
-      const moodsRes = await fetch(`${API_BASE}/api/get-daily-moods`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-      });
-      if (moodsRes.ok) {
-        const moodsData = await moodsRes.json();
-        setDailyMoods(moodsData.dailyMoods || {});
-      }
+      })
     } catch (e) {
       console.error('Failed to fetch journals:', e);
       setJournals([]);
     } finally {
       setLoading(false);
+    }
+  }, [API_BASE]);
+
+  const fetchMoods = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      setDailyMoods({});
+      return;
+    }
+    const idToken = await user.getIdToken(true);
+    const moodsRes = await fetch(`${API_BASE}/api/get-daily-moods`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    });
+    if (moodsRes.ok) {
+      const moodsData = await moodsRes.json();
+      setDailyMoods(moodsData.dailyMoods || {});
     }
   }, [API_BASE]);
 
@@ -116,9 +125,13 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
     }
   }, [API_BASE]);
 
-  const deleteJournal = useCallback(async (id: string) => {
+  const deleteJournal = useCallback(async (id: string, shouldRefetch: boolean = true) => {
     const user = auth.currentUser;
     if (!user) return;
+    
+    // Check if the journal being deleted is in the recent 3
+    const isInRecentThree = journals.some(j => j.id === id);
+    
     setLoading(true);
     try {
       const idToken = await user.getIdToken(true);
@@ -135,13 +148,19 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
         return updated;
       });
       
-      await fetchJournals();
+      // Remove from local journals state
+      setJournals(prev => prev.filter(j => j.id !== id));
+      
+      // Only refetch if the deleted journal was in the recent 3 list
+      if (shouldRefetch && isInRecentThree) {
+        await fetchJournals();
+      }
     } catch (e) {
       console.error('Error deleting journal:', e);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, fetchJournals]);
+  }, [API_BASE, fetchJournals, journals]);
 
   const recentThree = useMemo(() => journals.slice(0, 3), [journals]);
 
@@ -154,10 +173,28 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
     return allLoadedJournals.get(id);
   }, [journals, allLoadedJournals]);
 
+  // Initialize data on app load when user is authenticated
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('[JournalsProvider] User authenticated, fetching journals and moods on app load');
+        fetchJournals();
+        fetchMoods();
+      } else {
+        // Clear data when user logs out
+        setJournals([]);
+        setDailyMoods({});
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [fetchJournals, fetchMoods]);
+
   const value: JournalsContextValue = {
     journals,
     loading,
     fetchJournals,
+    fetchMoods,
     deleteJournal,
     recentThree,
     dailyMoods,

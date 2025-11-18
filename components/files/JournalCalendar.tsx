@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { colors } from '~/constants/Colors';
@@ -18,6 +18,18 @@ function ymdLocal(d: Date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// Helper: month key YYYY-MM
+function monthKeyFromDate(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${yyyy}-${mm}`;
+}
+
+function monthKeyFromYM(year: number, month: number) {
+  const mm = String(month).padStart(2, '0');
+  return `${year}-${mm}`;
+}
+
 // Mood faces
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
@@ -34,6 +46,15 @@ function pickFace(score: number) {
 }
 
 const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelectDate }) => {
+  const todayDate = new Date();
+  const today = ymdLocal(todayDate);
+
+  // Current month key (YYYY-MM)
+  const currentMonthKey = monthKeyFromDate(todayDate);
+
+  // Track the currently visible month in the calendar
+  const [visibleMonthKey, setVisibleMonthKey] = useState<string>(currentMonthKey);
+
   // Convert dailyMoods to dayData format, but also compute today's mood from recent journals
   const dayData = useMemo(() => {
     const result: Record<string, { avg: number; hasEntry: boolean }> = {};
@@ -44,26 +65,23 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
     });
 
     // Compute today's mood from recent journals (in case cron hasn't run yet)
-    const today = ymdLocal(new Date());
+    const todayStr = today;
     
     // Filter journals created today from the 3 most recent
     const todayJournals = recentJournals.filter(j => {
-      // j.createdAt is a Firestore Timestamp, convert to date string
       const journalDate = ymdLocal(j.createdAt.toDate());
-      return journalDate === today;
+      return journalDate === todayStr;
     });
     
     // If we have journals from today and today's mood hasn't been calculated yet (no cron run)
-    if (todayJournals.length > 0 && !result[today]) {
+    if (todayJournals.length > 0 && !result[todayStr]) {
       const sum = todayJournals.reduce((acc, j) => acc + j.aiResponse.moodScore, 0);
       const avg = Math.round(sum / todayJournals.length);
-      result[today] = { avg, hasEntry: true };
+      result[todayStr] = { avg, hasEntry: true };
     }
 
     return result;
-  }, [dailyMoods, recentJournals]);
-
-  const today = ymdLocal(new Date());
+  }, [dailyMoods, recentJournals, today]);
 
   // Custom day component
   const DayComponent = ({ date, state }: { date: DateData; state: string }) => {
@@ -112,9 +130,7 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
           ]}
         >
           {faceSource ? (
-            <>
-              <Image source={faceSource} style={styles.faceImage} />
-            </>
+            <Image source={faceSource} style={styles.faceImage} />
           ) : (
             <Text
               style={[
@@ -137,6 +153,14 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
         markedDates={{}}
         dayComponent={DayComponent as any}
         onDayPress={() => { /* handled inside dayComponent */ }}
+        initialDate={today}
+        // Track month changes so we know when we're in the current month
+        onMonthChange={(month) => {
+          const key = monthKeyFromYM(month.year, month.month);
+          setVisibleMonthKey(key);
+        }}
+        // Disable right chevron when the visible month is the current month
+        disableArrowRight={visibleMonthKey === currentMonthKey}
         theme={{
           arrowColor: colors.blue,
           monthTextColor: '#000',
@@ -154,7 +178,6 @@ const styles = StyleSheet.create({
   wrapper: {
     borderRadius: 16,
     overflow: 'hidden',
-    marginTop: 20,
     borderColor: colors.lighter,
     borderWidth: 1,
     backgroundColor: '#fff',
@@ -187,11 +210,10 @@ const styles = StyleSheet.create({
     borderColor: '#d6d6d6',
   },
   faceImage: {
-    width: 38,  // back to original size
+    width: 38,
     height: 38,
     resizeMode: 'contain',
   },
-  // Larger number centered when empty
   emptyDayNumber: {
     fontSize: 15,
     fontWeight: '600',

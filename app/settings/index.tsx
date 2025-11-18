@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Animated } from 'react-native';
 import { useRouter, useFocusEffect, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, signOut } from 'firebase/auth';
@@ -106,11 +106,12 @@ export default function SettingsIndex() {
 
   return (
     <View style={styles.container}>
-      <Header title="Settings and privacy" />
-      <ScrollView contentContainerStyle={styles.menuContainer}>
-        {renderSection('ACCOUNT', accountItems)}
-        {renderSection('HELP & INFO', helpItems)}
-      </ScrollView>
+      <Header title="Settings and privacy" leftIcon="chevron-back"
+              onLeftPress={() => (router.back())}/>
+        <ScrollView contentContainerStyle={styles.menuContainer}>
+          {renderSection('ACCOUNT', accountItems)}
+          {renderSection('HELP & INFO', helpItems)}
+        </ScrollView>
     </View>
   );
 }

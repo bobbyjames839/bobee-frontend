@@ -10,179 +10,106 @@ import {
   Pressable,
   TouchableOpacity,
   Image,
+  Animated,
 } from "react-native";
 import {
   Lightbulb,
-  Target,
   CheckCircle2,
   ListTodo,
   Heart,
   Compass,
   Sun,
   Mail,
-  MessageCircle,
 } from "lucide-react-native";
-import Svg, { Defs, LinearGradient, Stop, Polygon } from "react-native-svg";
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Polygon } from "react-native-svg";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Header from "~/components/other/Header";
 import SpinningLoader from "~/components/other/SpinningLoader";
 import { colors } from "~/constants/Colors";
-import { getAuth } from "@firebase/auth";
 import { NextMessageCountdown } from "~/components/bobee/NextMessageCountdown";
-import Constants from "expo-constants";
+import { useBobeeData } from "~/context/BobeeContext";
 import TutorialOverlay from "~/components/other/TutorialOverlay";
+import { useFadeInAnimation } from "~/hooks/useFadeInAnimation";
 
 export default function BobeeMainPage() {
-  const [lastMessageAt, setLastMessageAt] = useState<number | null>(null);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[] | null>(null);
-  const [microChallenge, setMicroChallenge] = useState<string | null>(null);
-  const [insightsError, setInsightsError] = useState<string | null>(null);
-  const [reflectionQuestion, setRefelectionQuestion] = useState<string | null>(null);
-  const [reflectionOptions, setReflectionOptions] = useState<{ text: string }[] | null>(null);
-  const [reflectionDoneToday, setReflectionDoneToday] = useState<boolean>(false);
-
+  const {
+    lastMessageAt,
+    suggestions,
+    microChallenge,
+    reflectionQuestion,
+    reflectionOptions,
+    reflectionDoneToday,
+    loading: insightsLoading,
+    error: insightsError,
+    fetchBobeeData,
+    refetchMeta,
+  } = useBobeeData();
   const router = useRouter();
   const { tour, refresh } = useLocalSearchParams<{ tour?: string; refresh?: string }>();
   const [showTutorial, setShowTutorial] = useState(false);
-  const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
-
   const suggestionIcons = [Lightbulb, CheckCircle2, ListTodo, Heart, Compass, Sun];
-
-  // caching to avoid excessive fetches
-  const hasFetchedRef = useRef(false);
+  const { fadeAnim, slideAnim } = useFadeInAnimation();
   const lastFetchTsRef = useRef<number | null>(null);
   const lastDayKeyRef = useRef<string | null>(null);
   const STALE_MS = 1000 * 60 * 10; // 10 minutes
   const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-  const refetchMeta = useCallback(async () => {
-    try {
-      const user = getAuth().currentUser;
-      if (!user) return;
-      const token = await user.getIdToken();
-      const res = await fetch(`${API_BASE}/api/bobee-message-meta`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as { lastBobeeMessage: number | null };
-      setLastMessageAt(data.lastBobeeMessage ?? null);
-    } catch {
-      // silent
-    }
-  }, [API_BASE]);
+  useEffect(() => {
+    setShowTutorial(tour === "4");
+  }, [tour]);
 
-  const fetchInsights = useCallback(async () => {
-    try {
-      setInsightsLoading(true);
-      setInsightsError(null);
-      const user = getAuth().currentUser;
-      if (!user) {
-        setInsightsLoading(false);
-        return;
-      }
-      const token = await user.getIdToken();
-      const r = await fetch(`${API_BASE}/api/ai-insights`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) throw new Error("failed");
-      const json = (await r.json()) as {
-        suggestions: string[];
-        microChallenge: string | null;
-        reflectionQuestion: string | null;
-        reflectionOptions?: { text: string }[];
-        reflectionCompleted?: boolean;
-      };
-      setSuggestions(json.suggestions || []);
-      setMicroChallenge(json.microChallenge || null);
-      setRefelectionQuestion(json.reflectionQuestion || null);
-      setReflectionOptions(Array.isArray(json.reflectionOptions) ? json.reflectionOptions : []);
-      setReflectionDoneToday(!!json.reflectionCompleted);
-    } catch {
-      setInsightsError("Could not load insights");
-    } finally {
-      setInsightsLoading(false);
-    }
-  }, [API_BASE]);
-
+  // Refetch on focus if data is stale, new day, or forced refresh
+  // Skip if this is the first time visiting the page (data already loaded by context)
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
-      const stale = !lastFetchTsRef.current || now - (lastFetchTsRef.current ?? 0) > STALE_MS;
-      const newDay = lastDayKeyRef.current !== todayKey;
+      const stale = lastFetchTsRef.current && now - lastFetchTsRef.current > STALE_MS;
+      const newDay = lastDayKeyRef.current && lastDayKeyRef.current !== todayKey;
       const forceRefresh = refresh === 'true';
 
-      // Refetch if it's the first time, stale, a new day, or explicitly requested
-      if (!hasFetchedRef.current || stale || newDay || forceRefresh) {
-        refetchMeta();
-        fetchInsights();
-        hasFetchedRef.current = true;
-        lastFetchTsRef.current = now;
-        lastDayKeyRef.current = todayKey;
+      // Only refetch if we have a valid reason (stale, new day, or forced)
+      if (stale || newDay || forceRefresh) {
+        fetchBobeeData();
         
-        // Clear the refresh parameter after using it
         if (forceRefresh) {
           router.replace('/(tabs)/bobee');
         }
       }
-    }, [refetchMeta, fetchInsights, todayKey, refresh, router])
+      
+      // Always update the tracking refs
+      lastFetchTsRef.current = now;
+      lastDayKeyRef.current = todayKey;
+    }, [fetchBobeeData, todayKey, refresh, router])
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const user = getAuth().currentUser;
-        if (user) {
-          const token = await user.getIdToken();
-          const res = await fetch(`${API_BASE}/api/bobee-message-meta`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = (await res.json()) as { lastBobeeMessage: number | null };
-            if (!cancelled) {
-              setLastMessageAt(data.lastBobeeMessage ?? null);
-              hasFetchedRef.current = true;
-              lastFetchTsRef.current = Date.now();
-              lastDayKeyRef.current = todayKey;
-            }
-          }
-        }
-      } catch {
-        // silent
-      }
-      setShowTutorial(tour === "4");
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [API_BASE, todayKey, router, tour]);
-
-  // Fixed layout constants for daily tips
-  const ROW_HEIGHT = 90;        // a bit taller than before
-  const ICON_SIZE = 40;         // circular icon size
-  const ICON_LEFT_OFFSET = 80;  // distance left of the white card
+  const ROW_HEIGHT = 90;  
+  const ICON_SIZE = 40;    
+  const ICON_LEFT_OFFSET = 80;  
   const DIVIDER_HEIGHT = 1;
   const SPINE_THICKNESS = 2;
-
   const tips = (suggestions || []).slice(0, 3);
-  const spineTop = 16 + ROW_HEIGHT / 2 - SPINE_THICKNESS / 2; // card padding (16) + half row height
-  // Always show spine for 3 rows, whether we have data or not
+  const spineTop = 16 + ROW_HEIGHT / 2 - SPINE_THICKNESS / 2; 
   const spineHeight = 2 * (ROW_HEIGHT + DIVIDER_HEIGHT);
 
   return (
     <>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
-        <Header title="Bobee" />
 
         {insightsLoading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <SpinningLoader size={40} />
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <NextMessageCountdown lastMessageAt={lastMessageAt} />
+          <Animated.View 
+            style={{ 
+              flex: 1,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }}
+          >
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <NextMessageCountdown lastMessageAt={lastMessageAt} />
 
             {/* Reflection CTA */}
             <Pressable
@@ -200,15 +127,14 @@ export default function BobeeMainPage() {
               {/* Decorative right-side span with slanted left edge */}
               <Svg pointerEvents="none" style={styles.reflectionSpan} viewBox="0 0 100 100" preserveAspectRatio="none">
                 <Defs>
-                  <LinearGradient id="reflectGrad" x1="0" y1="0" x2="0" y2="1">
+                  <SvgLinearGradient id="reflectGrad" x1="0" y1="0" x2="0" y2="1">
                     <Stop offset="0" stopColor="#ffffff" stopOpacity={0.18} />
                     <Stop offset="1" stopColor="#ffffff" stopOpacity={0.04} />
-                  </LinearGradient>
+                  </SvgLinearGradient>
                 </Defs>
                 <Polygon points="15,0 100,0 100,100 0,100" fill="url(#reflectGrad)" />
               </Svg>
 
-              {/* TEXT COLUMN */}
               <View style={styles.reflectionTextCol}>
                 <View style={styles.readyContentTop}>
                   <Text style={styles.reflectionArrow}>←</Text>
@@ -270,7 +196,6 @@ export default function BobeeMainPage() {
                     );
                   })}
 
-                  {/* watermark image */}
                   <Image
                     source={require("../../assets/images/happy.png")}
                     style={styles.insightsBackgroundImage}
@@ -293,19 +218,9 @@ export default function BobeeMainPage() {
                 </Text>
               </View>
             </View>
-          </ScrollView>
+            </ScrollView>
+          </Animated.View>
         )}
-
-        {/* Floating chat FAB */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.chatCta}
-          accessibilityRole="button"
-          accessibilityLabel="Open chat with Bobee"
-          onPress={() => router.push("/bobee/chat")}
-        >
-          <MessageCircle color={colors.blue} size={32} strokeWidth={2.5} />
-        </TouchableOpacity>
         
       </KeyboardAvoidingView>
 
@@ -318,7 +233,7 @@ export default function BobeeMainPage() {
           nextLabel="Chat with Bobee"
           onNext={() => {
             setShowTutorial(false);
-            router.push("/bobee/chat?tour=5");
+            router.push("/(tabs)/chat?tour=5");
           }}
           onSkip={() => setShowTutorial(false)}
         />
@@ -333,10 +248,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightest,
   },
   scrollContent: {
-    paddingVertical: 30,
+    paddingBottom: 30,
+    paddingTop: 70,
   },
 
-  // INSIGHTS / TIPS BLOCK
   insightsBlock: {
     display: "flex",
     marginTop: 25,
@@ -510,22 +425,5 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     flexShrink: 1,
     zIndex: 1,
-  },
-
-  // FAB
-  chatCta: {
-    position: "absolute",
-    bottom: 14,
-    right: 0,
-    width: 70,
-    height: 60,
-    borderRadius: 30,
-    borderBottomRightRadius: 0,
-    borderTopRightRadius: 0,
-    backgroundColor: colors.lightest,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.lighter,
   },
 });

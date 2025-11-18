@@ -21,44 +21,24 @@ export default function Header({
   title = 'Insights',
   leftIcon,
   onLeftPress,
-  secondLeftIcon,
-  onSecondLeftPress,
-  rightIcon,
-  onRightPress,
 }: HeaderProps) {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={colors.blue} />
       <View style={styles.headerContainer}>
         <View style={styles.leftIcons}>
-          {secondLeftIcon && onSecondLeftPress && (
-            <TouchableOpacity
-              onPress={onSecondLeftPress}
-              style={styles.iconButton}
-            >
-              <Ionicons name={secondLeftIcon} size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
           {leftIcon && onLeftPress && (
             <TouchableOpacity
               onPress={onLeftPress}
               style={styles.iconButton}
             >
-              <Ionicons name={leftIcon} size={24} color="#fff" />
+              <Ionicons name={leftIcon} size={22} color={colors.darker} />
             </TouchableOpacity>
           )}
         </View>
 
         <Text style={styles.headerText}>{title}</Text>
 
-        {rightIcon && onRightPress && (
-          <TouchableOpacity
-            onPress={onRightPress}
-            style={styles.rightIcon}
-          >
-            <Ionicons name={rightIcon} size={24} color='white'/>
-          </TouchableOpacity>
-        )}
       </View>
     </SafeAreaView>
   )
@@ -66,7 +46,7 @@ export default function Header({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.blue,
+    backgroundColor: colors.lightest,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'flex-end',
@@ -89,15 +69,10 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 2,
   },
-  rightIcon: {
-    position: 'absolute',
-    right: 10,
-    bottom: 8,
-  },
   headerText: {
-    color: '#fff',
-    fontSize: 18,
+    color: colors.darker,
+    fontSize: 17,
     letterSpacing: .5,
-    fontFamily: 'SpaceMonoSemibold',
+    fontFamily: 'SpaceMono',
   },
 })

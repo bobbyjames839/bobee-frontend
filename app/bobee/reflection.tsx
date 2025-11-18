@@ -14,7 +14,8 @@ import Header from '~/components/other/Header'
 import { colors } from '~/constants/Colors'
 import { getAuth } from '@firebase/auth'
 import { Ionicons } from '@expo/vector-icons'
-import AutoExpandingInput from '~/components/bobee/AutoExpandingInput'
+import { useBobeeData } from '~/context/BobeeContext'
+import AutoExpandingInput from '~/components/other/AutoExpandingInput'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Constants from 'expo-constants'
 import { KeyboardAvoidingView } from 'react-native'
@@ -23,6 +24,7 @@ export default function ReflectionFlowPage() {
   const { q, options } = useLocalSearchParams<{ q?: string; options?: string }>()
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { markReflectionComplete } = useBobeeData()
 
   const parsedOptions: string[] = (() => {
     if (!options) return []
@@ -109,6 +111,7 @@ export default function ReflectionFlowPage() {
       if (!resp.ok) throw new Error('reflection-final-failed')
       const j = await resp.json() as { answer: string; done?: boolean }
       setFinalAiAnswer(j.answer)
+      markReflectionComplete()
 
       try {
         await fetch(`${API_BASE}/api/bobee/rate-reflection`, {
@@ -137,7 +140,11 @@ export default function ReflectionFlowPage() {
     <View style={styles.container}>
       <Header title="Reflection" leftIcon="chevron-back" onLeftPress={close} />
 
-      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={0}>
+      <KeyboardAvoidingView 
+        style={styles.flex} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <ScrollView
           ref={scrollRef}
           contentContainerStyle={[
@@ -309,15 +316,12 @@ const styles = StyleSheet.create({
 
   // Footer (reply input)
   footer: {
-    position: 'absolute',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    left: 0,
-    right: 0,
-    bottom: 0,
     zIndex: 10,
+    paddingTop: 10,
     elevation: 10,
   },
   footerBottom: {

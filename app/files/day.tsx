@@ -7,6 +7,7 @@ import { colors } from '~/constants/Colors';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import JournalList from '~/components/files/JournalList';
 import Header from '~/components/other/Header';
+import SuccessBanner from '~/components/banners/SuccessBanner';
 
 function formatDateDisplay(dateStr: string) {
   try {
@@ -32,9 +33,9 @@ function DayEntriesScreenInner() {
   const router = useRouter();
   const { date } = useLocalSearchParams<{ date: string }>();
   const { fetchJournalsByDate } = useJournals();
-  const insets = useSafeAreaInsets();
   const [entriesForDay, setEntriesForDay] = React.useState<JournalEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [successMessage, setSuccessMessage] = React.useState('');
 
   React.useEffect(() => {
     if (!date) {
@@ -61,8 +62,21 @@ function DayEntriesScreenInner() {
     router.push({ pathname: '/files/[id]', params: { id: j.id } });
   };
 
+  const handleDeleteSuccess = (deletedId: string) => {
+    // Update local state only, no refetch needed
+    setEntriesForDay(prev => prev.filter(entry => entry.id !== deletedId));
+  };
+
+  const handleShowSuccess = (message: string) => {
+    setSuccessMessage(message);
+  };
+
   return (
     <View style={styles.container}>
+    <SuccessBanner 
+      message={successMessage} 
+      onHide={() => setSuccessMessage('')} 
+    />
     <Header
         title={date ? `${formatDateDisplay(date)}` : 'Entries'}
         leftIcon="chevron-back"
@@ -74,17 +88,14 @@ function DayEntriesScreenInner() {
         </View>
       ) : entriesForDay.length > 0 ? (
         <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom || 24 },
-          ]}
+          contentContainerStyle={styles.content}
         >
-          <JournalList journals={entriesForDay} onSelect={handleOpen} />
+          <JournalList journals={entriesForDay} onSelect={handleOpen} onDeleteSuccess={handleDeleteSuccess} showSuccessMessage={handleShowSuccess} />
           <View style={{ height: 60 }} />
         </ScrollView>
       ) : (
         <View style={styles.center}>
-          <Text style={styles.centerText}>There are no entries for this date</Text>
+          <Text style={styles.centerText}>There are no entries for this date, we have just kept your mood safe for you.</Text>
         </View>
       )}
     </View>
@@ -105,6 +116,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   centerText: {
     fontFamily: 'SpaceMono',
+    width: '80%',
     fontSize: 15,
+    textAlign: 'center',
   },
 });

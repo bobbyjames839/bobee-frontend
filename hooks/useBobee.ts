@@ -19,17 +19,14 @@ function usePrevious<T>(value: T): T | undefined {
 export default function useBobee() {
   const [input, setInput] = useState('')
   const [history, setHistory] = useState<HistoryItem[]>([])
-  const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
   const [showChat, setShowChat] = useState(false)
-  // userProfile removed – no longer fetched or sent
   const [conversationId, setConversationId] = useState<string | null>(null)
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string
+
   const deleteConversation = useCallback(async (idToDelete?: string) => {
     const targetId = idToDelete || conversationId;
     if (!targetId) return;
-    setIsDeleting(true);
     try {
       const user = getAuth().currentUser;
       if (!user) throw new Error('No user');
@@ -45,14 +42,12 @@ export default function useBobee() {
       // Only clear the UI if deleting the current conversation
       if (targetId === conversationId) {
         setHistory([]);
-        setExpanded(new Set());
         setConversationId(null);
         setShowChat(false);
       }
     } catch (e) {
       console.warn('Delete failed:', e);
     } finally {
-      setIsDeleting(false);
     }
   }, [conversationId, API_BASE]);
 
@@ -65,14 +60,12 @@ export default function useBobee() {
     const justClosed = prevShowChat && !showChat
 
     if (justClosed) {
-      // only auto-save if we didn’t explicitly trigger a save (e.g., user swiped back, app killed, etc.)
       if (!didExplicitSaveRef.current && history.length > 0 && !isLoading) {
         saveConversation()
           .then(() => console.log('Saved conversation on leaving chat (fallback)'))
           .catch((err) => console.warn('Failed to save conversation:', err))
       }
       setHistory([])
-      setExpanded(new Set())
       setConversationId(null)
 
       didExplicitSaveRef.current = false
@@ -133,14 +126,12 @@ export default function useBobee() {
     const { history } = (await res.json()) as { history: HistoryItem[] }
 
     setHistory(history)
-    setExpanded(new Set())
     setShowChat(true)
     setConversationId(id)
-  }, [setHistory, setExpanded, setShowChat, setConversationId, API_BASE])
+  }, [setHistory, setShowChat, setConversationId, API_BASE])
 
   const newConversation = useCallback(() => {
     setHistory([])
-    setExpanded(new Set())
     setConversationId(null)
     setInput('')
   }, [])
@@ -170,24 +161,11 @@ export default function useBobee() {
   }, [isLoading, pulseAnim])
 
 
-  
   useEffect(() => {
     if (showChat) {
       scrollRef.current?.scrollToEnd({ animated: true })
     }
   }, [history, showChat])
-
-
-  
-  // Removed effect that fetched userProfile
-
-
-  const toggleReasoning = (idx: number) =>
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      prev.has(idx) ? next.delete(idx) : next.add(idx)
-      return next
-    })
 
   const handleSubmit = async () => {
     const question = input.trim()
@@ -234,11 +212,11 @@ export default function useBobee() {
         throw new Error(payload.error || `Request failed with status ${res.status}`)
       }
 
-  const { answer, conversationId: newId } = payload
+      const { answer, conversationId: newId } = payload
 
       setHistory(h => {
         const copy = [...h]
-  copy[copy.length - 1] = { question, answer }
+        copy[copy.length - 1] = { question, answer }
         return copy
       })
 
@@ -263,14 +241,11 @@ export default function useBobee() {
     input,
     setInput,
     history,
-    expanded,
     isLoading,
-    isDeleting,
     showChat,
     setShowChat,
     scrollRef,
     pulseAnim,
-    toggleReasoning,
     handleSubmit,
     saveConversation,
     openConversation,

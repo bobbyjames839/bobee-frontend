@@ -11,8 +11,8 @@ import SuccessBanner from '~/components/banners/SuccessBanner';
 import TutorialOverlay from '~/components/other/TutorialOverlay';
 import { useJournalContext } from '~/context/JournalContext';
 import { colors } from '~/constants/Colors';
-import Header from '~/components/other/Header';
 import { auth } from '~/utils/firebase';
+import { useFadeInAnimation } from '~/hooks/useFadeInAnimation';
 
 export default function Journal() {
   const journal = useJournalContext();
@@ -20,18 +20,11 @@ export default function Journal() {
   const [showTutorial, setShowTutorial] = useState(false);
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const router = useRouter();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { fadeAnim, slideAnim } = useFadeInAnimation();
   const fullscreenAnim = useRef(new Animated.Value(0)).current;
   const isFullscreen = journal.isRecording || journal.loading;
 
   useEffect(() => {
-    // Fade in animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-
     // Check if we should show welcome banner
     const checkWelcome = async () => {
       try {
@@ -66,14 +59,9 @@ export default function Journal() {
     // show tutorial overlay only if ?tour=1 is present in URL
     setShowTutorial(tour === '1');
   }, [tour]);
-
-  const headerOpacity = fullscreenAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0],
-  });
-
+  
   return (
-    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+    <View style={{ flex: 1 }}>
       {journal.error && (
         <ErrorBanner message={journal.error} onHide={journal.clearError} />
       )}
@@ -92,10 +80,7 @@ export default function Journal() {
         />
       )}
 
-      <View style={styles.containerBase}>
-        <Animated.View style={{ opacity: headerOpacity }}>
-          <Header title="Journal" />
-        </Animated.View>
+      <Animated.View style={[styles.containerBase, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
         <Animated.View
           style={[
@@ -155,7 +140,7 @@ export default function Journal() {
             </TouchableOpacity>
           </Animated.View>
         )}
-      </View>
+      </Animated.View>
       {showTutorial && (
         <TutorialOverlay
           step={1}
@@ -171,7 +156,7 @@ export default function Journal() {
           }}
         />
       )}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -201,8 +186,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingVertical: 16,
     borderRadius: 30,
-    borderWidth: 1,
-    borderColor: colors.lighter,
   },
   cancelButtonText: {
     color: '#fff',

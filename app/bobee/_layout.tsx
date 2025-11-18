@@ -7,10 +7,33 @@ export default function BobeeLayout() {
         headerShown: false,
         presentation: 'card',
         animation: 'slide_from_right',
-        gestureEnabled: true,
-        fullScreenGestureEnabled: true,
-        gestureDirection: 'horizontal',
+        gestureEnabled: false,
       }}
-    />
+    >
+      <Stack.Screen
+        name="chat"
+        options={{
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="reflection"
+        options={{
+          presentation: 'card',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
+      <Stack.Screen
+        name="personal-message"
+        options={{
+          presentation: 'card',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
+    </Stack>
   );
 }

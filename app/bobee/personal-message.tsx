@@ -7,6 +7,7 @@ import Header from "~/components/other/Header";
 import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import Constants from "expo-constants";
+import { useBobeeData } from "~/context/BobeeContext";
 
 // Backend HTTP base
 const extraCfg = (Constants.expoConfig?.extra as any) || {};
@@ -16,6 +17,7 @@ const rand = (min: number, max: number) => Math.random() * (max - min) + min;
 
 export default function PersonalMessageScreen() {
   const router = useRouter();
+  const { markMessageSent } = useBobeeData();
   const [loading, setLoading] = useState(true);
   const [speaking, setSpeaking] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -154,6 +156,7 @@ export default function PersonalMessageScreen() {
       if (s.isLoaded && s.didJustFinish) {
         setSpeaking(false);
         setFinished(true);
+        markMessageSent();
       }
     });
   }, [unloadCurrent]);
