@@ -110,6 +110,7 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
   const { isTabBarVisible, hideTabBar } = useTabBar();
   const isFullscreen = journal.isRecording || journal.loading;
   const isChatPage = state.routes[state.index]?.name === 'chat';
+  const isJournalPage = state.routes[state.index]?.name === 'journal';
 
   const indicatorX = React.useRef(new Animated.Value(0)).current;
   const indicatorOpacity = React.useRef(new Animated.Value(0)).current;
@@ -153,15 +154,15 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
     ]).start();
   }, [state.index, journalIndex, indicatorX, indicatorOpacity]);
 
-  // Hide tab bar when on chat page or when explicitly hidden
+  // Hide tab bar when on chat/journal page and explicitly hidden
   React.useEffect(() => {
-    const shouldHide = isChatPage && !isTabBarVisible;
+    const shouldHide = (isChatPage || isJournalPage) && !isTabBarVisible;
     Animated.timing(tabBarTranslateY, {
       toValue: shouldHide ? 85 : 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [isChatPage, isTabBarVisible, tabBarTranslateY]);
+  }, [isChatPage, isJournalPage, isTabBarVisible, tabBarTranslateY]);
 
   if (isFullscreen) return null;
 
@@ -219,7 +220,7 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
         ]}
       />
 
-      {/* Hide button when tab bar is visible on chat page */}
+      {/* Hide button when tab bar is visible on chat page only */}
       {isChatPage && isTabBarVisible && (
         <TouchableOpacity 
           style={styles.tabBarHide} 

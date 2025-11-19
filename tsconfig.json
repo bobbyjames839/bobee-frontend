@@ -15,5 +15,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "utils/firebase.ts", "../backend/src/routes/journal/transcribeAudio.ts"  ]
+, "utils/firebase.ts"  ]
 }

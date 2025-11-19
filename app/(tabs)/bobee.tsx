@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +8,6 @@ import {
   Text,
   ScrollView,
   Pressable,
-  TouchableOpacity,
   Image,
   Animated,
 } from "react-native";
@@ -22,8 +21,7 @@ import {
   Mail,
 } from "lucide-react-native";
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Polygon } from "react-native-svg";
-import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
-import Header from "~/components/other/Header";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import SpinningLoader from "~/components/other/SpinningLoader";
 import { colors } from "~/constants/Colors";
 import { NextMessageCountdown } from "~/components/bobee/NextMessageCountdown";
@@ -41,46 +39,17 @@ export default function BobeeMainPage() {
     reflectionDoneToday,
     loading: insightsLoading,
     error: insightsError,
-    fetchBobeeData,
-    refetchMeta,
   } = useBobeeData();
   const router = useRouter();
-  const { tour, refresh } = useLocalSearchParams<{ tour?: string; refresh?: string }>();
+  const { tour } = useLocalSearchParams<{ tour?: string }>();
   const [showTutorial, setShowTutorial] = useState(false);
   const suggestionIcons = [Lightbulb, CheckCircle2, ListTodo, Heart, Compass, Sun];
   const { fadeAnim, slideAnim } = useFadeInAnimation();
-  const lastFetchTsRef = useRef<number | null>(null);
-  const lastDayKeyRef = useRef<string | null>(null);
-  const STALE_MS = 1000 * 60 * 10; // 10 minutes
-  const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   useEffect(() => {
     setShowTutorial(tour === "4");
   }, [tour]);
 
-  // Refetch on focus if data is stale, new day, or forced refresh
-  // Skip if this is the first time visiting the page (data already loaded by context)
-  useFocusEffect(
-    useCallback(() => {
-      const now = Date.now();
-      const stale = lastFetchTsRef.current && now - lastFetchTsRef.current > STALE_MS;
-      const newDay = lastDayKeyRef.current && lastDayKeyRef.current !== todayKey;
-      const forceRefresh = refresh === 'true';
-
-      // Only refetch if we have a valid reason (stale, new day, or forced)
-      if (stale || newDay || forceRefresh) {
-        fetchBobeeData();
-        
-        if (forceRefresh) {
-          router.replace('/(tabs)/bobee');
-        }
-      }
-      
-      // Always update the tracking refs
-      lastFetchTsRef.current = now;
-      lastDayKeyRef.current = todayKey;
-    }, [fetchBobeeData, todayKey, refresh, router])
-  );
 
   const ROW_HEIGHT = 90;  
   const ICON_SIZE = 40;    

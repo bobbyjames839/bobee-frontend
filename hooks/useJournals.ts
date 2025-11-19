@@ -7,6 +7,10 @@ import { auth } from '~/utils/firebase';
 import { useJournalRefresh } from '~/context/JournalRefreshContext';
 import { Animated, Easing, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import {
+  useSpeechRecognitionEvent,
+  ExpoSpeechRecognitionModule
+} from 'expo-speech-recognition';
 
 const PERSONALITY_KEYS = [
   'resilience',
@@ -55,13 +59,16 @@ export function useJournalRecording() {
   const router = useRouter();
   const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
+  // Real-time speech recognition event handler
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcribedText = event.results[0]?.transcript || '';
+    setTranscript(transcribedText);
+  });
+
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  // ...existing code...
-
-  //pulse on the mic
   const startPulse = () => {
     Animated.loop(
       Animated.sequence([
@@ -105,6 +112,13 @@ export function useJournalRecording() {
     stopPulse();
     stopTimer();
     
+    // Stop speech recognition if running
+    try {
+      ExpoSpeechRecognitionModule.stop();
+    } catch (err) {
+      // Ignore if not running
+    }
+    
     // Properly clean up recording if it exists
     if (recordingRef.current) {
       try {
@@ -141,14 +155,19 @@ export function useJournalRecording() {
     }, [])
   );
 
-  //start recording
+  //start recording with real-time speech recognition
   const startRecording = async () => {
     try {
       runIdRef.current += 1;
       const thisRunId = runIdRef.current;
 
+      // Request permissions
+      const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!granted) throw new Error('Permission denied');
+
+      // Also start audio recording for backup/submission
       const permission = await Audio.requestPermissionsAsync();
-      if (!permission.granted) throw new Error('Permission denied');
+      if (!permission.granted) throw new Error('Audio permission denied');
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -160,6 +179,29 @@ export function useJournalRecording() {
       if (thisRunId !== runIdRef.current) {
         try { await recording.stopAndUnloadAsync(); } catch {}
         return;
+      }
+
+      // Start speech recognition for real-time transcription
+      try {
+        await ExpoSpeechRecognitionModule.start({
+          lang: 'en-US',
+          interimResults: true,
+          maxAlternatives: 1,
+          continuous: true,
+          requiresOnDeviceRecognition: false,
+          addsPunctuation: true,
+          contextualStrings: [],
+          ...(Platform.OS === 'android' && {
+            androidIntentOptions: {
+              EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
+              EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 2000,
+            },
+            androidRecognitionServicePackage: 'com.google.android.googlequicksearchbox',
+          }),
+        });
+      } catch (err) {
+        console.error('Speech recognition start failed', err);
+        // Fallback: continue with just audio recording instead of crashing
       }
 
       setIsRecording(true);
@@ -183,170 +225,130 @@ export function useJournalRecording() {
   };
 
   //stops the recording and gets AI response
-  const stopRecording = async () => {
-    stopTimer();
-    stopPulse();
-    setIsRecording(false);
-    setLoading(true);
-    setLoadingStage(1);
+const stopRecording = async () => {
+  stopTimer();
+  stopPulse();
+  setIsRecording(false);
 
-    if (timer < 2) {
-      await safeStopAndClearRecording();
-      setLoading(false);
-      setError('Journal length not valid');
-      setTimer(0);
+  try {
+    ExpoSpeechRecognitionModule.stop();
+  } catch (err) {
+    console.warn('Error stopping speech recognition:', err);
+  }
+
+  setLoading(true);
+  setLoadingStage(1); // Stage 1 stays until AI call starts
+
+  if (timer < 2) {
+    await safeStopAndClearRecording();
+    setLoading(false);
+    setError('Journal length not valid');
+    setTimer(0);
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not authenticated');
+  const idToken = await user.getIdToken();
+
+  const thisRunId = runIdRef.current;
+
+  try {
+    //
+    // 1. STOP & UNLOAD RECORDING
+    //
+    const recording = recordingRef.current;
+    if (!recording) {
+      if (thisRunId === runIdRef.current) {
+        setLoading(false);
+        setLoadingStage(0);
+        setTimer(0);
+      }
       return;
     }
 
-    const user = auth.currentUser;
-    if (!user) throw new Error('Not authenticated');
-    const idToken = await user.getIdToken();
+    await recording.stopAndUnloadAsync();
+    const localUri = recording.getURI();
+    recordingRef.current = null;
 
-    //check if the user has not gone over their daily limit
+    if (!localUri) throw new Error('No recording URI found.');
+    if (thisRunId !== runIdRef.current) return;
+
+    //
+    // 2. GET TRANSCRIPT (already real-time)
+    //
+    const text = transcript;
+    if (!text) throw new Error('No transcript available');
+
+    //
+    // 3. WORD COUNT & STREAK (silent)
+    //
     try {
-      setLoadingStage(1); // Checking voice usage
-      const voiceUsagePromise = fetch(`${BACKEND_URL}/api/check-voice-usage`, {
+      const resp = await fetch(`${BACKEND_URL}/api/get-word-count-and-streak`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ secondsUsed: timer }),
+        body: JSON.stringify({
+          journal: text,
+          userId: user.uid,
+        }),
       });
 
-      const [voiceUsageResponse] = await Promise.all([voiceUsagePromise, delay(1000)]);
-      
-      if (!voiceUsageResponse.ok) {
-        await safeStopAndClearRecording();
-        setLoading(false);
-        setError('You have hit your daily limit, please come back tomorrow');
-        setTimer(0);
-        return;
+      if (resp.ok) {
+        const data = await resp.json();
+        setWordCount(data.wordCount);
+        setCurrentStreak(data.currentStreak);
       }
+    } catch (err) {
+      console.error('updateWordCountAndStreak error:', err);
+    }
 
-    } catch (e) {
-      await safeStopAndClearRecording();
-      console.error('Voice-usage check failed', e);
-      setError('Network error. Please try again.');
-      setLoading(false);
-      setTimer(0);
+    if (thisRunId !== runIdRef.current) return;
+
+    //
+    // 4. LOAD PERSONALITY
+    //
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/get-personality-scores`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+
+      if (!res.ok) throw new Error('Failed to load personality');
+
+      const { personality } = await res.json();
+      setPreviousPersonality(personality);
+    } catch (err) {
+      console.error('Error loading personality:', err);
+      if (thisRunId === runIdRef.current) {
+        setError('Failed to load personality scores. Please try again.');
+        setLoading(false);
+        setLoadingStage(0);
+        setTimer(0);
+      }
       return;
     }
 
-    const thisRunId = runIdRef.current;
+    //
+    // 5. START AI REQUEST
+    //    AND RUN STAGED LOADING (2→5 every second)
+    //
+    let currentStage = 2;
+    setLoadingStage(1); // ensure still stage 1 before start animation
+
+    const stageInterval = setInterval(() => {
+      if (currentStage <= 6) {
+        setLoadingStage(currentStage);
+        currentStage++;
+      }
+    }, 1200);
+
+    let aiResponse = null;
+
     try {
-      const recording = recordingRef.current;
-      if (!recording) {
-        if (thisRunId === runIdRef.current) {
-          setLoading(false);
-          setLoadingStage(0);
-          setTimer(0);
-        }
-        return;
-      }
-
-      await recording.stopAndUnloadAsync();
-      const localUri = recording.getURI();
-      recordingRef.current = null;
-      if (thisRunId !== runIdRef.current) return;
-      if (!localUri) throw new Error('No recording URI found.');
-
-      //transcribing the audio
-      setLoadingStage(2); // Transcribing journal
-      const form = new FormData();
-      const uriField =
-        Platform.OS === 'ios' && !localUri.startsWith('file://')
-          ? `file://${localUri}`
-          : localUri;
-
-      const ext = uriField.split('.').pop()?.toLowerCase() || 'webm';
-      const mimeType =
-        ext === 'm4a' ? 'audio/mp4' :
-        ext === 'caf' ? 'audio/x-caf' :
-        ext === 'wav' ? 'audio/wav' :
-        'audio/webm';
-
-      form.append('audio', { uri: uriField, name: `recording.${ext}`, type: mimeType } as any);
-
-      const transResp = await fetch(`${BACKEND_URL}/api/transcribe`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${idToken}` },
-        body: form,
-      });
-
-      if (!transResp.ok) {
-        const err = await transResp.json().catch(() => ({}));
-        throw new Error(err.error || `Transcription failed (${transResp.status})`);
-      }
-      const { text } = await transResp.json();
-      if (thisRunId !== runIdRef.current) return;
-      setTranscript(text);
-
-
-      setLoadingStage(3);
-      // Inline the logic for word count and streak
-      {
-        const user = auth.currentUser;
-        let stats = null;
-        if (user) {
-          const idToken = await user.getIdToken();
-          try {
-            const resp = await fetch(`${BACKEND_URL}/api/get-word-count-and-streak`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${idToken}`,
-              },
-              body: JSON.stringify({
-                journal: text,
-                userId: user.uid,
-              }),
-            });
-            if (resp.ok) {
-              const data = await resp.json();
-              stats = {
-                wordCount: data.wordCount,
-                currentStreak: data.currentStreak,
-              };
-            }
-          } catch (err) {
-            console.error('updateWordCountAndStreak error:', err);
-          }
-        }
-        await delay(1000);
-        if (stats) {
-          setWordCount(stats.wordCount);
-          setCurrentStreak(stats.currentStreak);
-        }
-      }
-
-      //Load personality scores or set defaults
-      try {
-        setLoadingStage(4); // Getting personality metrics
-        const personalityPromise = fetch(`${BACKEND_URL}/api/get-personality-scores`, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
-        const [personalityResponse] = await Promise.all([personalityPromise, delay(1000)]);
-        if (!personalityResponse.ok) throw new Error('Failed to load personality');
-        const { personality } = (await personalityResponse.json()) as { personality: PersonalityScores };
-        setPreviousPersonality(personality);
-      } catch (err: any) {
-        console.error('Error loading personality:', err);
-        if (thisRunId === runIdRef.current) {
-          setError('Failed to load personality scores. Please try again.');
-          setLoading(false);
-          setLoadingStage(0);
-          setTimer(0);
-        }
-        return;
-      }
-
-
-      // 2. Call AI with transcript, prompt, and personality
-
-      setLoadingStage(5); // Getting AI response
-      const aiPromise = fetch(`${BACKEND_URL}/api/journal-response`, {
+      const res = await fetch(`${BACKEND_URL}/api/journal-response`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -357,71 +359,68 @@ export function useJournalRecording() {
           prompt: prompt || '',
           personality: previousPersonality,
         }),
-      }).then(async res => {
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          if (err.error === 'Invalid journal entry') {
-            throw new Error('InvalidJournal');
-          }
-          throw new Error(err.error || `AI response failed (${res.status})`);
-        }
-        return res.json();
-      }).then(data => {
-        if (data.error) {
-          if (data.error === 'Invalid journal entry') {
-            throw new Error('InvalidJournal');
-          }
-          throw new Error(data.error);
-        }
-  return data.aiResponse;
       });
 
-      setTimeout(() => {
-        if (thisRunId === runIdRef.current) {
-          setLoadingStage(6); // Final loading stage
-        }
-      }, 2000);
-
-      try {
-        const aiRes = await aiPromise;
-        if (thisRunId !== runIdRef.current) return;
-        setAiResponse(aiRes);
-        // If you need to use the deltas, access aiRes.personalityDeltas
-        router.push('/journal/response');
-        setTimeout(() => {
-          setLoading(false);
-          setLoadingStage(0);
-        }, 1000);
-      } catch (aiErr: any) {
-        if (aiErr.message === 'InvalidJournal') {
-          await safeStopAndClearRecording();
-          resetState();
-          setPrompt('');
-          setError('Journal entry not detailed enough.');
-          setTimer(0);
-          return;
-        }
-        console.error('getAIResponse error:', aiErr);
-        if (thisRunId === runIdRef.current) {
-          await safeStopAndClearRecording();
-          setLoading(false);
-          setLoadingStage(0);
-          setPrompt('');
-          setError('Failed to get AI response.');
-          setTimer(0);
-        }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (err.error === 'Invalid journal entry') throw new Error('InvalidJournal');
+        throw new Error(err.error || 'AI response failed');
       }
+
+      const data = await res.json();
+      if (data.error) {
+        if (data.error === 'Invalid journal entry') throw new Error('InvalidJournal');
+        throw new Error(data.error);
+      }
+
+      aiResponse = data.aiResponse;
+
     } catch (err: any) {
-      await safeStopAndClearRecording(); 
-      console.error(err);
+      clearInterval(stageInterval);
+      if (err.message === 'InvalidJournal') {
+        await safeStopAndClearRecording();
+        resetState();
+        setPrompt('');
+        setError('Journal entry not detailed enough.');
+        setTimer(0);
+        return;
+      }
+
+      console.error('AI error:', err);
       if (thisRunId === runIdRef.current) {
-        setError(err.message || 'Recording/transcription failed.');
+        await safeStopAndClearRecording();
         setLoading(false);
         setLoadingStage(0);
+        setPrompt('');
+        setError('Failed to get AI response.');
         setTimer(0);
       }
+      return;
     }
-  };
+
+    // AI FINISHED → stop staging animation
+    clearInterval(stageInterval);
+    if (thisRunId !== runIdRef.current) return;
+
+
+    setAiResponse(aiResponse);
+    router.push('/journal/response');
+
+    setLoading(false);
+
+  } catch (err: any) {
+    await safeStopAndClearRecording();
+    console.error(err);
+
+    if (thisRunId === runIdRef.current) {
+      setError(err.message || 'Recording/transcription failed.');
+      setLoading(false);
+      setLoadingStage(0);
+      setTimer(0);
+    }
+  }
+};
+
 
 
   //submit the journal recording
@@ -482,6 +481,157 @@ export function useJournalRecording() {
     }
   };
 
+  //submit text entry (without recording)
+  const submitTextEntry = async (textEntry: string) => {
+    if (textEntry.trim().length < 10) {
+      setError('Text entry must be at least 10 characters.');
+      return;
+    }
+
+    setLoading(true);
+    setLoadingStage(1);
+    setTranscript(textEntry); // Store text as transcript for consistency
+
+    const user = auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+    const idToken = await user.getIdToken();
+
+    const thisRunId = runIdRef.current;
+
+    try {
+      setLoadingStage(3);
+      // Get word count and streak
+      {
+        const user = auth.currentUser;
+        let stats = null;
+        if (user) {
+          const idToken = await user.getIdToken();
+          try {
+            const resp = await fetch(`${BACKEND_URL}/api/get-word-count-and-streak`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({
+                journal: textEntry,
+                userId: user.uid,
+              }),
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              stats = {
+                wordCount: data.wordCount,
+                currentStreak: data.currentStreak,
+              };
+            }
+          } catch (err) {
+            console.error('updateWordCountAndStreak error:', err);
+          }
+        }
+        await delay(1000);
+        if (stats) {
+          setWordCount(stats.wordCount);
+          setCurrentStreak(stats.currentStreak);
+        }
+      }
+
+      //Load personality scores
+      try {
+        setLoadingStage(4);
+        const personalityPromise = fetch(`${BACKEND_URL}/api/get-personality-scores`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const [personalityResponse] = await Promise.all([personalityPromise, delay(1000)]);
+        if (!personalityResponse.ok) throw new Error('Failed to load personality');
+        const { personality } = (await personalityResponse.json()) as { personality: PersonalityScores };
+        setPreviousPersonality(personality);
+      } catch (err: any) {
+        console.error('Error loading personality:', err);
+        if (thisRunId === runIdRef.current) {
+          setError('Failed to load personality scores. Please try again.');
+          setLoading(false);
+          setLoadingStage(0);
+        }
+        return;
+      }
+
+      // Call AI with text entry
+      setLoadingStage(5);
+      const aiPromise = fetch(`${BACKEND_URL}/api/journal-response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          journal: textEntry,
+          prompt: prompt || '',
+          personality: previousPersonality,
+        }),
+      }).then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          if (err.error === 'Invalid journal entry') {
+            throw new Error('InvalidJournal');
+          }
+          throw new Error(err.error || `AI response failed (${res.status})`);
+        }
+        return res.json();
+      }).then(data => {
+        if (data.error) {
+          if (data.error === 'Invalid journal entry') {
+            throw new Error('InvalidJournal');
+          }
+          throw new Error(data.error);
+        }
+        return data.aiResponse;
+      });
+
+      setTimeout(() => {
+        if (thisRunId === runIdRef.current) {
+          setLoadingStage(6);
+        }
+      }, 2000);
+
+      try {
+        const aiRes = await aiPromise;
+        if (thisRunId !== runIdRef.current) return;
+        setAiResponse(aiRes);
+        if (thisRunId !== runIdRef.current) return;
+        router.push('/journal/response');
+        setTimeout(() => {
+          if (thisRunId === runIdRef.current) {
+            setLoading(false);
+            setLoadingStage(0);
+          }
+        }, 1000);
+      } catch (aiErr: any) {
+        if (aiErr.message === 'InvalidJournal') {
+          resetState();
+          setPrompt('');
+          setError('Journal entry not detailed enough.');
+          return;
+        }
+        console.error('getAIResponse error:', aiErr);
+        if (thisRunId === runIdRef.current) {
+          setLoading(false);
+          setLoadingStage(0);
+          setPrompt('');
+          setError('Failed to get AI response.');
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (thisRunId === runIdRef.current) {
+        setError(err.message || 'Failed to submit text entry.');
+        setLoading(false);
+        setLoadingStage(0);
+      }
+    }
+  };
+
   //toggle the recording, ie when we click the mic
   const toggleRecording = () => {
     if (loading || aiResponse) return;
@@ -524,6 +674,7 @@ export function useJournalRecording() {
     pulseAnim,
     formatTime,
     toggleRecording,
+    submitTextEntry,
     generatePrompt,
     clearPrompt,
     handleSubmitJournal,

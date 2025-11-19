@@ -4,13 +4,15 @@ import { Check, Sparkles } from 'lucide-react-native';
 import { colors } from '~/constants/Colors';
 
 const loadingMessages = [
-  'Checking voice usage.',
-  'Transcribing journal.',
-  'Calculating word & streak count.',
-  'Getting personality metrics.',
-  'Getting AI response.',
-  'Finalising...'
+  'Preparing analysis',
+  'Reading your journal',
+  'Reviewing thought patterns',
+  'Assessing different emotions',
+  'Generating response metrics',
+  'Finalising'
 ];
+
+
 
 const AnimatedLoadingRow = ({ msg, isCompleted, isActive }: { msg: string; isCompleted: boolean; isActive: boolean }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -110,12 +112,13 @@ const styles = StyleSheet.create({
   loadingMessageContainer: {
     width: '100%',
     paddingHorizontal: 20,
-    marginTop: 16,
+    marginBottom: 30,
+    zIndex: 250,
   },
   // Set a maxHeight so once rows exceed this area, they become scrollable.
   // Adjust (e.g., 220–320) to fit your design.
   scroll: {
-    height: 200,
+    height: 300,
   },
   scrollContent: {
     paddingBottom: 8,
@@ -124,6 +127,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 8,
+    zIndex: 250,
   },
   loadingTextWrapper: {
     flexDirection: 'row',

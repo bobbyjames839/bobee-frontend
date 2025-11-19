@@ -79,5 +79,5 @@ export default function InsightsPage() {
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: colors.lightest },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40,     paddingTop: 50 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 100,     paddingTop: 50 },
 })

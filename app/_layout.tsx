@@ -28,6 +28,7 @@ import { JournalProvider } from '~/context/JournalContext';
 import { JournalsProvider } from '~/context/JournalsContext';
 import { InsightsProvider } from '~/context/InsightsContext';
 import { BobeeProvider } from '~/context/BobeeContext';
+import { QuoteProvider } from '~/context/QuoteContext';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -43,6 +44,7 @@ export default function RootLayout() {
     SpaceMonoSemibold: require('../assets/fonts/Poppins-Medium.ttf'),
     Lora: require('../assets/fonts/Lora-VariableFont_wght.ttf'),
     Nunito: require('../assets/fonts/Nunito-VariableFont_wght.ttf'),
+    PoppinsItalic: require('../assets/fonts/Poppins-Italic.ttf'),
   });
 
   const [authReady, setAuthReady] = useState(false);
@@ -181,6 +183,7 @@ export default function RootLayout() {
             <InsightsProvider>
               <BobeeProvider>
                 <JournalProvider>
+                  <QuoteProvider>
                   <Stack
                 screenOptions={{
                   headerShown: false,
@@ -232,6 +235,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
             </Stack>
             <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'auto'} />
+                  </QuoteProvider>
                 </JournalProvider>
               </BobeeProvider>
             </InsightsProvider>

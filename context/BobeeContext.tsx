@@ -12,8 +12,6 @@ interface BobeeContextValue {
   reflectionDoneToday: boolean;
   loading: boolean;
   error: string | null;
-  fetchBobeeData: () => Promise<void>;
-  refetchMeta: () => Promise<void>;
   markReflectionComplete: () => void;
   markMessageSent: () => void;
 }
@@ -30,22 +28,6 @@ export const BobeeProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
-
-  const refetchMeta = useCallback(async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-      const token = await user.getIdToken();
-      const res = await fetch(`${API_BASE}/api/bobee-message-meta`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as { lastBobeeMessage: number | null };
-      setLastMessageAt(data.lastBobeeMessage ?? null);
-    } catch {
-      // Silently fail
-    }
-  }, [API_BASE]);
 
   const fetchBobeeData = useCallback(async () => {
     const user = auth.currentUser;
@@ -142,10 +124,8 @@ export const BobeeProvider = ({ children }: { children: React.ReactNode }) => {
     reflectionDoneToday,
     loading,
     error,
-    fetchBobeeData,
-    refetchMeta,
     markReflectionComplete,
-    markMessageSent,
+    markMessageSent
   };
 
   return <BobeeContext.Provider value={value}>{children}</BobeeContext.Provider>;

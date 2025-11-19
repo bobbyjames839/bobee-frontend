@@ -117,7 +117,7 @@ export default function FilesTabIndex() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.lightest },
+  container: { flex: 1, backgroundColor: colors.lightest, paddingBottom: 100 },
   userCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
