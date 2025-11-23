@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { colors } from '~/constants/Colors'
+import * as Haptics from 'expo-haptics';
 
 interface SignUpStep9LearningStyleProps {
   learningStyle: string
@@ -61,7 +62,10 @@ export default function SignUpStep9LearningStyle({ learningStyle, onLearningStyl
 
         <TouchableOpacity
           style={[styles.button, isDisabled && styles.buttonDisabled]}
-          onPress={onNext}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            onNext();
+          }}
           disabled={isDisabled}
           activeOpacity={0.85}
         >

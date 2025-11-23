@@ -9,7 +9,7 @@ import Svg, { G, Path, Circle } from 'react-native-svg';
 type Topic = { topic: string; count: number };
 
 type Props = {
-  topics: Topic[] | null; // pass null before data arrives, [] if none
+  topics: Topic[] | null; 
 };
 
 export default function TopicsSection({ topics }: Props) {
@@ -22,29 +22,44 @@ export default function TopicsSection({ topics }: Props) {
     { topic: 'Goals', count: 5 },
   ];
 
-  const topicsList = topics ?? []; // null -> treat as not loaded (will fall back below)
+  const topicsList = topics ?? []; 
   const listToRender = topicsList.length > 0 ? topicsList : dummyTopics;
-
-  const totalCount = listToRender.reduce((sum, t) => sum + t.count, 0) || 1; // avoid div by 0
+  const totalCount = listToRender.reduce((sum, t) => sum + t.count, 0) || 1; 
   const hasNoTopics = isSubscribed && (topicsList.length === 0 || topicsList.every(t => t.count === 0));
-
-  // Pie chart geometry
-  const size = 180; // diameter
+  const size = 180; 
   const radius = size / 2;
-
-  // Border styling for slices and outer ring
-  const sliceStroke = '#d5d5d5ff' as const; // subtle dark gray
+  const sliceStroke = '#d5d5d5ff' as const; 
   const strokeWidth = 1;
   
   const slices = useMemo(() => {
-    let cumulative = 0;
-
-    // Define a nice categorical palette
+    // Define palette
     const palette = [
       "#757ef8ff", "#2b2ef2ff", "#575ee1ff", "#be93f7ff",
       "#9062f3ff"
     ];
 
+    // SPECIAL CASE: only one topic → draw a perfect circle
+    if (listToRender.length === 1) {
+      const fill = palette[0];
+      return [
+        {
+          topic: listToRender[0].topic,
+          value: listToRender[0].count,
+          fraction: 1,
+          // A full-circle path for react-native-svg
+          path: `
+            M ${radius} ${radius}
+            m -${radius}, 0
+            a ${radius},${radius} 0 1,0 ${radius * 2},0
+            a ${radius},${radius} 0 1,0 -${radius * 2},0
+          `,
+          fill,
+        },
+      ];
+    }
+
+    // NORMAL CASE: multiple slices
+    let cumulative = 0;
     return listToRender.map((t, idx) => {
       const value = t.count;
       const fraction = value / totalCount;
@@ -60,12 +75,16 @@ export default function TopicsSection({ topics }: Props) {
 
       const path = `M ${radius} ${radius} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
-      // Pick color from palette (wrap around if more slices than colors)
-      const fill = palette[idx % palette.length];
-
-      return { topic: t.topic, value, fraction, path, fill };
+      return {
+        topic: t.topic,
+        value,
+        fraction,
+        path,
+        fill: palette[idx % palette.length],
+      };
     });
   }, [listToRender, totalCount, radius]);
+
 
 
   const legend = slices.slice(0, 6); // show up to 6 legend rows
@@ -111,18 +130,6 @@ export default function TopicsSection({ topics }: Props) {
             <Text style={styles.moreLabel}>+{slices.length - legend.length} more</Text>
           )}
         </View>
-
-        {/* Overlays unchanged */}
-        {!isSubscribed && (
-          <BlurView intensity={12} tint="light" style={styles.overlay}>
-            <View
-              style={styles.subscribeButton}
-              onTouchEnd={() => router.push('/settings/sub')}
-            >
-              <Text style={styles.subscribeText}>Subscribe</Text>
-            </View>
-          </BlurView>
-        )}
 
         {hasNoTopics && (
           <BlurView intensity={12} tint="light" style={styles.overlay}>

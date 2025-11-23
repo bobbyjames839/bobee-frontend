@@ -9,6 +9,8 @@ import PrivacyModal from './PrivacyModal'
 import Purchases, { PurchasesPackage } from 'react-native-purchases'
 import { X } from 'lucide-react-native'
 import { navigate } from 'expo-router/build/global-state/routing'
+import * as Haptics from 'expo-haptics';
+
 
 interface SignUpStep5FreeTrialProps {
   onStartTrial: () => Promise<void>
@@ -24,7 +26,6 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
   const [showTerms, setShowTerms] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null)
-  const [priceString, setPriceString] = useState('$7.99/month')
 
   useEffect(() => {
     const fetchOfferings = async () => {
@@ -35,7 +36,6 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
             offerings.current.availablePackages.find(p => p.identifier === '$rc_monthly' || p.packageType === 'MONTHLY')
             || offerings.current.availablePackages[0]
           setSelectedPackage(monthly)
-          setPriceString(monthly.product.priceString + '/month')
         }
       } catch (e) { console.error('Error fetching offerings:', e) }
     }
@@ -43,6 +43,7 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
   }, [])
 
   const handleStart = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setError('')
     setLoading(true)
     try {
@@ -65,11 +66,10 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
   }
 
   const features = [
-    { text: 'AI-Powered Insights from journal entries', icon: Brain },
-    { text: 'Track Progress with mood & habit analytics', icon: ChartLine },
-    { text: 'AI Coach for guidance and reflection', icon: Compass },
-    { text: 'Detailed Analytics to understand patterns', icon: Graph },
-    { text: 'Unlimited Journaling with no daily limits', icon: PencilLine },
+    { text: 'Instant AI-powered journal insights', icon: Brain },
+    { text: 'Track progress over time', icon: ChartLine },
+    { text: 'Complete daily goals', icon: Compass },
+    { text: 'Understand yourself better', icon: Graph }
   ]
 
   return (
@@ -103,8 +103,7 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
       </View>
 
       <View style={styles.bottom}>
-        <Text style={styles.afterTrial}>Try 7 days free, then {priceString}</Text>
-
+        <Text style={styles.afterTrial}>Try 7 days free, then $5.99/month</Text>
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={handleStart}

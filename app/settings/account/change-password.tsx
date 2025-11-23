@@ -202,10 +202,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.lighter,
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 14,
     fontFamily: 'SpaceMono',
     marginBottom: 8,
     paddingHorizontal: 12,
@@ -221,9 +219,9 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.blue,
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 18,
+    padding: 14,
+    borderRadius: 14,
+    marginTop: 12,
     alignItems: 'center',
   },
   buttonDisabled: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,7 +9,7 @@ import {
   Easing,
   TextInput,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '~/constants/Colors';
 import { auth } from '~/utils/firebase';
@@ -22,7 +22,7 @@ import { useQuote } from '~/context/QuoteContext';
 import { useTabBar } from '~/context/TabBarContext';
 import JournalMic from '~/components/journal/JournalMic';
 import JournalLoading from '~/components/journal/JournalLoading';
-import { Mic, Type, X, Shuffle, XCircle } from 'lucide-react-native';
+import { X, Shuffle, AudioLines, PenLine } from 'lucide-react-native';
 import { prompts } from '~/utils/journalPrompts';
 
 export default function JournalMain() {
@@ -34,8 +34,6 @@ export default function JournalMain() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [isTextMode, setIsTextMode] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
-  const [textEntry, setTextEntry] = useState('');
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const { fadeAnim, slideAnim } = useFadeInAnimation();
 
@@ -53,6 +51,8 @@ export default function JournalMain() {
   const micTranslateY = useRef(new Animated.Value(0)).current;
   const micOpacity = useRef(new Animated.Value(0)).current;
   const circleTranslateY = useRef(new Animated.Value(0)).current;
+
+
 
   // Pulsing circle animation behind the top image
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -75,12 +75,12 @@ export default function JournalMain() {
 
   // Handle tab bar visibility with fling effect
   useEffect(() => {
-    if (isRecordingMode) {
+    if (isRecordingMode || isTextMode) {
       hideTabBar();
     } else {
       showTabBar();
     }
-  }, [isRecordingMode, hideTabBar, showTabBar]);
+  }, [isRecordingMode, isTextMode, hideTabBar, showTabBar]);
 
   const pulseScale = pulseAnim.interpolate({
     inputRange: [0, 1],
@@ -116,12 +116,28 @@ export default function JournalMain() {
     setShowTutorial(tour === '1');
   }, [tour]);
 
-  // Initialize with default prompt when entering recording mode
-  useEffect(() => {
-    if (isRecordingMode && !currentPrompt) {
-      setCurrentPrompt('Whats on your mind?');
-    }
-  }, [isRecordingMode, currentPrompt]);
+  useFocusEffect(
+    useCallback(() => {
+      // Reset to default state when screen comes into focus
+      setIsRecordingMode(false);
+      setIsTextMode(false);
+      
+      // Reset animations to default
+      buttonsOpacity.setValue(1);
+      quoteOpacity.setValue(1);
+      titleTranslateY.setValue(0);
+      titleOpacity.setValue(1);
+      voiceNoteTitleOpacity.setValue(0);
+      voiceNoteTitleTranslateY.setValue(-50);
+      promptOpacity.setValue(0);
+      promptTranslateY.setValue(-20);
+      closeButtonOpacity.setValue(0);
+      listeningOpacity.setValue(0);
+      micTranslateY.setValue(0);
+      micOpacity.setValue(0);
+      circleTranslateY.setValue(0);
+    }, [])
+  );
 
   const getRandomPrompt = () => {
     const defaultPrompts = prompts.default;
@@ -130,12 +146,11 @@ export default function JournalMain() {
   };
 
   const handleShufflePrompt = () => {
-    setCurrentPrompt(getRandomPrompt());
+    journal.setPrompt(getRandomPrompt());
   };
 
   const handleStartVoiceNote = () => {
     setIsRecordingMode(true);
-    setIsTextMode(false);
     
     // Animate transitions
     Animated.parallel([
@@ -210,7 +225,6 @@ export default function JournalMain() {
   };
 
   const handleStartTextEntry = () => {
-    setIsRecordingMode(true);
     setIsTextMode(true);
     
     // Same animations as voice mode
@@ -336,11 +350,10 @@ export default function JournalMain() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // After fade out, bring back original title, buttons, and quote
       setIsRecordingMode(false);
       setIsTextMode(false);
-      setTextEntry('');
-      setCurrentPrompt(null);
+      journal.setTranscript('');
+      journal.setPrompt(''); 
       Animated.parallel([
         Animated.timing(buttonsOpacity, {
           toValue: 1,
@@ -421,10 +434,7 @@ export default function JournalMain() {
               <Shuffle size={24} color={colors.dark} strokeWidth={2}  />
             </TouchableOpacity>
           </Animated.View>
-        
 
-        {/* Close button - appears in recording mode */}
-        {isRecordingMode && (
           <Animated.View 
             style={[
               styles.closeButton,
@@ -435,9 +445,7 @@ export default function JournalMain() {
               <X size={24} color={colors.dark} strokeWidth={2} />
             </TouchableOpacity>
           </Animated.View>
-        )}
 
-        {/* Initial view - title and subtitle */}
         <Animated.View 
           style={[
             styles.titleContainer,
@@ -451,7 +459,6 @@ export default function JournalMain() {
           <Text style={styles.subtitle}>Whats on your mind?</Text>
         </Animated.View>
 
-        {/* Recording view - voice note title */}
         <Animated.View 
           style={[
             styles.voiceNoteTitleContainer,
@@ -464,20 +471,18 @@ export default function JournalMain() {
           <Text style={styles.voiceNoteTitle}>{isTextMode ? 'Text Entry' : 'Voice Note'}</Text>
         </Animated.View>
 
-        {/* Recording view - prompt */}
-        {currentPrompt && (
-          <Animated.View 
-            style={[
-              styles.promptContainer,
-              { 
-                opacity: promptOpacity,
-                transform: [{ translateY: promptTranslateY }]
-              }
-            ]}
-          >
-            <Text style={styles.promptText}>{currentPrompt}</Text>
-          </Animated.View>
-        )}
+        <Animated.View 
+          style={[
+            styles.promptContainer,
+            { 
+              opacity: promptOpacity,
+              transform: [{ translateY: promptTranslateY }]
+            }
+          ]}
+        >
+          <Text style={styles.promptText}>{!journal.loading && (journal.prompt || "What's on your mind?")}</Text>
+        </Animated.View>
+
 
         {isRecordingMode && !journal.loading && (
         <Animated.View 
@@ -486,25 +491,38 @@ export default function JournalMain() {
             { opacity: listeningOpacity }
           ]}
         >
-          {isTextMode ? (
-            <TextInput
-              style={styles.textInput}
-              placeholder="Start typing your thoughts..."
-              placeholderTextColor="#a1a1aa"
-              multiline
-              value={textEntry}
-              onChangeText={setTextEntry}
-              autoFocus
-            />
-          ) : (
             <Text style={styles.listeningText}>
               {journal.isRecording ? journal.transcript || 'I am listening...' : ''}
             </Text>
-          )}
         </Animated.View>
         )}
 
-        {/* Buttons - fade out when recording */}
+        {isTextMode && !journal.loading && 
+          <Animated.View 
+            style={[
+              styles.listeningContainerTextInput,
+              { opacity: listeningOpacity }
+            ]}
+          >
+              <TextInput
+                style={styles.textInput}
+                placeholder="Start typing your thoughts..."
+                placeholderTextColor="#a1a1aa"
+                multiline
+                onChangeText={journal.setTranscript}
+                autoFocus
+                onKeyPress={({ nativeEvent }) => {
+                  if (nativeEvent.key === 'Enter') {
+                    if (journal.transcript.trim().length >= 10 && !journal.loading) {
+                      journal.stopRecording(true); // Submit the journal entry
+                    }
+                  }
+                }}
+              />
+          </Animated.View>
+        }
+
+
         <Animated.View 
           style={[
             styles.buttonGroup,
@@ -516,7 +534,7 @@ export default function JournalMain() {
             onPress={handleStartVoiceNote}
             activeOpacity={0.85}
           >
-            <Mic size={20} color="#fff" strokeWidth={2} style={styles.buttonIcon} />
+            <AudioLines size={20} color="#fff" strokeWidth={2} style={styles.buttonIcon} />
             <Text style={styles.journalButtonText}>Voice Note</Text>
           </TouchableOpacity>
 
@@ -525,7 +543,7 @@ export default function JournalMain() {
             onPress={handleStartTextEntry}
             activeOpacity={0.85}
           >
-            <Type
+            <PenLine
               size={20}
               color={colors.blue}
               strokeWidth={2}
@@ -542,7 +560,6 @@ export default function JournalMain() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Quote - fade out when recording */}
         {quote && !quoteLoading && (
           <Animated.View 
             style={[
@@ -564,30 +581,18 @@ export default function JournalMain() {
           ]}
         >
           <JournalLoading
+            isTextMode={isTextMode}
             loading={journal.loading}
             loadingStage={journal.loadingStage}
           />
-          {!isTextMode ? (
+          {!isTextMode &&
             <JournalMic
               isRecording={journal.isRecording}
               loading={journal.loading}
               timer={journal.timer}
               onToggle={journal.toggleRecording}
             />
-          ) : (
-            <TouchableOpacity
-              style={[styles.submitButton, { opacity: textEntry.trim().length < 10 || journal.loading ? 0.6 : 1 }]}
-              onPress={() => {
-                if (textEntry.trim().length >= 10 && !journal.loading) {
-                  journal.submitTextEntry(textEntry);
-                }
-              }}
-              disabled={textEntry.trim().length < 10 || journal.loading}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.submitButtonText}>Submit</Text>
-            </TouchableOpacity>
-          )}
+          }
 
         </Animated.View>
 
@@ -718,6 +723,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  listeningContainerTextInput: {
+    width: '90%',
+    flex: 1,
+    marginBottom: 70,
+    left: 0,
+    right: 0,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
   listeningText: {
     fontFamily: 'SpaceMono',
     fontSize: 17,
@@ -726,7 +740,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     width: '100%',
-    height: '100%',
+    height: 200,
     fontFamily: 'SpaceMono',
     fontSize: 17,
     color: colors.darkestblue,
@@ -776,24 +790,6 @@ const styles = StyleSheet.create({
     bottom: 110,
     alignItems: 'center',
     zIndex: 10,
-  },
-  submitButton: {
-    backgroundColor: colors.blue,
-    paddingHorizontal: 40,
-    paddingVertical: 18,
-    borderRadius: 30,
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontFamily: 'SpaceMonoSemibold',
-    letterSpacing: 0.5,
   },
   bottomCircle: {
     position: 'absolute',

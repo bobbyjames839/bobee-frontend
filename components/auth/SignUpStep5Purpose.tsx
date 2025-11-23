@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { colors } from '~/constants/Colors'
+import * as Haptics from 'expo-haptics';
+
 
 interface SignUpStep5PurposeProps {
   purpose: string
@@ -60,7 +62,10 @@ export default function SignUpStep5Purpose({ purpose, onPurposeChange, onNext, o
       </ScrollView>
     <TouchableOpacity
         style={[styles.button, isDisabled && styles.buttonDisabled]}
-        onPress={onNext}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          onNext();
+        }}
         disabled={isDisabled}
         activeOpacity={0.85}
     >

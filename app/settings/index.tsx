@@ -51,13 +51,19 @@ export default function SettingsIndex() {
     { label: 'How to use',         icon: 'information-circle-outline', path: '/settings/how' },
     { label: 'Privacy Statement',  icon: 'shield-checkmark-outline',   path: '/settings/priv' },
     { label: 'Terms & Conditions', icon: 'document-text-outline',      path: '/settings/terms' },
-    { label: 'Contact',            icon: 'mail-outline',               path: '/settings/contact' }, // New contact link
-    { label: 'Replay tutorial',    icon: 'refresh-outline', onPress: async () => {
+    { label: 'Contact',            icon: 'mail-outline',               path: '/settings/contact' },
+    {
+      label: 'Replay tutorial',
+      icon: 'refresh-outline',
+      onPress: async () => {
         try {
           await AsyncStorage.removeItem('tutorialComplete');
           router.push('/tutorial');
-        } catch (e) { console.warn('Failed to reset tutorial', e); }
-      }},
+        } catch (e) {
+          console.warn('Failed to reset tutorial', e);
+        }
+      },
+    },
   ];
 
   const renderSection = (title: string, items: Item[]) => (
@@ -66,27 +72,6 @@ export default function SettingsIndex() {
       <View style={styles.card}>
         {items.map((item, idx) => {
           const isLast = idx === items.length - 1;
-          const RowComponent = (
-            <View style={[styles.row, !isLast && styles.rowDivider]}>
-              <Ionicons
-                name={item.icon}
-                size={24}
-                color={item.destructive ? 'red' : colors.darkest}
-                style={styles.leftIcon}
-              />
-              <Text style={[styles.menuText, item.destructive && styles.destructiveText]}>
-                {item.label}
-              </Text>
-              {!item.destructive && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.darkest}
-                  style={styles.menuIcon}
-                />
-              )}
-            </View>
-          );
 
           const onPress = item.onPress
             ? item.onPress
@@ -95,8 +80,34 @@ export default function SettingsIndex() {
               : undefined;
 
           return (
-            <TouchableOpacity key={`${title}-${idx}`} onPress={onPress} activeOpacity={0.7}>
-              {RowComponent}
+            <TouchableOpacity
+              key={`${title}-${idx}`}
+              onPress={onPress}
+              activeOpacity={0.7}
+            >
+              <View>
+                <View style={styles.row}>
+                  <Ionicons
+                    name={item.icon}
+                    size={24}
+                    color={item.destructive ? 'red' : colors.darkest}
+                    style={styles.leftIcon}
+                  />
+                  <Text style={[styles.menuText, item.destructive && styles.destructiveText]}>
+                    {item.label}
+                  </Text>
+                  {!item.destructive && (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={colors.darkest}
+                      style={styles.menuIcon}
+                    />
+                  )}
+                </View>
+
+                {!isLast && <View style={styles.rowDivider} />}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -106,12 +117,15 @@ export default function SettingsIndex() {
 
   return (
     <View style={styles.container}>
-      <Header title="Settings and privacy" leftIcon="chevron-back"
-              onLeftPress={() => (router.back())}/>
-        <ScrollView contentContainerStyle={styles.menuContainer}>
-          {renderSection('ACCOUNT', accountItems)}
-          {renderSection('HELP & INFO', helpItems)}
-        </ScrollView>
+      <Header
+        title="Settings and privacy"
+        leftIcon="chevron-back"
+        onLeftPress={() => router.back()}
+      />
+      <ScrollView contentContainerStyle={styles.menuContainer}>
+        {renderSection('ACCOUNT', accountItems)}
+        {renderSection('HELP & INFO', helpItems)}
+      </ScrollView>
     </View>
   );
 }
@@ -128,15 +142,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: 'SpaceMono',
-    fontSize: 13,
+    fontSize: 12,
     color: colors.dark,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   card: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: colors.lighter,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -147,14 +159,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   rowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lighter,
+    height: 1,
+    width: '90%',          // 90% width
+    alignSelf: 'center',   // centered within the card
+    backgroundColor: colors.lighter,
   },
   leftIcon: {
     marginRight: 12,
   },
   menuText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'SpaceMono',
     color: colors.darkest,
     fontWeight: '600',

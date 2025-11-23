@@ -51,7 +51,9 @@
 	<string>Camera access is optional and only used if you choose to take a photo or scan a code inside the app.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We use your microphone so you can record audio journals, which are transcribed into text and used to provide personal insights. Your recordings are not saved after transcription.</string>
-	 <key>NSSpeechRecognitionUsageDescription</key>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is optional and only used if you choose to select a photo or video inside the app.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
     <string>We use speech recognition to transcribe your voice into text for journaling purposes.</string>
 	<key>NSUserActivityTypes</key>
 	<array>

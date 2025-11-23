@@ -33,6 +33,8 @@ export default function ChatScreen({
   isLoading,
   onSubmit,
   isTabBarVisible = false,
+  hideTabBar,
+  showTabBar,
 }: {
   history: ChatHistoryItem[]
   scrollRef: React.RefObject<ScrollView | null>
@@ -42,6 +44,8 @@ export default function ChatScreen({
   isLoading: boolean
   onSubmit: () => void
   isTabBarVisible?: boolean
+  hideTabBar?: () => void
+  showTabBar?: () => void
 }) {
   const busy = isLoading
   const insets = useSafeAreaInsets()
@@ -125,6 +129,9 @@ export default function ChatScreen({
         showSuggestions={showSuggestions}
         buttonsBottomPad={buttonsBottomPad}
         footerBottomAnim={footerBottomAnim}
+        isTabBarVisible={isTabBarVisible}
+        hideTabBar={hideTabBar}
+        showTabBar={showTabBar}
       />
     </View>
   )

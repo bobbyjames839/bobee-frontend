@@ -61,14 +61,12 @@ const styles = StyleSheet.create({
   },
   box: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    borderRadius: 10,
+    borderRadius: 14,
     padding: 20,
     width: '100%',
   },
   sectionTitle: {
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     fontSize: 16,
     color: colors.blue,
     fontWeight: 'bold',

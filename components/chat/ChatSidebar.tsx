@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   settingPill: {
     borderRadius: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: colors.lighter,
     backgroundColor: "#fff",

@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur'
 import { colors } from '~/constants/Colors'
 import Constants from 'expo-constants'
 import SpinningLoader from '../other/SpinningLoader'
+import * as Haptics from 'expo-haptics';
 
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 
@@ -58,6 +59,7 @@ export default function SignUpStep2Email({
   }
 
   const handleSubmit = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     if (!email.trim()) {
       onError('Please enter your email address')
       return

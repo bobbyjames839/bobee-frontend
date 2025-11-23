@@ -96,7 +96,7 @@ export default function ChatMessages({
 // Helper to parse bold text **text** into Text components
 function parseBoldText(text: string) {
   const parts: Array<{ text: string; bold: boolean }> = [];
-  const regex = /\*(.+?)\*/g;
+  const regex = /\*\*(.+?)\*\*/g;
   let lastIndex = 0;
   let match;
 

@@ -1,12 +1,9 @@
-import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '~/constants/Colors';
 import { useRouter } from 'expo-router';
 
 export default function TutorialIntro() {
   const router = useRouter();
-
-  // No persistence based gating; always allow replay.
 
   const handleStart = () => {
     router.replace('/journal?tour=1');

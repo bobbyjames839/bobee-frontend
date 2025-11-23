@@ -1,9 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { TouchableOpacity, Animated, Text, View, StyleSheet, Dimensions, Easing } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MicrophoneStage, X, StarFour } from 'phosphor-react-native';
 import { colors } from '~/constants/Colors';
-import { AudioLines, Pause } from 'lucide-react-native';
+import { AudioLines, SendHorizonal } from 'lucide-react-native';
 
 interface JournalMicProps {
   isRecording: boolean;
@@ -31,7 +29,7 @@ export default function JournalMic({
             style={styles.micCircle}
           >
             {isRecording ? 
-            <Pause size={42} color={colors.blue} />
+            <SendHorizonal size={42} color={colors.blue} />
             :
             <AudioLines size={42} color={colors.blue} />
             }

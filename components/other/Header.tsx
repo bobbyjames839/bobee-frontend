@@ -32,7 +32,7 @@ export default function Header({
               onPress={onLeftPress}
               style={styles.iconButton}
             >
-              <Ionicons name={leftIcon} size={22} color={colors.darker} />
+              <Ionicons name={leftIcon} size={23} color={colors.darker} />
             </TouchableOpacity>
           )}
         </View>
@@ -57,11 +57,10 @@ const styles = StyleSheet.create({
     paddingBottom: 9,
     justifyContent: 'center', 
     height: 37,
-    marginTop: -3,
   },
   leftIcons: {
     position: 'absolute',
-    left: 10,
+    left: 13,
     bottom: 8,
     flexDirection: 'row',
     alignItems: 'center',

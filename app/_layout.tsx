@@ -192,17 +192,6 @@ export default function RootLayout() {
                   gestureEnabled: false,       
                 }}
               >
-              <Stack.Screen
-                name="files"
-                options={{
-                  presentation: 'card',
-                  animation: 'slide_from_right',
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                  headerShown: false,
-                }}
-              />
-
               {/* other groups */}
               <Stack.Screen
                 name="settings"

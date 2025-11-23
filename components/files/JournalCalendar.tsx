@@ -89,6 +89,7 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
     const isToday = date.dateString === today;
     const faceSource = info ? pickFace(info.avg) : null;
     const disabled = state === 'disabled';
+    
 
     // Background colors per mood bracket
     let moodBackground: string | undefined;
@@ -96,7 +97,7 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
     if (info) {
       const avg = info.avg;
       if (avg <= 2) {
-        moodBackground = '#f53232ff';
+        moodBackground = '#f84444ff';
         moodBorder = '#b00505ff';
       } else if (avg <= 4) {
         moodBackground = '#f38d8dff';
@@ -108,7 +109,7 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
         moodBackground = '#a2eaa7ff';
         moodBorder = '#7bc67f';
       } else {
-        moodBackground = '#19f219ff';
+        moodBackground = '#6cfb6cff';
         moodBorder = '#0f9b0fff';
       }
     }
@@ -118,7 +119,11 @@ const JournalCalendar: React.FC<Props> = ({ dailyMoods, recentJournals, onSelect
     return (
       <TouchableOpacity
         disabled={!info || disabled}
-        onPress={() => info && onSelectDate(date.dateString)}
+        onPress={() => { 
+          if (info) {
+            onSelectDate(date.dateString);
+          }
+        }}
         style={styles.dayWrapper}
       >
         <View
@@ -181,7 +186,6 @@ const styles = StyleSheet.create({
     borderColor: colors.lighter,
     borderWidth: 1,
     backgroundColor: '#fff',
-    elevation: 2,
   },
   calendar: { paddingBottom: 10 },
   dayWrapper: {
@@ -201,13 +205,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   todayBox: {
-    borderWidth: 1.5,
     borderColor: colors.darkest,
   },
   emptyBox: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#d6d6d6',
+    borderColor: colors.lightestblue,
   },
   faceImage: {
     width: 38,

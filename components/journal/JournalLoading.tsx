@@ -68,7 +68,7 @@ const AnimatedLoadingRow = ({ msg, isCompleted, isActive }: { msg: string; isCom
   );
 };
 
-export default function JournalLoading({ loading, loadingStage }: { loading: boolean; loadingStage: number }) {
+export default function JournalLoading({ loading, loadingStage, isTextMode }: { loading: boolean; loadingStage: number; isTextMode: boolean }) {
   const scrollRef = useRef<ScrollView>(null);
 
   // Auto-scroll to the latest row when a new stage appears
@@ -84,7 +84,7 @@ export default function JournalLoading({ loading, loadingStage }: { loading: boo
   if (!loading) return null;
 
   return (
-    <View style={styles.loadingMessageContainer}>
+    <View style={[styles.loadingMessageContainer, {paddingBottom: isTextMode ? 150 : 30}]}>
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -112,11 +112,9 @@ const styles = StyleSheet.create({
   loadingMessageContainer: {
     width: '100%',
     paddingHorizontal: 20,
-    marginBottom: 30,
     zIndex: 250,
   },
-  // Set a maxHeight so once rows exceed this area, they become scrollable.
-  // Adjust (e.g., 220–320) to fit your design.
+
   scroll: {
     height: 300,
   },

@@ -129,17 +129,6 @@ export default function PersonalitySection({ personalityStats }: Props) {
           ))}
         </View>
 
-        {/* Exact same blur/tint/border as TopicsSection */}
-        {!isSubscribed && (
-          <BlurView intensity={12} tint="light" style={styles.overlay}>
-            <Pressable
-              style={styles.subscribeButton}
-              onPress={() => router.push('/settings/sub')}
-            >
-              <Text style={styles.subscribeText}>Subscribe</Text>
-            </Pressable>
-          </BlurView>
-        )}
 
         {hasNoPersonality && (
           <BlurView intensity={12} tint="light" style={styles.overlay}>

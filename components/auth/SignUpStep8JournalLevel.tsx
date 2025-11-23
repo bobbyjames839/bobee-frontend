@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { colors } from '~/constants/Colors'
+import * as Haptics from 'expo-haptics';
+
 
 interface SignUpStep8JournalLevelProps {
   journalLevel: string
@@ -61,7 +63,10 @@ export default function SignUpStep8JournalLevel({ journalLevel, onJournalLevelCh
 
         <TouchableOpacity
           style={[styles.button, isDisabled && styles.buttonDisabled]}
-          onPress={onNext}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            onNext();
+          }}
           disabled={isDisabled}
           activeOpacity={0.85}
         >

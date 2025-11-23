@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import {
   View,
@@ -13,6 +13,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Plus, Calendar, Sparkles, Bot, ChevronDown, AlignEndHorizontal } from 'lucide-react-native';
 import { colors } from '~/constants/Colors';
 import { useJournalContext } from '~/context/JournalContext';
+import { usePathname } from 'expo-router'; // ⬅️ NEW
 
 type IconType = React.ComponentType<{
   color?: string;
@@ -108,12 +109,24 @@ function TabButton(props: {
 function MyTabBar({ state, navigation }: BottomTabBarProps) {
   const journal = useJournalContext();
   const { isTabBarVisible, hideTabBar } = useTabBar();
+
   const isFullscreen = journal.isRecording || journal.loading;
   const isChatPage = state.routes[state.index]?.name === 'chat';
-  const isJournalPage = state.routes[state.index]?.name === 'journal';
+
+  // Nested route detection (for things like files/day, files/[id])
+  const currentTabRoute = state.routes[state.index] as any;
+  const nestedState = currentTabRoute?.state as any;
+  const nestedRoute = nestedState?.routes?.[nestedState.index] ?? null;
+  const nestedRouteName: string | undefined = nestedRoute?.name;
+
+  // Adjust these names to match your actual file names if different
+  const isDayOrIdPage =
+    nestedRouteName === 'day' || nestedRouteName === '[id]';
 
   const indicatorX = React.useRef(new Animated.Value(0)).current;
   const indicatorOpacity = React.useRef(new Animated.Value(0)).current;
+
+  // This drives the show/hide animation
   const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
   const centersRef = React.useRef<number[]>([]);
 
@@ -123,11 +136,10 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
     centersRef.current[index] = centerX;
   };
 
-  // Animate the indicator when the active tab changes
-  React.useEffect(() => {
+  // Dot indicator animation
+  useEffect(() => {
     const currentIndex = state.index;
 
-    // Hide dot if we're on the journal tab or no center yet
     const currentCenter = centersRef.current[currentIndex];
     if (currentIndex === journalIndex || currentCenter == null) {
       Animated.timing(indicatorOpacity, {
@@ -154,20 +166,28 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
     ]).start();
   }, [state.index, journalIndex, indicatorX, indicatorOpacity]);
 
-  // Hide tab bar when on chat/journal page and explicitly hidden
-  React.useEffect(() => {
-    const shouldHide = (isChatPage || isJournalPage) && !isTabBarVisible;
+  // Decide when the tab bar should be visually hidden
+  const shouldHideTabBar =
+    isFullscreen || isDayOrIdPage || !isTabBarVisible;
+
+  // Animate the tab bar in/out
+  useEffect(() => {
     Animated.timing(tabBarTranslateY, {
-      toValue: shouldHide ? 85 : 0,
-      duration: 300,
+      toValue: shouldHideTabBar ? 100 : 0, // 100 = slide down; tweak if needed
+      duration: 220,
       useNativeDriver: true,
     }).start();
-  }, [isChatPage, isJournalPage, isTabBarVisible, tabBarTranslateY]);
-
-  if (isFullscreen) return null;
+  }, [shouldHideTabBar, tabBarTranslateY]);
 
   return (
-    <Animated.View style={[styles.tabBar, { transform: [{ translateY: tabBarTranslateY }] }]}>
+    <Animated.View
+      style={[
+        styles.tabBar,
+        { transform: [{ translateY: tabBarTranslateY }] },
+      ]}
+      // Disable touches when hidden
+      pointerEvents={shouldHideTabBar ? 'none' : 'auto'}
+    >
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const name = route.name as TabKey;
@@ -176,8 +196,9 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
         const Icon = (config?.Icon ?? Plus) as IconType;
 
         const onPress = () => {
-          // Haptics on every tab press
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+            () => {},
+          );
 
           const event = navigation.emit({
             type: 'tabPress',
@@ -220,19 +241,12 @@ function MyTabBar({ state, navigation }: BottomTabBarProps) {
         ]}
       />
 
-      {/* Hide button when tab bar is visible on chat page only */}
-      {isChatPage && isTabBarVisible && (
-        <TouchableOpacity 
-          style={styles.tabBarHide} 
-          onPress={hideTabBar}
-          activeOpacity={0.8}
-        >
-          <ChevronDown size={23} color={colors.blue} strokeWidth={2.5} />
-        </TouchableOpacity>
-      )}
+
     </Animated.View>
   );
 }
+
+
 
 import { TabBarProvider, useTabBar } from '~/context/TabBarContext';
 
@@ -246,11 +260,11 @@ export default function TabLayout() {
         }}
         tabBar={(props) => <MyTabBar {...props} />}
       >
-      <Tabs.Screen name="insights" />
-      <Tabs.Screen name="bobee" />
-      <Tabs.Screen name="journal" />
-      <Tabs.Screen name="chat" />
-      <Tabs.Screen name="files" />
+        <Tabs.Screen name="insights" />
+        <Tabs.Screen name="bobee" />
+        <Tabs.Screen name="journal" />
+        <Tabs.Screen name="chat" />
+        <Tabs.Screen name="files" />
       </Tabs>
     </TabBarProvider>
   );

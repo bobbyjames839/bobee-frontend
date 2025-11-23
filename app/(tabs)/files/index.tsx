@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, Animated, TouchableOpacity } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { getAuth } from 'firebase/auth';
-import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
 import JournalList from '~/components/files/JournalList';
@@ -13,6 +12,7 @@ import TutorialOverlay from '~/components/other/TutorialOverlay';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import { useJournalRefresh } from '~/context/JournalRefreshContext';
 import { useFadeInAnimation } from '~/hooks/useFadeInAnimation';
+import { useTabBar } from '~/context/TabBarContext';
 
 export default function FilesTabIndex() {
   const router = useRouter();
@@ -22,16 +22,12 @@ export default function FilesTabIndex() {
   const [successMessage, setSuccessMessage] = useState('');
   const { refreshKey } = useJournalRefresh();
   const { fadeAnim, slideAnim } = useFadeInAnimation();
-  
-  const user = getAuth().currentUser;
-  const userName = user?.displayName || 'Journaler';
 
-  // Refetch only when refreshKey changes (triggered by journal submission)
   useEffect(() => {
     if (refreshKey > 0) {
       fetchJournals();
     }
-  }, [refreshKey, fetchJournals]);
+  }, [refreshKey]);
 
   useEffect(() => {
     setShowTutorial(tour === '2');
@@ -56,8 +52,6 @@ export default function FilesTabIndex() {
         onHide={() => setSuccessMessage('')} 
       />
       
-      {/* User info card */}
-
       {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <SpinningLoader size={40} />
@@ -117,7 +111,7 @@ export default function FilesTabIndex() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.lightest, paddingBottom: 100 },
+  container: { flex: 1, backgroundColor: colors.lightest},
   userCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -134,17 +128,19 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   settingsButton: {
-    borderRadius: 16,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.lighter,
+    height: 42,
+    width: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#fff',
+    borderRadius: 10,
   },
   scrollContent: { paddingTop: 0, paddingHorizontal: 20 },
   sectionTitle: {
     marginTop: 34,
     fontFamily: 'SpaceMonoSemibold',
     marginBottom: 8,
+    marginLeft: 6,
     fontSize: 20,
     color: colors.darkest,
   },

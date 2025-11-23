@@ -1,21 +1,26 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   Image,
-  ActivityIndicator,
+  Animated,
+  Platform,
+  UIManager,
+  FlatList,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
+import Svg, { Polygon, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { colors } from '~/constants/Colors';
 import { useJournalContext } from '~/context/JournalContext'; 
-import Header from '~/components/other/Header';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { Brain, CheckCircle, Heart, AlertCircle, Lightbulb, ShieldCheck, ArrowUp, ArrowDown, Check } from 'lucide-react-native';
+import { Brain, CheckCircle, Heart, AlertCircle, Lightbulb, ShieldCheck, ArrowUp, ArrowDown, Check, X } from 'lucide-react-native';
 
 const FACE_VERY_SAD        = require('~/assets/images/verysad.png');
 const FACE_SAD             = require('~/assets/images/sad.png');
@@ -23,8 +28,32 @@ const FACE_NEUTRAL         = require('~/assets/images/mid.png');
 const FACE_SLIGHTLY_HAPPY  = require('~/assets/images/happy.png');
 const FACE_VERY_HAPPY      = require('~/assets/images/veryhappy.png');
 
-const PERSONALITY_KEYS = ['resilience', 'discipline', 'focus', 'selfWorth', 'confidence', 'clarity'] as const;
-const ICONS = { resilience: AlertCircle, discipline: CheckCircle, focus: Brain, selfWorth: Heart, confidence: ShieldCheck, clarity: Lightbulb };
+const PERSONALITY_KEYS = [
+  'resilience',
+  'discipline',
+  'focus',
+  'selfWorth',
+  'confidence',
+  'clarity',
+] as const;
+
+const ICONS = {
+  resilience: AlertCircle,
+  discipline: CheckCircle,
+  focus: Brain,
+  selfWorth: Heart,
+  confidence: ShieldCheck,
+  clarity: Lightbulb,
+};
+
+const LABELS: Record<string, string> = {
+  resilience: 'Resilience',
+  discipline: 'Discipline',
+  focus: 'Focus',
+  selfWorth: 'Self-Worth',
+  confidence: 'Confidence',
+  clarity: 'Purpose',
+};
 
 function pickFace(score: number) {
   if (score <= 2) return FACE_VERY_SAD;
@@ -34,38 +63,60 @@ function pickFace(score: number) {
   return FACE_VERY_HAPPY;
 }
 
-const feelingColors  = ['#B3DFFC', '#D1C4E9', '#B2DFDB'];
-const feelingBorders = ['#89c5eeff', '#b89ee8ff', '#8de2dbff'];
-const feelingColor   = (i: number) => feelingColors[i % feelingColors.length];
-const feelingBorder  = (i: number) => feelingBorders[i % feelingBorders.length];
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+type SectionKey = 'summary' | 'insight' | 'thoughtPattern' | 'nextStep';
+
+type SectionItem = {
+  key: SectionKey;
+  label: string;
+  content: string;
+};
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  summary: 'Summary',
+  insight: 'Insight',
+  thoughtPattern: 'Thought Pattern',
+  nextStep: 'Next Step',
+};
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH * 0.8;
+const SNAP_INTERVAL = CARD_WIDTH;
+
+function formatDateAndTime(timestamp: any) {
+  try {
+    const date = timestamp instanceof Date ? timestamp : new Date();
+    const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    
+    const month = monthNames[date.getMonth()];
+    const day = date.getDate();
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const minutesStr = minutes.toString().padStart(2, '0');
+    
+    return `${month} ${day}, ${hours}:${minutesStr} ${ampm}`;
+  } catch {
+    return 'NOVEMBER 15, 1:12 PM';
+  }
+}
 
 export default function ResponseScreen() {
   const router = useRouter();
-  const journal = useJournalContext(); // ✅ shared state/actions
+  const journal = useJournalContext();
+  const insets = useSafeAreaInsets();
 
-  // waiting for response
-  if (!journal.aiResponse) {
-    return (
-      <View style={styles.pageWrapper}>
-        <View style={styles.loaderWrap}>
-          <SpinningLoader size={40} />
-          <TouchableOpacity style={styles.submitButton} onPress={() => router.back()}>
-            <Text style={styles.submitButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-
-  const aiResponse    = journal.aiResponse;
-  const transcript    = journal.transcript ?? '';
-  const prompt        = journal.prompt ?? '';
-  const wordCount     = journal.wordCount ?? 0;
-  const currentStreak = journal.currentStreak ?? 0;
-  const face          = pickFace(aiResponse.moodScore);
-
-  const onSubmit     = async () => { await journal.handleSubmitJournal(); };
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const carouselRef = useRef<FlatList<SectionItem> | null>(null);
 
   const hasResetRef = useRef(false);
   const doResetOnce = () => {
@@ -82,130 +133,289 @@ export default function ResponseScreen() {
     }, [])
   );
 
+  const aiResponse = journal.aiResponse;
+  const transcript = journal.transcript ?? '';
+  const prompt = journal.prompt ?? '';
+  const wordCount = journal.wordCount ?? 0;
+
+  const baseSections: SectionItem[] = aiResponse ? [
+    {
+      key: 'summary',
+      label: SECTION_LABELS.summary,
+      content: aiResponse.summary || 'No summary available.',
+    },
+    {
+      key: 'insight',
+      label: SECTION_LABELS.insight,
+      content: aiResponse.selfInsight || 'No personal insight was generated for this entry.',
+    },
+    {
+      key: 'thoughtPattern',
+      label: SECTION_LABELS.thoughtPattern,
+      content: aiResponse.thoughtPattern || 'No thought pattern analysis was generated for this entry.',
+    },
+    {
+      key: 'nextStep',
+      label: SECTION_LABELS.nextStep,
+      content: aiResponse.nextStep || 'No next step suggestion was generated for this entry.',
+    },
+  ] : [];
+
+  const baseLen = baseSections.length;
+  const loopSections: SectionItem[] = baseLen
+    ? [...baseSections, ...baseSections, ...baseSections]
+    : [];
+  const middleOffset = baseLen;
+
+  useEffect(() => {
+    if (aiResponse && baseLen && carouselRef.current) {
+      setCurrentIndex(middleOffset);
+      setTimeout(() => {
+        carouselRef.current?.scrollToIndex({
+          index: middleOffset,
+          animated: false,
+        });
+      }, 0);
+    }
+  }, [aiResponse, baseLen, middleOffset]);
+
+  const onSubmit = async () => { 
+    await journal.handleSubmitJournal();
+    router.replace('/(tabs)/journal');
+  };
+
+  // waiting for response
+  if (!aiResponse) {
+    return (
+      <View style={styles.fullscreen}>
+        <BlurView intensity={30} style={styles.loadingOverlay}>
+          <SpinningLoader size={40} />
+        </BlurView>
+      </View>
+    );
+  }
+
+  const face = pickFace(aiResponse.moodScore);
+
+  const handleMomentumEnd = (event: any) => {
+    if (!baseLen) return;
+
+    const offsetX = event.nativeEvent.contentOffset.x;
+    let index = Math.round(offsetX / SNAP_INTERVAL);
+
+    if (index < baseLen || index >= baseLen * 2) {
+      const normalized = ((index - baseLen) % baseLen + baseLen) % baseLen;
+      index = baseLen + normalized;
+      carouselRef.current?.scrollToIndex({ index, animated: false });
+    }
+
+    setCurrentIndex(index);
+  };
+
   return (
-    <View style={styles.pageWrapper}>
-      <Header
-        title="Response"
-        rightIcon="close"
-        onRightPress={() => (router.back(), doResetOnce())}/>
+    <View style={styles.fullscreen}>
+      <View style={styles.bottomCircle}></View>
+      <StatusBar style="dark" />
 
-      {/* Content */}
-      <View style={styles.pagePadding}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-            {prompt ? (
-              <>
-                <Text style={styles.sectionTitleTop}>Prompt</Text>
-                <Text style={styles.responseText}>{prompt}</Text>
-                <Text style={styles.sectionTitle}>Transcript</Text>
-                <Text style={styles.block}>{transcript}</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.sectionTitleTop}>Transcript</Text>
-                <Text style={styles.block}>{transcript}</Text>
-              </>
-            )}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={onSubmit}
+          activeOpacity={0.7}
+          style={styles.submitButtonTouchable}
+          disabled={journal.submitLoading}
+        >
+          <Check size={24} color={colors.dark} strokeWidth={2} />
+        </TouchableOpacity>
+        <Text style={styles.dateText}>
+          {formatDateAndTime(new Date())}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            router.back();
+            doResetOnce();
+          }}
+          activeOpacity={0.7}
+          style={styles.closeButtonTouchable}
+        >
+          <X size={24} color={colors.dark} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
 
-            <Text style={styles.sectionTitle}>Summary</Text>
-            <Text style={styles.responseText}>{aiResponse.summary}</Text>
+      <View
+        style={[
+          styles.contentContainer,
+          { paddingBottom: insets.bottom || 20 },
+        ]}
+      >
+        {/* TOP: prompt + answer */}
+        <View style={styles.innerContentTop}>
+          {!!prompt?.trim() && (
+            <Text style={styles.title}>{prompt}</Text>
+          )}
 
-            {!!aiResponse.selfInsight && (
-              <View style={styles.blurSection}>
-                <Text style={styles.sectionTitle}>Insight</Text>
-                <View style={styles.insightContent}>
-                  <Text style={styles.responseText}>{aiResponse.selfInsight}</Text>
+          <ScrollView 
+            style={styles.answerScrollView}
+            contentContainerStyle={styles.answerScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.answer}>{transcript}</Text>
+          </ScrollView>
+        </View>
+
+        {/* MIDDLE: should always sit between top and bottom, vertically centered */}
+        <View style={styles.middle}>
+          <Image
+            source={face}
+            style={styles.moodImage}
+            accessible
+            accessibilityLabel="Mood"
+          />
+
+          <View style={styles.personalityDeltaRow}>
+            {PERSONALITY_KEYS.map((key) => {
+              const delta = aiResponse.personalityDeltas?.[key] || 0;
+              const IconComp = ICONS[key as keyof typeof ICONS];
+
+              return (
+                <View key={key} style={styles.personalityDeltaBox}>
+                  <IconComp color={colors.blue} size={24} strokeWidth={2} />
+                  {delta !== 0 ? (
+                    <View style={styles.deltaBadge}>
+                      {delta > 0 ? (
+                        <ArrowUp size={14} color="white" />
+                      ) : (
+                        <ArrowDown size={14} color="white" />
+                      )}
+                      <Text style={styles.deltaText}>{Math.abs(delta)}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.emptyDeltaBadge}>
+                      <Text style={styles.emptyDeltaText}>0</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
-            )}
-            
-            <View style={styles.personalityDeltaRow}>
-              {PERSONALITY_KEYS.map((key) => {
-                const delta = aiResponse.personalityDeltas?.[key] || 0;
-                const IconComp = ICONS[key as keyof typeof ICONS];
-                
-                return (
-                  <View key={key} style={styles.personalityDeltaBox}>
-                    <IconComp color={colors.blue} size={24} strokeWidth={2} />
-                    {delta !== 0 ? (
-                      <View style={styles.deltaBadge}>
-                        {delta > 0 ? <ArrowUp size={14} color="white" /> : <ArrowDown size={14} color="white" />}
-                        <Text style={styles.deltaText}>{Math.abs(delta)}</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.emptyDeltaBadge}>
-                        <Text style={styles.emptyDeltaText}>0</Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
+              );
+            })}
+          </View>
 
-            <View style={styles.moodRowContainer}>
-              <View style={styles.moodBox}>
-                <Image
-                  source={face}
-                  style={{ width: 104, height: 104, resizeMode: 'contain' }}
-                  accessible
-                  accessibilityLabel="Mood"
-                />
-              </View>
-              <View style={styles.rightBoxesContainer}>
-                <View style={[styles.statBox, styles.statBoxTop]}>
-                  <Text style={styles.statLabel}>Word Count</Text>
-                  <Text style={styles.statValue}>{wordCount}</Text>
-                </View>
-                <View style={[styles.statBox, styles.statBoxBottom]}>
-                  <Text style={styles.statLabel}>Current Streak</Text>
-                  <Text style={styles.statValue}>
-                    {currentStreak} day{currentStreak !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-              </View>
-            </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Word Count</Text>
+            <Text style={styles.statValue}>{wordCount}</Text>
+          </View>
 
+          {!!aiResponse.feelings?.length && (
             <View style={styles.feelingsRow}>
-              {aiResponse.feelings.map((word, i) => (
+              {aiResponse.feelings.map((f, i) => (
                 <View
-                  key={`${word}-${i}`}
+                  key={`${f}-${i}`}
                   style={[
-                    styles.feelingBox,
-                    { backgroundColor: feelingColor(i) },
-                    { borderColor: feelingBorder(i) },
+                    styles.feelingTag,
+                    {
+                      backgroundColor: ['#D7ECFF', '#d7e2ffff', '#c2cbffff'][
+                        i % 3
+                      ],
+                    }
                   ]}
                 >
-                  <Text style={styles.feelingText}>{word}</Text>
+                  <Text style={styles.feelingText}>{f}</Text>
                 </View>
               ))}
             </View>
+          )}
+        </View>
 
-            {!!aiResponse.thoughtPattern && (
-              <View style={styles.blurSection}>
-                <Text style={styles.sectionTitle}>Thought Pattern</Text>
-                <View style={styles.insightContent}>
-                  <Text style={styles.responseText}>{aiResponse.thoughtPattern}</Text>
-                </View>
-              </View>
-            )}
+        {/* BOTTOM: carousel, fixed near bottom, in normal flow */}
+        {baseLen > 0 && (
+          <View style={styles.insightsSection}>
+            <Animated.FlatList<SectionItem>
+              ref={carouselRef}
+              data={loopSections}
+              keyExtractor={(item, index) => `${item.key}-${index}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={SNAP_INTERVAL}
+              decelerationRate="fast"
+              bounces={false}
+              contentContainerStyle={{
+                paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2,
+              }}
+              onMomentumScrollEnd={handleMomentumEnd}
+              getItemLayout={(_, index) => ({
+                length: SNAP_INTERVAL,
+                offset: SNAP_INTERVAL * index,
+                index,
+              })}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: true }
+              )}
+              scrollEventThrottle={16}
+              renderItem={({ item, index }) => {
+                const inputRange = [
+                  (index - 1) * SNAP_INTERVAL,
+                  index * SNAP_INTERVAL,
+                  (index + 1) * SNAP_INTERVAL,
+                ];
 
-            <Text style={styles.sectionTitle}>Next Step</Text>
-            <Text style={styles.responseText}>{aiResponse.nextStep}</Text>
+                const scale = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [0.9, 1, 0.9],
+                  extrapolate: 'clamp',
+                });
 
-        </ScrollView>
+                const opacity = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [0.5, 1, 0.5],
+                  extrapolate: 'clamp',
+                });
 
-      </View>
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={onSubmit}
-        >
-          <View style={styles.submitButtonContent}>
-            <Check size={22} color='white' />
-            <Text style={styles.submitButtonText}>Submit Journal</Text>
+                return (
+                  <Animated.View
+                    style={[
+                      styles.insightsCard,
+                      {
+                        width: CARD_WIDTH,
+                        transform: [{ scale }],
+                        opacity,
+                      },
+                    ]}
+                  >
+                    <Svg
+                      pointerEvents="none"
+                      style={styles.bgSpan}
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                    >
+                      <Defs>
+                        <LinearGradient id={`bgGrad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                          <Stop offset="0" stopColor={colors.blue} stopOpacity={0.08} />
+                          <Stop offset="1" stopColor={colors.blue} stopOpacity={0.02} />
+                        </LinearGradient>
+                      </Defs>
+                      <Polygon points="0,0 100,0 60,100 0,100" fill={`url(#bgGrad-${index})`} />
+                    </Svg>
+                    <Text style={styles.insightsTitleInside}>
+                      {item.label}
+                    </Text>
+                    <ScrollView
+                      style={styles.insightsContentScrollView}
+                      contentContainerStyle={styles.insightsContentContainer}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      <Text style={styles.insightsContentText}>
+                        {item.content}
+                      </Text>
+                    </ScrollView>
+                  </Animated.View>
+                );
+              }}
+            />
           </View>
-        </TouchableOpacity>
+        )}
+      </View>
 
       {journal.submitLoading && (
-        <BlurView intensity={15} style={styles.blurOverlay}>
+        <BlurView intensity={30} style={styles.blurOverlay}>
           <SpinningLoader size={40} />
         </BlurView>
       )}
@@ -214,179 +424,142 @@ export default function ResponseScreen() {
 }
 
 const styles = StyleSheet.create({
-  pageWrapper: {
-    flex: 1,
-    backgroundColor: colors.lightest,
-  },
-  pagePadding: {
-    flex: 1,
-    paddingHorizontal: 20, // side margins
-  },
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loaderText: { marginTop: 12, color: '#555', fontFamily: 'SpaceMono' },
+  fullscreen: { flex: 1, backgroundColor: colors.lightest },
 
-  // Original component styles (unchanged)
-  scrollContainer: {
-    paddingBottom: 90,
-    marginTop: 20,
-  },
-  block: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: '#333',
-    fontFamily: 'SpaceMono',
-    backgroundColor: colors.lighter,
-    padding: 12,
-    borderRadius: 8,
-  },
-  sectionTitle: {
-    marginTop: 20,
-    fontSize: 18,
-    fontFamily: 'SpaceMono',
-    fontWeight: '600',
-    marginBottom: 6,
-    color: colors.blue,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lighter,
-    paddingBottom: 4,
-  },
-  sectionTitleTop: {
-    marginTop: 5,
-    fontSize: 18,
-    fontFamily: 'SpaceMono',
-    fontWeight: '600',
-    marginBottom: 6,
-    color: colors.blue,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lighter,
-    paddingBottom: 4,
-  },
-  responseText: {
-    fontSize: 16,
-    lineHeight: 26,
-    fontFamily: 'SpaceMono',
-    color: '#444',
-  },
-  blurSection: {
-    position: 'relative',
-  },
-  insightContent: {
-    position: 'relative',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  moodRowContainer: {
+  header: {
+    paddingHorizontal: 30,
+    paddingTop: 70,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 10
   },
-  moodBox: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+  submitButtonTouchable: {
+    height: 42,
+    width: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    shadowOffset: {height: 0, width: 0},
-    elevation: 0
+    backgroundColor: '#b7f5b2ff',
+    borderRadius: 10,
   },
-  rightBoxesContainer: {
+  dateText: {
+    color: colors.light,
+    fontFamily: 'SpaceMonoBold',
+    letterSpacing: 1,
+  },
+  closeButtonTouchable: {
+    height: 42,
+    width: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
+
+  contentContainer: {
     flex: 1,
-    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
+
+  innerContentTop: {
+    // top block (prompt + answer) has natural height
+  },
+
+  title: {
+    fontSize: 16,
+    marginTop: 25,
+    color: colors.darkest,
+    textAlign: 'center',
+    fontFamily: 'SpaceMonoSemibold',
+    zIndex: 10
+  },
+  answerScrollView: {
+    maxHeight: 100,
+    marginTop: 15,
+    width: '90%',
+    alignSelf: 'center',
+    zIndex: 10,
+  },
+  answerScrollContent: {
+    flexGrow: 1,
+  },
+  answer: {
+    fontSize: 15,
+    lineHeight: 23,
+    color: colors.dark,
+    fontFamily: 'SpaceMono',
+    textAlign: 'center',
+  },
+
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  middle: {
+    flex: 1, // this is what makes it occupy remaining space
+    alignItems: 'center',
+    justifyContent: 'center', // centers within remaining height
+  },
+
+  moodImage: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: '-50%' }],
+    left: -80,
+    opacity: 0.4,
+  },
+
   statBox: {
+    height: 70,
+    width: '70%',
+    alignSelf: 'flex-end',
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    alignItems: 'center',
-    padding: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    shadowOffset: {height: 0, width: 0},
-    elevation: 0,
-    borderWidth: 1,
-    borderColor: colors.lighter,
+    padding: 10,
+    marginVertical: 12,
   },
-  statBoxTop: {
-    marginBottom: 5,
-  },
-  statBoxBottom: {
-    marginTop: 5,
-  },
-  statLabel: {
-    fontSize: 14,
-    fontFamily: 'SpaceMono',
-    color: '#333333',
-  },
+  statLabel: { fontSize: 15, color: '#666', fontFamily: 'SpaceMono' },
   statValue: {
     fontSize: 20,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 4,
     fontFamily: 'SpaceMono',
+    alignSelf: 'flex-end',
   },
+
   feelingsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 10,
-    gap: 10
+    gap: 8,
+    alignSelf: 'flex-end',
+    width: '87%',
   },
-  feelingBox: {
+  feelingTag: {
     flex: 1,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.lighter,
   },
   feelingText: {
-    color: 'black',
     fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
     fontFamily: 'SpaceMono',
   },
-  submitButton: {
-    position: 'absolute',
-    bottom: 0,
-    backgroundColor: colors.blue,
-    height: 72,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%'
-  },
-  submitButtonContent: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontFamily: 'SpaceMonoSemibold',
-  },
+
   personalityDeltaRow: {
-    marginTop: 30,
-    marginBottom: 10,
+    width: '81%',
+    alignSelf: 'flex-end',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginVertical: 20,
-    paddingHorizontal: 5,
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    shadowOffset: { height: 0, width: 0 },
+    paddingVertical: 14,
   },
   personalityDeltaBox: {
     alignItems: 'center',
@@ -422,6 +595,61 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'SpaceMono',
   },
+
+  insightsSection: {
+    marginHorizontal: -20,
+  },
+  insightsCard: {
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    height: 250,
+    alignSelf: 'center',
+  },
+  bgSpan: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '80%',
+    zIndex: 0,
+  },
+  insightsTitleInside: {
+    fontFamily: 'SpaceMonoSemibold',
+    fontSize: 16,
+    textAlign: 'center',
+    color: colors.darkest,
+    marginBottom: 8,
+    zIndex: 1,
+  },
+  insightsContentScrollView: {
+    flex: 1,
+    zIndex: 1,
+  },
+  insightsContentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  insightsContentText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: colors.dark,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    top: -450,
+    width: 650,
+    right: '50%',
+    transform: [{ translateX: 325 }],
+    height: 650,
+    borderRadius: 525,
+    backgroundColor: '#eeebfcff',
+  },
   blurOverlay: {
     position: 'absolute',
     top: 0,
@@ -430,5 +658,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 100,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
 });

@@ -9,32 +9,24 @@ import {
 } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { colors } from '~/constants/Colors'
+import * as Haptics from 'expo-haptics';
 
-const MIN_PASSWORD_LENGTH = 8
 
 interface SignUpStep4PasswordProps {
-  name: string
-  email: string
-  gender: string
   password: string
   onPasswordChange: (password: string) => void
   confirmPassword: string
   onConfirmPasswordChange: (confirmPassword: string) => void
   onNext: () => void
-  onBack: () => void
   onError: (message: string) => void
 }
 
 export default function SignUpStep4Password({ 
-  name, 
-  email, 
-  gender, 
   password,
   onPasswordChange,
   confirmPassword,
   onConfirmPasswordChange,
   onNext,
-  onBack,
   onError
 }: SignUpStep4PasswordProps) {
   const [focusedField, setFocusedField] = useState<string | null>(null)
@@ -45,8 +37,8 @@ export default function SignUpStep4Password({
       onError('Please enter a password')
       return
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      onError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+    if (password.length < 8) {
+      onError(`Password must be at least 8 characters`)
       return
     }
     if (!confirmPassword) {
@@ -85,6 +77,7 @@ export default function SignUpStep4Password({
         onSubmitEditing={() => {
           if (key === 'confirmPassword') {
             handleContinue()
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
           }
         }}
       />
@@ -99,13 +92,9 @@ export default function SignUpStep4Password({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <Text style={styles.title}>Create a password</Text>
-        <Text style={styles.subtitle}>Keep your account secure</Text>
+        <Text style={styles.subtitle}>Keep your account secure (Minimum 8 characters)</Text>
 
         {renderBlurInput('password', 'Password', password, onPasswordChange, true)}
-
-        {focusedField === 'password' && (
-          <Text style={styles.passwordRequirement}>Minimum {MIN_PASSWORD_LENGTH} characters</Text>
-        )}
 
         {renderBlurInput('confirmPassword', 'Confirm Password', confirmPassword, onConfirmPasswordChange, true)}
 
@@ -154,13 +143,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     padding: 20,
     fontSize: 16,
-    fontFamily: 'SpaceMono',
-  },
-  passwordRequirement: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-    fontSize: 12,
-    color: '#666',
     fontFamily: 'SpaceMono',
   }
 })

@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react-native";
 import AutoExpandingInput from "../other/AutoExpandingInput";
 import { colors } from "~/constants/Colors";
 
@@ -51,6 +52,9 @@ interface ChatFooterProps {
   showSuggestions: boolean;
   buttonsBottomPad: number;
   footerBottomAnim: Animated.Value;
+  isTabBarVisible?: boolean;
+  hideTabBar?: () => void;
+  showTabBar?: () => void;
 }
 
 export default function ChatFooter({
@@ -61,6 +65,9 @@ export default function ChatFooter({
   showSuggestions,
   buttonsBottomPad,
   footerBottomAnim,
+  isTabBarVisible,
+  hideTabBar,
+  showTabBar,
 }: ChatFooterProps) {
   return (
     <Animated.View
@@ -96,28 +103,42 @@ export default function ChatFooter({
           ))}
         </ScrollView>
       )}
-      <View style={styles.footerBottom}>
-        <AutoExpandingInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask anything"
-          placeholderTextColor="rgba(107, 107, 107, 1)"
-          minHeight={22}
-          maxHeight={120}
-          style={styles.input}
-          editable={!isLoading}
-          returnKeyType="send"
-          onSubmitEditing={onSubmit}
-          blurOnSubmit={false}
-          onLineCountChange={() => {}}
-        />
-        <TouchableOpacity
-          onPress={onSubmit}
-          disabled={isLoading}
-          style={styles.sendButton}
-        >
-          <Ionicons name="arrow-up" size={20} color="white" />
-        </TouchableOpacity>
+      <View style={styles.footerBottomContainer}>
+        {hideTabBar && showTabBar && (
+          <TouchableOpacity
+            onPress={isTabBarVisible ? hideTabBar : showTabBar}
+            style={styles.tabBarToggleButton}
+          >
+            {isTabBarVisible ? (
+              <Ionicons name="arrow-down" size={20} color={colors.darkest} />
+            ) : (
+              <Ionicons name="arrow-up" size={20} color={colors.darkest} />
+            )}
+          </TouchableOpacity>
+        )}
+        <View style={styles.footerBottom}>
+          <AutoExpandingInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Ask anything"
+            placeholderTextColor="rgba(107, 107, 107, 1)"
+            minHeight={22}
+            maxHeight={120}
+            style={styles.input}
+            editable={!isLoading}
+            returnKeyType="send"
+            onSubmitEditing={onSubmit}
+            blurOnSubmit={false}
+            onLineCountChange={() => {}}
+          />
+          <TouchableOpacity
+            onPress={onSubmit}
+            disabled={isLoading}
+            style={styles.sendButton}
+          >
+            <Ionicons name="arrow-up" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
     </Animated.View>
   );
@@ -136,14 +157,19 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
   },
-  footerBottom: {
+  footerBottomContainer: {
     width: "93%",
-    paddingHorizontal: 8,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 5,
+  },
+  footerBottom: {
+    flex: 1,
+    paddingHorizontal: 5,
     paddingLeft: 16,
     borderRadius: 27,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.lighter,
+    paddingVertical: 5,
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
@@ -164,8 +190,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     backgroundColor: "#fff",
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.lighter,
     justifyContent: "center",
   },
   suggestionSpacing: {
@@ -191,6 +215,13 @@ const styles = StyleSheet.create({
     color: colors.darkest,
     lineHeight: 22,
     marginBottom: 7,
+  },
+  tabBarToggleButton: {
+    padding: 12,
+    backgroundColor: "white",
+    borderRadius: 500,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sendButton: {
     marginLeft: 3,

@@ -1,13 +1,14 @@
-import React, { useMemo } from 'react';
-import { View, ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import React from 'react';
+import { View, ScrollView, StyleSheet, Text } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import JournalList from '~/components/files/JournalList';
 import Header from '~/components/other/Header';
 import SuccessBanner from '~/components/banners/SuccessBanner';
+import { useTabBar } from '~/context/TabBarContext';
 
 function formatDateDisplay(dateStr: string) {
   try {
@@ -32,10 +33,10 @@ function formatDateDisplay(dateStr: string) {
 function DayEntriesScreenInner() {
   const router = useRouter();
   const { date } = useLocalSearchParams<{ date: string }>();
-  const { fetchJournalsByDate } = useJournals();
-  const [entriesForDay, setEntriesForDay] = React.useState<JournalEntry[]>([]);
+  const { fetchJournalsByDate, entriesForDay, setEntriesForDay } = useJournals();
   const [loading, setLoading] = React.useState(true);
   const [successMessage, setSuccessMessage] = React.useState('');
+
 
   React.useEffect(() => {
     if (!date) {
@@ -63,8 +64,7 @@ function DayEntriesScreenInner() {
   };
 
   const handleDeleteSuccess = (deletedId: string) => {
-    // Update local state only, no refetch needed
-    setEntriesForDay(prev => prev.filter(entry => entry.id !== deletedId));
+    setEntriesForDay((prev) => prev.filter((entry) => entry.id !== deletedId));
   };
 
   const handleShowSuccess = (message: string) => {
@@ -73,29 +73,35 @@ function DayEntriesScreenInner() {
 
   return (
     <View style={styles.container}>
-    <SuccessBanner 
-      message={successMessage} 
-      onHide={() => setSuccessMessage('')} 
-    />
-    <Header
+      <SuccessBanner 
+        message={successMessage} 
+        onHide={() => setSuccessMessage('')} 
+      />
+      <Header
         title={date ? `${formatDateDisplay(date)}` : 'Entries'}
         leftIcon="chevron-back"
-        onLeftPress={() => (router.back())}/>
+        onLeftPress={() => router.back()}
+      />
 
       {loading ? (
         <View style={styles.center}>
           <SpinningLoader size={40} />
         </View>
       ) : entriesForDay.length > 0 ? (
-        <ScrollView
-          contentContainerStyle={styles.content}
-        >
-          <JournalList journals={entriesForDay} onSelect={handleOpen} onDeleteSuccess={handleDeleteSuccess} showSuccessMessage={handleShowSuccess} />
+        <ScrollView contentContainerStyle={styles.content}>
+          <JournalList
+            journals={entriesForDay}
+            onSelect={handleOpen}
+            onDeleteSuccess={handleDeleteSuccess}
+            showSuccessMessage={handleShowSuccess}
+          />
           <View style={{ height: 60 }} />
         </ScrollView>
       ) : (
         <View style={styles.center}>
-          <Text style={styles.centerText}>There are no entries for this date, we have just kept your mood safe for you.</Text>
+          <Text style={styles.centerText}>
+            There are no entries for this date, we have just kept your mood safe for you.
+          </Text>
         </View>
       )}
     </View>

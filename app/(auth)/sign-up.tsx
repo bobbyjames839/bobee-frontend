@@ -206,15 +206,11 @@ export default function SignUpScreen() {
       case 8:
         return (
           <SignUpStep4Password
-            name={name}
-            email={email}
-            gender={gender}
             password={password}
             onPasswordChange={setPassword}
             confirmPassword={confirmPassword}
             onConfirmPasswordChange={setConfirmPassword}
             onNext={handleNext}
-            onBack={handleBack}
             onError={setErrorMessage}
           />
         )

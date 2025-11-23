@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { colors } from '~/constants/Colors'
+import * as Haptics from 'expo-haptics';
 
 interface SignUpStep1NameProps {
   name: string
@@ -17,6 +18,7 @@ export default function SignUpStep1Name({ name, onNameChange, onNext, onBack, on
   const isDisabled = !name.trim()
 
   const handleSubmit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     if (!name.trim()) {
       onError('Please enter your name')
       return

@@ -1,25 +1,33 @@
 import { useRef, useCallback } from 'react';
 import { Animated } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useNavigationState } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 export function useFadeInAnimation(slideDistance: number = 30, duration: number = 400) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation();
   
-  // Track the previous route index to detect tab switches vs back navigation
-  const currentIndex = useNavigationState(state => state?.index);
-  const previousIndex = useRef(currentIndex);
+  // Track the previous tab index to detect actual tab switches
+  const getTabIndex = useCallback(() => {
+    try {
+      const parent = navigation.getParent();
+      return parent?.getState()?.index ?? 0;
+    } catch {
+      return 0;
+    }
+  }, [navigation]);
+  
+  const currentTabIndex = useRef(getTabIndex());
   const isReturningFromPush = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
-      // Detect if we're returning from a pushed screen
-      // If the tab index changed, it's a tab switch - always animate
-      // If we're marked as returning from push, don't animate
-      const isTabSwitch = currentIndex !== previousIndex.current;
+      const newTabIndex = getTabIndex();
+      const isTabSwitch = newTabIndex !== currentTabIndex.current;
       
-      if (isTabSwitch || !isReturningFromPush.current) {
+      // Only animate if it's a real tab switch (not returning from a pushed screen)
+      if (isTabSwitch && !isReturningFromPush.current) {
         // Reset animations
         fadeAnim.setValue(0);
         slideAnim.setValue(slideDistance);
@@ -39,8 +47,8 @@ export function useFadeInAnimation(slideDistance: number = 30, duration: number 
         ]).start();
       }
       
-      // Update the previous index
-      previousIndex.current = currentIndex;
+      // Update the previous tab index
+      currentTabIndex.current = newTabIndex;
       
       // Reset the flag
       isReturningFromPush.current = false;
@@ -49,7 +57,7 @@ export function useFadeInAnimation(slideDistance: number = 30, duration: number 
       return () => {
         isReturningFromPush.current = true;
       };
-    }, [fadeAnim, slideAnim, slideDistance, duration, currentIndex])
+    }, [fadeAnim, slideAnim, slideDistance, duration, getTabIndex])
   );
 
   return { fadeAnim, slideAnim };

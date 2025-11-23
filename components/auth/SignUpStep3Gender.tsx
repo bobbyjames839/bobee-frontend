@@ -2,6 +2,8 @@ import React from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { colors } from '~/constants/Colors'
 import { GenderMale, GenderFemale, Question } from 'phosphor-react-native'
+import * as Haptics from 'expo-haptics';
+
 
 interface SignUpStep3GenderProps {
   gender: string
@@ -52,7 +54,10 @@ export default function SignUpStep3Gender({ gender, onGenderChange, onNext, onBa
 
         <TouchableOpacity
           style={[styles.button, isDisabled && styles.buttonDisabled]}
-          onPress={onNext}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            onNext();
+          }}
           disabled={isDisabled}
           activeOpacity={0.85}
         >

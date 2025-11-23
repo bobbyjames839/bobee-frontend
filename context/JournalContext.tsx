@@ -1,4 +1,3 @@
-// context/JournalContext.tsx
 import React, { createContext, useContext } from 'react';
 import { useJournalRecording } from '~/hooks/useJournals';
 

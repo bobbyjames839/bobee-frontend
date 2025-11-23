@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { colors } from '~/constants/Colors'
+import * as Haptics from 'expo-haptics';
+
 
 interface SignUpStep6AgeProps {
   age: string
@@ -52,7 +54,10 @@ export default function SignUpStep6Age({ age, onAgeChange, onNext, onBack }: Sig
 
         <TouchableOpacity
           style={[styles.button, isDisabled && styles.buttonDisabled]}
-          onPress={onNext}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            onNext();
+          }}
           disabled={isDisabled}
           activeOpacity={0.85}
         >

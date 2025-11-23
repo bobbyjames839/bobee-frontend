@@ -37,7 +37,7 @@ export default function HomeScreen() {
       <View style={styles.bottomRightCircle} />
       <Image
         source={require('~/assets/images/home.png')} // update path if different
-        style={styles.homeImage}
+        style={[styles.homeImage, { opacity: 0.8 }]}
         resizeMode="contain"
       />
 

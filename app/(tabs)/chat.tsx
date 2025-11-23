@@ -133,7 +133,7 @@ export default function BobeeChatPage() {
               onPress={toggleSidebarWithHaptics}
               style={styles.headerButton}
             >
-              <TextAlignStart size={22} color={colors.blue} strokeWidth={2} />
+              <TextAlignStart size={22} color={colors.darkest} strokeWidth={2} />
             </TouchableOpacity>
             <Text
               style={{
@@ -148,7 +148,7 @@ export default function BobeeChatPage() {
               onPress={handleNewChat}
               style={styles.headerButton}
             >
-              <FilePen size={22} color={colors.blue} strokeWidth={2} />
+              <FilePen size={22} color={colors.darkest} strokeWidth={2} />
             </TouchableOpacity>
           </View>
 
@@ -174,18 +174,10 @@ export default function BobeeChatPage() {
             isLoading={isLoading}
             onSubmit={handleSubmit}
             isTabBarVisible={isTabBarVisible}
+            hideTabBar={hideTabBar}
+            showTabBar={showTabBar}
           />
         </Animated.View>
-
-        {!isTabBarVisible && (
-          <TouchableOpacity
-            style={styles.tabBarToggle}
-            onPress={showTabBar}
-            activeOpacity={0.8}
-          >
-            <ChevronUp size={23} color={colors.blue} strokeWidth={2.5} />
-          </TouchableOpacity>
-        )}
 
         {showTutorial && (
           <TutorialOverlay
@@ -197,6 +189,7 @@ export default function BobeeChatPage() {
             onNext={() => {
               setShowTutorial(false);
               navigate("/journal");
+              showTabBar();
             }}
             onSkip={() => setShowTutorial(false)}
           />
@@ -222,21 +215,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   headerButton: {
-    backgroundColor: "white",
-    borderRadius: 30,
-    padding: 8,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: colors.lighter,
-  },
-  tabBarToggle: {
-    position: "absolute",
-    bottom: -6,
-    left: 50,
-    backgroundColor: "white",
-    borderRadius: 6,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: colors.lighter,
+    height: 42,
+    width: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
   },
 });

@@ -31,6 +31,8 @@ interface JournalsContextValue {
   dailyMoods: Record<string, number>;
   fetchJournalsByDate: (date: string) => Promise<JournalEntry[]>;
   getJournalById: (id: string) => JournalEntry | undefined;
+  entriesForDay: JournalEntry[];
+  setEntriesForDay: React.Dispatch<React.SetStateAction<JournalEntry[]>>;
 }
 
 const JournalsContext = createContext<JournalsContextValue | undefined>(undefined);
@@ -41,6 +43,8 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
   const [loading, setLoading] = useState(false);
   const [allLoadedJournals, setAllLoadedJournals] = useState<Map<string, JournalEntry>>(new Map());
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
+  const [entriesForDay, setEntriesForDay] = React.useState<JournalEntry[]>([]);
+  
 
   const fetchJournals = useCallback(async () => {
     const user = auth.currentUser;
@@ -148,10 +152,9 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
         return updated;
       });
       
-      // Remove from local journals state
       setJournals(prev => prev.filter(j => j.id !== id));
-      
-      // Only refetch if the deleted journal was in the recent 3 list
+      setEntriesForDay((prev) => prev.filter((entry) => entry.id !== id));
+
       if (shouldRefetch && isInRecentThree) {
         await fetchJournals();
       }
@@ -200,6 +203,8 @@ export const JournalsProvider = ({ children }: { children: React.ReactNode }) =>
     dailyMoods,
     fetchJournalsByDate,
     getJournalById,
+    entriesForDay,
+    setEntriesForDay,
   };
 
   return <JournalsContext.Provider value={value}>{children}</JournalsContext.Provider>;

@@ -52,7 +52,7 @@ const JournalList: React.FC<Props> = ({ journals, onSelect, onDeleteSuccess, sho
 
   return (
     <>
-      <View>
+      <View style={{ paddingBottom: 90 }}>
         {journals.map((entry) => (
           <JournalCard
             key={entry.id}

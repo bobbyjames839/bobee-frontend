@@ -192,7 +192,7 @@ export default function AccountInfoScreen() {
 
         <View style={styles.container}>
           {/* Name */}
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>NAME</Text>
           <TextInput
             style={[
               styles.input,
@@ -220,7 +220,7 @@ export default function AccountInfoScreen() {
           </TouchableOpacity>
 
           {/* Email */}
-          <Text style={[styles.label, { marginTop: 24 }]}>Email</Text>
+          <Text style={[styles.label, { marginTop: 24 }]}>EMAIL</Text>
           <TextInput
             style={[
               styles.input,
@@ -283,18 +283,17 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'SpaceMono',
-    fontSize: 14,
+    fontSize: 13,
     color: colors.darkest,
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.lighter,
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 14,
+    fontFamily: 'SpaceMono',
+    marginBottom: 8,
     paddingHorizontal: 12,
     paddingVertical: 15,
-    fontFamily: 'SpaceMono',
   },
   inputDisabled: {
     color: colors.darkest,
@@ -311,8 +310,8 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 12,
     backgroundColor: colors.blue,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
   },
   buttonDisabled: {

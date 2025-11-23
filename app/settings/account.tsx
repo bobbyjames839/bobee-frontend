@@ -7,8 +7,8 @@ import { getAuth, signOut } from 'firebase/auth';
 import Constants from 'expo-constants';
 import Header from '~/components/other/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 
+const API_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 export default function AccountSettings() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function AccountSettings() {
     }, [])
   );
 
- const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async () => {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) return Alert.alert('Error', 'No user is currently signed in.');
@@ -65,9 +65,10 @@ export default function AccountSettings() {
   return (
     <>
       <Header
-          title='Account'
-          leftIcon="chevron-back"
-          onLeftPress={() => (router.back())}/>
+        title="Account"
+        leftIcon="chevron-back"
+        onLeftPress={() => router.back()}
+      />
       <Stack.Screen
         options={{
           title: 'Account',
@@ -87,41 +88,55 @@ export default function AccountSettings() {
       >
         <View style={styles.card}>
           <TouchableOpacity
-            style={styles.row}
             onPress={() => router.push('/settings/account/account-info')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.text}>Account Information</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.darkest}
-            />
+            <View>
+              <View style={styles.row}>
+                <Text style={styles.text}>Account Information</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.darkest}
+                />
+              </View>
+              <View style={styles.rowDivider} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.row}
             onPress={() => router.push('/settings/account/change-password')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.text}>Change Password</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.darkest}
-            />
+            <View>
+              <View style={styles.row}>
+                <Text style={styles.text}>Change Password</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.darkest}
+                />
+              </View>
+              <View style={styles.rowDivider} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.rowBottom}
             onPress={onPressDelete}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.text, styles.destructive]}>
-              {confirmDelete ? 'Confirm Delete' : 'Delete Account'}
-            </Text>
-            <Ionicons
-              name="trash-outline"
-              size={20}
-              color="red"
-            />
+            <View>
+              <View style={styles.rowBottom}>
+                <Text style={[styles.text, styles.destructive]}>
+                  {confirmDelete ? 'Confirm Delete' : 'Delete Account'}
+                </Text>
+                <Ionicons
+                  name="trash-outline"
+                  size={20}
+                  color="red"
+                />
+              </View>
+            </View>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -139,8 +154,6 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: colors.lighter,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -148,10 +161,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lighter,
   },
   rowBottom: {
     flexDirection: 'row',
@@ -159,6 +170,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 20,
+  },
+  rowDivider: {
+    height: 1,
+    width: '90%',          // 90% width
+    alignSelf: 'center',   // centered within the card
+    backgroundColor: colors.lighter,
   },
   text: {
     fontFamily: 'SpaceMono',

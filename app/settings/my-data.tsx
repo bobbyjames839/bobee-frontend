@@ -91,12 +91,6 @@ export default function MyDataScreen() {
         {banner}
 
         <View style={styles.card}>
-          <Text style={[styles.text, { marginBottom: 12 }]}>
-            <Text style={styles.title}>Overview{'\n'}</Text>
-            This section shows the persistent facts and personality paragraph generated from your usage.
-            We store only a minimal profile: a list of durable facts and a reflective paragraph. Contact
-            us to amend or delete this data.
-          </Text>
 
           {!loading && !error && (
             <>
@@ -128,13 +122,11 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 90 },
   card: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: colors.lighter,
-    borderRadius: 10,
+    borderRadius: 14,
     padding: 20,
   },
   title: {
-    fontFamily: 'SpaceMono',
+    fontFamily: 'SpaceMonoSemibold',
     fontSize: 16,
     color: colors.blue,
     fontWeight: 'bold',
@@ -151,9 +143,7 @@ const styles = StyleSheet.create({
   banner: {
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.lighter,
+    borderRadius: 14,
     backgroundColor: 'white',
     marginBottom: 12,
   },
