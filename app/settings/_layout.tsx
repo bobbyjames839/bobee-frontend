@@ -15,7 +15,6 @@ export default function SettingsLayout() {
       <Stack.Screen name="how" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="priv" />
-      <Stack.Screen name="sub" />
       <Stack.Screen name="account" />
       <Stack.Screen name="contact" />
     </Stack>

@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import AnimatedToggle from './AnimatedToggle';
 import { colors } from '~/constants/Colors';
+import * as Haptics from 'expo-haptics';
 
 type RangeKey = '7d' | '28d';
 interface MoodSeries { labels: string[]; values: Array<number | null> }
@@ -154,8 +155,8 @@ const buildLine = (vals: Array<number | null>) => {
         <Text style={styles.title}>Mood over time</Text>
         {hasAny && (
           <View style={styles.toggleRow}>
-            <AnimatedToggle label="1W" active={range === '7d'} onPress={() => setRange('7d')} />
-            <AnimatedToggle label="4W" active={range === '28d'} onPress={() => setRange('28d')} />
+            <AnimatedToggle label="1W" active={range === '7d'} onPress={() => { setRange('7d'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); }} />
+            <AnimatedToggle label="4W" active={range === '28d'} onPress={() => { setRange('28d'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); }} />
           </View>
         )}
       </View>

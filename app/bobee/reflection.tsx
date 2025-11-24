@@ -263,13 +263,7 @@ export default function ReflectionFlowPage() {
 
   const footerBottomPad = kbShown ? 10 : 25
   const replyActive = Boolean(selected && firstAiAnswer && !finalAiAnswer)
-  const scrollBottomPadding = replyActive
-    ? 140 + (kbShown ? 30 : 0)
-    : finalAiAnswer
-      ? Math.max(insets.bottom, 24)
-      : kbShown
-        ? 30
-        : 40
+
 
   const close = () => { 
     router.replace('/(tabs)/bobee?refresh=true')
@@ -332,29 +326,20 @@ export default function ReflectionFlowPage() {
 
       <KeyboardAvoidingView 
         style={styles.flex} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={[
-            styles.chatScroll,
-            {
-              paddingBottom: scrollBottomPadding
-            }
-          ]}
+          contentContainerStyle={styles.chatScroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
-          {/* AI Question Bubble */}
           <View style={styles.bubbleWrapper}>
             <View style={[styles.bubble, styles.aiBubble]}>
               <Text style={styles.aiText}>{question}</Text>
             </View>
           </View>
 
-          {/* Options */}
           <View style={styles.bubbleWrapper}>
             <View style={[styles.bubble, styles.userBubble]}>
               {parsedOptions.map((opt, i) => {
@@ -540,12 +525,10 @@ const styles = StyleSheet.create({
   },
   footerBottom: {
     width: '93%',
-    paddingHorizontal: 8,
+    paddingHorizontal: 5,
     paddingLeft: 16,
     borderRadius: 27,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.lighter,
+    paddingVertical: 5,
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -589,6 +572,7 @@ const styles = StyleSheet.create({
   pulseIcon: { alignSelf: 'flex-start', marginTop: 8 },
   pulseCircle: {
     width: 10,
+    marginTop: 5,
     marginLeft: 10,
     height: 10,
     borderRadius: 50,

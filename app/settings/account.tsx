@@ -1,18 +1,39 @@
 import React, { useState, useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useRouter, useFocusEffect, Stack } from 'expo-router';
+import { useRouter, useFocusEffect, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '~/constants/Colors';
 import { getAuth, signOut } from 'firebase/auth';
 import Constants from 'expo-constants';
 import Header from '~/components/other/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Trash2 } from 'lucide-react-native';
 
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 export default function AccountSettings() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const goBack = useCallback(() => {
+    if (returnTo === 'files') {
+      router.replace({ pathname: '/files', params: { skipAnimation: '1' } });
+    } else {
+      router.back();
+    }
+  }, [returnTo, router]);
+
+  const navigateWithinAccount = useCallback(
+    (path: string) => {
+      if (returnTo === 'files') {
+        router.push({ pathname: path as any, params: { returnTo: 'files' } });
+      } else {
+        router.push(path as any);
+      }
+    },
+    [returnTo, router]
+  );
+
 
   useFocusEffect(
     useCallback(() => {
@@ -67,14 +88,14 @@ export default function AccountSettings() {
       <Header
         title="Account"
         leftIcon="chevron-back"
-        onLeftPress={() => router.back()}
+        onLeftPress={goBack}
       />
       <Stack.Screen
         options={{
           title: 'Account',
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={goBack}
               style={{ paddingHorizontal: 8, marginLeft: -4 }}
             >
               <Ionicons name="chevron-back" size={24} color={colors.darkest} />
@@ -88,7 +109,7 @@ export default function AccountSettings() {
       >
         <View style={styles.card}>
           <TouchableOpacity
-            onPress={() => router.push('/settings/account/account-info')}
+            onPress={() => navigateWithinAccount('/settings/account/account-info')}
             activeOpacity={0.7}
           >
             <View>
@@ -105,7 +126,7 @@ export default function AccountSettings() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.push('/settings/account/change-password')}
+            onPress={() => navigateWithinAccount('/settings/account/change-password')}
             activeOpacity={0.7}
           >
             <View>
@@ -130,10 +151,9 @@ export default function AccountSettings() {
                 <Text style={[styles.text, styles.destructive]}>
                   {confirmDelete ? 'Confirm Delete' : 'Delete Account'}
                 </Text>
-                <Ionicons
-                  name="trash-outline"
+                <Trash2
                   size={20}
-                  color="red"
+                  color="#df3026ff"
                 />
               </View>
             </View>
@@ -173,8 +193,8 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     height: 1,
-    width: '90%',          // 90% width
-    alignSelf: 'center',   // centered within the card
+    width: '90%',          
+    alignSelf: 'center',   
     backgroundColor: colors.lighter,
   },
   text: {
@@ -183,6 +203,6 @@ const styles = StyleSheet.create({
     color: colors.darkest,
   },
   destructive: {
-    color: 'red',
+    color: '#df3026ff',
   },
 });

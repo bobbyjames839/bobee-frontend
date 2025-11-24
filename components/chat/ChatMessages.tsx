@@ -79,6 +79,7 @@ export default function ChatMessages({
                   style={{
                     width: 10,
                     marginLeft: 10,
+                    marginTop: 5,
                     height: 10,
                     borderRadius: 50,   // half of width/height
                     backgroundColor: colors.blue,
@@ -390,5 +391,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  pulseIcon: { alignSelf: "flex-start", marginTop: 8 },
+  pulseIcon: { alignSelf: "flex-start", marginTop: 8},
 });

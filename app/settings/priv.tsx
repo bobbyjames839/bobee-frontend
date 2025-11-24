@@ -1,16 +1,27 @@
-import { router } from 'expo-router';
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 
 export default function Privacy() {
+  const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+
+  const handleBack = useCallback(() => {
+    if (returnTo === 'files') {
+      router.replace({ pathname: '/files', params: { skipAnimation: '1' } });
+    } else {
+      router.back();
+    }
+  }, [returnTo, router]);
+
   return (
     <>
     <Header
         title='Privacy Statement'
         leftIcon="chevron-back"
-        onLeftPress={() => (router.back())}/>
+        onLeftPress={handleBack}/>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.box}>
         <Text style={styles.boxText}>

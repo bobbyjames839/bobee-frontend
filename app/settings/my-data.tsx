@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import Header from '~/components/other/Header';
 import { colors } from '~/constants/Colors';
 import Constants from 'expo-constants';
 import { getAuth } from 'firebase/auth';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 interface DataResponse {
   facts?: string[];
@@ -12,6 +13,8 @@ interface DataResponse {
 }
 
 export default function MyDataScreen() {
+  const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const API_BASE = Constants.expoConfig?.extra?.backendUrl as string;
   const [data, setData] = useState<DataResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,14 @@ export default function MyDataScreen() {
   const hasProfile =
     !!data && ((Array.isArray(data.facts) && data.facts.length > 0) || !!data.personality);
 
+  const handleBack = useCallback(() => {
+    if (returnTo === 'files') {
+      router.replace({ pathname: '/files', params: { skipAnimation: '1' } });
+    } else {
+      router.back();
+    }
+  }, [returnTo, router]);
+
   // Precompute banner UI (shown above everything)
   const banner = useMemo(() => {
     if (loading) {
@@ -81,7 +92,7 @@ export default function MyDataScreen() {
       <Header
         title="My Data"
         leftIcon="chevron-back"
-        onLeftPress={() => {}}
+        onLeftPress={handleBack}
       />
       <ScrollView
         style={styles.container}

@@ -3,7 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } 
 import { colors } from '~/constants/Colors'
 import SpinningLoader from '~/components/other/SpinningLoader'
 import ErrorBanner from '~/components/banners/ErrorBanner'
-import { CheckCircle, Brain, ChartLine, Compass, Graph, PencilLine,  } from 'phosphor-react-native'
+import { 
+  Sparkles,
+  LineChart,
+  CheckCircle2,
+  Brain,
+  Mic
+} from 'lucide-react-native'
 import TermsModal from './TermsModal'
 import PrivacyModal from './PrivacyModal'
 import Purchases, { PurchasesPackage } from 'react-native-purchases'
@@ -65,12 +71,14 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
     } finally { setLoading(false) }
   }
 
-  const features = [
-    { text: 'Instant AI-powered journal insights', icon: Brain },
-    { text: 'Track progress over time', icon: ChartLine },
-    { text: 'Complete daily goals', icon: Compass },
-    { text: 'Understand yourself better', icon: Graph }
-  ]
+const features = [
+  { text: 'Instant AI-powered journal insights', icon: Sparkles },
+  { text: 'Track progress over time', icon: LineChart },
+  { text: 'Complete daily goals', icon: CheckCircle2 },
+  { text: 'Understand yourself better', icon: Brain },
+  { text: 'Hands-free voice journaling', icon: Mic },
+]
+
 
   return (
     <View style={styles.root}>
@@ -94,7 +102,7 @@ export default function SignUpStep5FreeTrial({ onStartTrial }: SignUpStep5FreeTr
             const Icon = f.icon
             return (
               <View style={styles.row} key={i}>
-                <Icon size={28} color={colors.lightest} weight="fill" />
+                <Icon size={25} color={colors.lightest} />
                 <Text style={styles.rowText}>{f.text}</Text>
               </View>
             )

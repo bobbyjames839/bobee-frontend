@@ -2,13 +2,12 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, Text } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '~/constants/Colors';
 import useJournals, { JournalEntry } from '~/hooks/useFiles';
 import JournalList from '~/components/files/JournalList';
 import Header from '~/components/other/Header';
 import SuccessBanner from '~/components/banners/SuccessBanner';
-import { useTabBar } from '~/context/TabBarContext';
 
 function formatDateDisplay(dateStr: string) {
   try {
@@ -70,6 +69,7 @@ function DayEntriesScreenInner() {
   const handleShowSuccess = (message: string) => {
     setSuccessMessage(message);
   };
+
 
   return (
     <View style={styles.container}>

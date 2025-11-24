@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, Animated, TouchableOpacity } from 'react-native';
 import SpinningLoader from '~/components/other/SpinningLoader';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Settings } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { getAuth } from 'firebase/auth';
 import { colors } from '~/constants/Colors';
 import JournalCalendar from '~/components/files/JournalCalendar';
@@ -21,7 +22,6 @@ export default function FilesTabIndex() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const { refreshKey } = useJournalRefresh();
-  const { fadeAnim, slideAnim } = useFadeInAnimation();
 
   useEffect(() => {
     if (refreshKey > 0) {
@@ -57,19 +57,15 @@ export default function FilesTabIndex() {
             <SpinningLoader size={40} />
           </View>
       ) : (
-        <Animated.View 
-          style={{ 
-            flex: 1,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }}
-        >
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.userCard}>
               <Text style={styles.fadedTitle}>Your Entries</Text>
               <TouchableOpacity 
                 style={styles.settingsButton}
-                onPress={() => router.push('/settings')}
+                onPress={() => {
+                  router.push('/settings');
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                }}
                 activeOpacity={0.7}
               >
                 <Settings size={22} color={colors.darkest} strokeWidth={2} />
@@ -91,7 +87,6 @@ export default function FilesTabIndex() {
             />
 
           </ScrollView>
-        </Animated.View>
       )}
       {showTutorial && (
         <TutorialOverlay

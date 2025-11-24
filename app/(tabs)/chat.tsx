@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -17,15 +17,13 @@ import ChatSidebar from "~/components/chat/ChatSidebar";
 import { colors } from "~/constants/Colors";
 import TutorialOverlay from "~/components/other/TutorialOverlay";
 import { navigate } from "expo-router/build/global-state/routing";
-import { FilePen, TextAlignStart, ChevronUp } from "lucide-react-native";
+import { FilePen, TextAlignStart } from "lucide-react-native";
 import { useTabBar } from "~/context/TabBarContext";
 
 
 
 export default function BobeeChatPage() {
   const { isTabBarVisible, showTabBar, hideTabBar } = useTabBar();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
 
   const {
     input,
@@ -88,24 +86,8 @@ export default function BobeeChatPage() {
 
   useFocusEffect(
     useCallback(() => {
-      fadeAnim.setValue(0);
-      slideAnim.setValue(30);
-
       hideTabBar();
-
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, [fadeAnim, slideAnim, hideTabBar])
+    }, [hideTabBar])
   );
 
   useEffect(() => {
@@ -120,14 +102,6 @@ export default function BobeeChatPage() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 40}
       >
         <StatusBar barStyle="dark-content" backgroundColor={colors.lightest} />
-
-        <Animated.View
-          style={{
-            flex: 1,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
-        >
           <View style={styles.headerContainer}>
             <TouchableOpacity
               onPress={toggleSidebarWithHaptics}
@@ -177,7 +151,6 @@ export default function BobeeChatPage() {
             hideTabBar={hideTabBar}
             showTabBar={showTabBar}
           />
-        </Animated.View>
 
         {showTutorial && (
           <TutorialOverlay

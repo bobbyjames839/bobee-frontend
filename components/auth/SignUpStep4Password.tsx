@@ -92,7 +92,7 @@ export default function SignUpStep4Password({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <Text style={styles.title}>Create a password</Text>
-        <Text style={styles.subtitle}>Keep your account secure (Minimum 8 characters)</Text>
+        <Text style={styles.subtitle}>Keep your account secure (minimum 8 characters)</Text>
 
         {renderBlurInput('password', 'Password', password, onPasswordChange, true)}
 
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     borderColor: colors.blue,
   },
   input: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'white',
     padding: 20,
     fontSize: 16,
     fontFamily: 'SpaceMono',

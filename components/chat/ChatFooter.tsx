@@ -8,9 +8,9 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react-native";
 import AutoExpandingInput from "../other/AutoExpandingInput";
 import { colors } from "~/constants/Colors";
+import * as Haptics from 'expo-haptics';
 
 const SUGGESTIONS: Array<{
   title: string;
@@ -106,7 +106,13 @@ export default function ChatFooter({
       <View style={styles.footerBottomContainer}>
         {hideTabBar && showTabBar && (
           <TouchableOpacity
-            onPress={isTabBarVisible ? hideTabBar : showTabBar}
+            onPress={isTabBarVisible ? () => {
+              hideTabBar();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            } : () => {
+              showTabBar();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            }}
             style={styles.tabBarToggleButton}
           >
             {isTabBarVisible ? (

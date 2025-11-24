@@ -16,7 +16,6 @@ import SignUpStep9LearningStyle from '~/components/auth/SignUpStep9LearningStyle
 import SignUpStep10FreeTrial from '~/components/auth/SignUpStep5FreeTrial'
 import ErrorBanner from '~/components/banners/ErrorBanner'
 import Constants from 'expo-constants'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const API_URL = Constants.expoConfig?.extra?.backendUrl as string
 
@@ -110,7 +109,6 @@ export default function SignUpScreen() {
       }
 
       await signInWithEmailAndPassword(auth, email.trim(), password)
-      await AsyncStorage.setItem('showWelcomeOnce', '1')
       return true
     } catch (err: any) {
       console.error('Account creation error:', err)
@@ -128,8 +126,7 @@ export default function SignUpScreen() {
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        // Redirect new users to tutorial instead of journal
-        router.replace('/tutorial')
+        router.push('/tutorial')
       });
     } catch (err: any) {
       console.error('Failed to create account:', err)

@@ -11,6 +11,7 @@ import {
   useSpeechRecognitionEvent,
   ExpoSpeechRecognitionModule
 } from 'expo-speech-recognition';
+import * as Haptics from 'expo-haptics';
 
 const PERSONALITY_KEYS = [
   'resilience',
@@ -480,6 +481,7 @@ const stopRecording = async (istext: boolean) => {
 
   //toggle the recording, ie when we click the mic
   const toggleRecording = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (loading || aiResponse) return;
     isRecording ? stopRecording(false) : startRecording();
   };

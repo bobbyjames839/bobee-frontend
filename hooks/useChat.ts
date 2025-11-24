@@ -3,6 +3,7 @@ import { Animated, ScrollView } from 'react-native'
 import { getAuth } from 'firebase/auth'
 import Constants from 'expo-constants';
 import { auth } from '~/utils/firebase';
+import * as Haptics from 'expo-haptics';
 
 type HistoryItem = {
   question: string
@@ -224,6 +225,7 @@ export default function useBobee() {
 
 
   const handleNewChat = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setHistory([])
     setConversationId(null)
     setInput('')

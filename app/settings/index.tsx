@@ -90,7 +90,7 @@ export default function SettingsIndex() {
                   <Ionicons
                     name={item.icon}
                     size={24}
-                    color={item.destructive ? 'red' : colors.darkest}
+                    color={item.destructive ? '#df3026ff' : colors.darkest}
                     style={styles.leftIcon}
                   />
                   <Text style={[styles.menuText, item.destructive && styles.destructiveText]}>
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   destructiveText: {
-    color: 'red',
+    color: '#df3026ff',
   },
   menuIcon: {
     marginLeft: 'auto',

@@ -11,11 +11,9 @@ import { colors } from '~/constants/Colors'
 import SpinningLoader from '~/components/other/SpinningLoader'
 import TutorialOverlay from '~/components/other/TutorialOverlay';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useFadeInAnimation } from '~/hooks/useFadeInAnimation';
 
 export default function InsightsPage() {
   const { refreshKey } = useJournalRefresh()
-  const { fadeAnim, slideAnim } = useFadeInAnimation()
   const { stats, moodSeries, personality, topics, loading, fetchInsights } = useInsightsData()
   const router = useRouter();
   const { tour } = useLocalSearchParams<{ tour?: string }>();
@@ -44,20 +42,12 @@ export default function InsightsPage() {
             <SpinningLoader size={40} />
           </View>
         ) : (
-          <Animated.View 
-            style={{ 
-              flex: 1,
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }}
-          >
             <ScrollView contentContainerStyle={styles.scrollContent}>
               <HabitCards stats={stats} />
               <MoodChart series={moodSeries} />
               <TopicsSection topics={topics} />
               <PersonalitySection personalityStats={personality} />
             </ScrollView>
-          </Animated.View>
         )}
       </View>
       {showTutorial && (

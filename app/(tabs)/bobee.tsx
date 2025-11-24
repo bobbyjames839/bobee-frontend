@@ -27,7 +27,6 @@ import { colors } from "~/constants/Colors";
 import { NextMessageCountdown } from "~/components/bobee/NextMessageCountdown";
 import { useBobeeData } from "~/context/BobeeContext";
 import TutorialOverlay from "~/components/other/TutorialOverlay";
-import { useFadeInAnimation } from "~/hooks/useFadeInAnimation";
 
 export default function BobeeMainPage() {
   const {
@@ -44,7 +43,6 @@ export default function BobeeMainPage() {
   const { tour } = useLocalSearchParams<{ tour?: string }>();
   const [showTutorial, setShowTutorial] = useState(false);
   const suggestionIcons = [Lightbulb, CheckCircle2, ListTodo, Heart, Compass, Sun];
-  const { fadeAnim, slideAnim } = useFadeInAnimation();
 
   useEffect(() => {
     setShowTutorial(tour === "4");
@@ -70,13 +68,6 @@ export default function BobeeMainPage() {
             <SpinningLoader size={40} />
           </View>
         ) : (
-          <Animated.View 
-            style={{ 
-              flex: 1,
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }}
-          >
             <ScrollView contentContainerStyle={styles.scrollContent}>
               <NextMessageCountdown lastMessageAt={lastMessageAt} />
 
@@ -134,13 +125,12 @@ export default function BobeeMainPage() {
                     ]}
                   />
 
-                  {(tips.length > 0 ? tips : ["Wait for 24 hours, these are updated every 24 hours", "Wait for 24 hours, these are updated every 24 hours", "Wait for 24 hours, these are updated every 24 hours"]).map((s, i) => {
+                  {(tips.length > 0 ? tips : ["Please wait...", "These tips will appear soon.", "We update them every 24 hours"]).map((s, i) => {
                     const Icon = suggestionIcons[i % suggestionIcons.length];
-                    const iconTop = (ROW_HEIGHT - ICON_SIZE) / 2; // center within the row
+                    const iconTop = (ROW_HEIGHT - ICON_SIZE) / 2;
                     return (
                       <View key={i}>
                         <View style={[styles.suggestionItem, { height: ROW_HEIGHT }]}>
-                          {/* Fixed-size circular icon centered vertically, nudged left */}
                           <View
                             style={[
                               styles.suggestionIconContainer,
@@ -183,12 +173,11 @@ export default function BobeeMainPage() {
               <View style={styles.challengeRight}>
                 <Text style={styles.challengeLabel}>Micro Challenge</Text>
                 <Text style={styles.challengeText}>
-                  {microChallenge || "Wait for 24 hours, these are updated every 24 hours"}
+                  {microChallenge || "Your micro challenge will appear here soon."}
                 </Text>
               </View>
             </View>
             </ScrollView>
-          </Animated.View>
         )}
         
       </KeyboardAvoidingView>

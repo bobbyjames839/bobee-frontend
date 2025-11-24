@@ -119,10 +119,10 @@ export default function RootLayout() {
 
   const decideRoute = useMemo(
     () => async () => {
-      const root = (segments?.[0] ?? '') as string;
-      const inAuth = root === '(auth)';
-  // Include tutorial so user can view intro page without immediate redirect
-  const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial']);
+        const root = (segments?.[0] ?? '') as string;
+        const inAuth = root === '(auth)';
+        const finishingSignup = inAuth && segments?.[1] === 'sign-up'; 
+        const allowedWhenAuthed = new Set(['(tabs)', 'files', '(modals)', 'bobee', 'settings', 'journal', 'tutorial']);
 
       if (!isLoggedIn) {
         if (!inAuth) router.replace('/(auth)/main');
@@ -137,7 +137,7 @@ export default function RootLayout() {
         return;
       }
 
-      if (!allowedWhenAuthed.has(root)) {
+      if (!finishingSignup && !allowedWhenAuthed.has(root)) {
         router.replace('/(tabs)/journal');
       }
       setBootDone(true);

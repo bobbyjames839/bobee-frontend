@@ -13,7 +13,6 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '~/constants/Colors';
 import { auth } from '~/utils/firebase';
-import { useFadeInAnimation } from '~/hooks/useFadeInAnimation';
 import ErrorBanner from '~/components/banners/ErrorBanner';
 import SuccessBanner from '~/components/banners/SuccessBanner';
 import TutorialOverlay from '~/components/other/TutorialOverlay';
@@ -24,6 +23,7 @@ import JournalMic from '~/components/journal/JournalMic';
 import JournalLoading from '~/components/journal/JournalLoading';
 import { X, Shuffle, AudioLines, PenLine } from 'lucide-react-native';
 import { prompts } from '~/utils/journalPrompts';
+import * as Haptics from 'expo-haptics';
 
 export default function JournalMain() {
   const router = useRouter();
@@ -35,7 +35,6 @@ export default function JournalMain() {
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [isTextMode, setIsTextMode] = useState(false);
   const { tour } = useLocalSearchParams<{ tour?: string }>();
-  const { fadeAnim, slideAnim } = useFadeInAnimation();
 
   // Animation refs for transitions
   const buttonsOpacity = useRef(new Animated.Value(1)).current;
@@ -400,11 +399,7 @@ export default function JournalMain() {
       )}
 
       <Animated.View
-        style={[
-          styles.container,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-        ]}
-      >
+        style={styles.container}>
           <Animated.View
             style={[
               styles.pulseCircle,
@@ -428,7 +423,7 @@ export default function JournalMain() {
             <TouchableOpacity 
               onPress={handleShufflePrompt} 
               activeOpacity={0.7} 
-              disabled={journal.loading || journal.isRecording}
+              disabled={journal.loading || journal.isRecording || (isTextMode && journal.transcript.trim().length >= 10)}
               style={[styles.shuffleButtonTouchable, {opacity: journal.loading || journal.isRecording ? 0.3 : 1}]}
             >
               <Shuffle size={24} color={colors.dark} strokeWidth={2}  />
@@ -513,6 +508,7 @@ export default function JournalMain() {
                 autoFocus
                 onKeyPress={({ nativeEvent }) => {
                   if (nativeEvent.key === 'Enter') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     if (journal.transcript.trim().length >= 10 && !journal.loading) {
                       journal.stopRecording(true); // Submit the journal entry
                     }
@@ -740,7 +736,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     width: '100%',
-    height: 200,
+    height: 185,
     fontFamily: 'SpaceMono',
     fontSize: 17,
     color: colors.darkestblue,
